@@ -4,6 +4,7 @@ const healthRouter = require("./routes/health");
 const dbHealthRouter = require("./routes/dbHealth");
 const usersRouter = require("./routes/users");
 const authRouter = require("./routes/auth");
+const profileRouter = require("./routes/profile");
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use("/api", healthRouter);
 app.use("/api", dbHealthRouter);
 app.use("/api", usersRouter);
 app.use("/api", authRouter);
+app.use("/api", profileRouter);
 
 // Fallback for unknown routes
 app.use((req, res) => {

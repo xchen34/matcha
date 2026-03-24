@@ -6,7 +6,9 @@ const pool = require("../db");
 async function initDb() {
   try {
     const sqlPath = path.join(__dirname, "sql", "create_users_table.sql");
+    const profilesSqlPath = path.join(__dirname, "sql", "create_profiles_table.sql");
     const createUsersSql = fs.readFileSync(sqlPath, "utf8");
+    const createProfilesSql = fs.readFileSync(profilesSqlPath, "utf8");
     const migrateLegacyUsersSql = `
       ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(50);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100);
@@ -49,8 +51,9 @@ async function initDb() {
 
     await pool.query(createUsersSql);
     await pool.query(migrateLegacyUsersSql);
+    await pool.query(createProfilesSql);
 
-    console.log("Database initialized: users table is ready.");
+    console.log("Database initialized: users and profiles tables are ready.");
   } catch (error) {
     console.error("Failed to initialize database:", error.message);
     process.exitCode = 1;
