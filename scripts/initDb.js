@@ -19,7 +19,7 @@ async function initDb() {
       WHERE username IS NULL OR username = '';
 
       UPDATE users
-      SET first_name = COALESCE(NULLIF(name, ''), 'Unknown')
+      SET first_name = 'Unknown'
       WHERE first_name IS NULL OR first_name = '';
 
       UPDATE users
@@ -45,16 +45,6 @@ async function initDb() {
       CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users (email);
       CREATE UNIQUE INDEX IF NOT EXISTS users_username_key ON users (username);
 
-      DO $$
-      BEGIN
-        IF EXISTS (
-          SELECT 1
-          FROM information_schema.columns
-          WHERE table_name = 'users' AND column_name = 'name'
-        ) THEN
-          ALTER TABLE users ALTER COLUMN name DROP NOT NULL;
-        END IF;
-      END $$;
     `;
 
     await pool.query(createUsersSql);
