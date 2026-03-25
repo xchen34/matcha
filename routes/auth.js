@@ -19,6 +19,32 @@ router.post("/auth/register", async (req, res, next) => {
       });
     }
 
+    // Load common passwords from file and check if the provided password is too common
+    const fs = require("fs");
+    const path = require("path");
+    const commonPasswordsPath = path.join(
+      __dirname,
+      "..",
+      "common_passwords.txt",
+    );
+    let commonPasswords = [];
+    try {
+      const fileContent = fs.readFileSync(commonPasswordsPath, "utf-8");
+      commonPasswords = fileContent
+        .split(/\r?\n/)
+        .map((w) => w.trim())
+        .filter(Boolean);
+    } catch (e) {
+      commonPasswords = [];
+    }
+    if (commonPasswords.includes(password.toLowerCase())) {
+      return res
+        .status(400)
+        .json({
+          error: "Password is too common. Please choose a stronger password.",
+        });
+    }
+
     if (!isValidEmail(email)) {
       return res.status(400).json({ error: "Invalid email format" });
     }
@@ -48,7 +74,9 @@ router.post("/auth/register", async (req, res, next) => {
         return res.status(409).json({ error: "Username already exists" });
       }
 
-      return res.status(409).json({ error: "Email or username already exists" });
+      return res
+        .status(409)
+        .json({ error: "Email or username already exists" });
     }
 
     return next(error);
@@ -60,7 +88,9 @@ router.post("/auth/login", async (req, res, next) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ error: "username and password are required" });
+      return res
+        .status(400)
+        .json({ error: "username and password are required" });
     }
 
     const sql = `

@@ -11,6 +11,7 @@ function isNonEmptyString(value) {
 
 function parseUserIdFromRequest(req) {
   const rawUserId = req.header("x-user-id");
+  console.log("x-user-id reçu:", rawUserId);
 
   if (!rawUserId) {
     return null;

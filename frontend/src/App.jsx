@@ -184,9 +184,10 @@ function LoginPage({ onLogin }) {
   );
 }
 
-function ProfilePage({ onUnauthorized }) {
+// function ProfilePage({ onUnauthorized }) {
+function ProfilePage({ currentUser, onUnauthorized }) {
   const navigate = useNavigate();
-  const [profileUser, setProfileUser] = useState(readStoredUser());
+  // const [profileUser, setProfileUser] = useState(readStoredUser());
   const [form, setForm] = useState({
     biography: "",
     gender: "",
@@ -195,8 +196,8 @@ function ProfilePage({ onUnauthorized }) {
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const userId = profileUser?.id ?? null;
-
+  // const userId = profileUser?.id ?? null;
+  const userId= currentUser?.id ?? null;
   const loadProfile = useCallback(async () => {
     if (!userId) {
       setMessage("Please login first.");
@@ -218,15 +219,18 @@ function ProfilePage({ onUnauthorized }) {
         setLoading(false);
 
         if (response.status === 401) {
-          onUnauthorized();
-          setProfileUser(null);
-          navigate("/login");
+          // onUnauthorized();
+          // setProfileUser(null);
+          // navigate("/login");
+
+          setMessage("Not authorized. Please login again if needed.");
+          // Do not logout or navigate automatically
         }
 
         return;
       }
 
-      setProfileUser(data.user);
+      // setProfileUser(data.user); // plus utilisé, remplacé par currentUser
       setForm({
         biography: data.profile.biography || "",
         gender: data.profile.gender || "",
@@ -253,12 +257,17 @@ function ProfilePage({ onUnauthorized }) {
     event.preventDefault();
     setMessage("Submitting...");
 
+    // Ajout du log pour debug
+    console.log("handleSubmit userId:", userId);
+    const headers = buildApiHeaders({ id: userId }, {
+      "Content-Type": "application/json",
+    });
+    console.log("handleSubmit headers:", headers);
+
     try {
       const response = await fetch("/api/profile/me", {
         method: "PUT",
-        headers: buildApiHeaders({ id: userId }, {
-          "Content-Type": "application/json",
-        }),
+        headers,
         body: JSON.stringify(form),
       });
 
@@ -268,15 +277,13 @@ function ProfilePage({ onUnauthorized }) {
         setMessage(`Error: ${data.error || "Update failed"}`);
 
         if (response.status === 401) {
-          onUnauthorized();
-          setProfileUser(null);
-          navigate("/login");
+          setMessage("Not authorized. Please login again if needed.");
         }
 
         return;
       }
 
-      setProfileUser(data.user);
+      // setProfileUser(data.user); // plus utilisé, remplacé par currentUser
       setForm({
         biography: data.profile.biography || "",
         gender: data.profile.gender || "",
@@ -292,8 +299,10 @@ function ProfilePage({ onUnauthorized }) {
   return (
     <section className="card">
       <h2>Profile</h2>
-      {profileUser && (
-        <p className="muted">@{profileUser.username} · {profileUser.email}</p>
+      {currentUser && (
+        <p className="muted">
+          Username: @{currentUser.username} · Email: {currentUser.email}
+        </p>
       )}
       {loading ? (
         <p>Loading...</p>
@@ -389,7 +398,10 @@ function App() {
           path="/profile"
           element={
             currentUser ? (
-              <ProfilePage onUnauthorized={logout} />
+              // <ProfilePage onUnauthorized={logout} />
+              // <ProfilePage onUnauthorized={() => {}} />
+              <ProfilePage currentUser={currentUser} onUnauthorized={() => {}} />
+
             ) : (
               <Navigate to="/login" replace />
             )
