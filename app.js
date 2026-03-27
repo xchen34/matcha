@@ -5,6 +5,7 @@ const dbHealthRouter = require("./routes/dbHealth");
 const usersRouter = require("./routes/users");
 const authRouter = require("./routes/auth");
 const profileRouter = require("./routes/profile");
+const likesRouter = require("./routes/likes");
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use("/api", dbHealthRouter);
 app.use("/api", usersRouter);
 app.use("/api", authRouter);
 app.use("/api", profileRouter);
+app.use("/api", likesRouter);
 
 // Fallback for unknown routesFallback for unknown routes：是兜底路由，只有当前面所有路由/方法都没匹配到时才执行，返回 404。
 app.use((req, res) => {

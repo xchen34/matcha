@@ -12,10 +12,18 @@ const pool = require("../db");
  */
 async function initDb() {
   try {
-    const sqlPath = path.join(__dirname, "sql", "create_users_table.sql");
-    const profilesSqlPath = path.join(__dirname, "sql", "create_profiles_table.sql");
-    const createUsersSql = fs.readFileSync(sqlPath, "utf8"); // 读取 create_users_table.sql 文件内容，得到创建 users 表的 SQL 语句。utf8 参数确保正确解析文本文件。
+    const usersSqlPath = path.join(__dirname, "sql", "create_users_table.sql");
+    const createUsersSql = fs.readFileSync(usersSqlPath, "utf8"); // 创建 users 表
+
+    const profilesSqlPath = path.join(
+      __dirname,
+      "sql",
+      "create_profiles_table.sql",
+    );
     const createProfilesSql = fs.readFileSync(profilesSqlPath, "utf8");
+
+    const likesSqlPath = path.join(__dirname, "sql", "create_likes_table.sql");
+    const createLikesSql = fs.readFileSync(likesSqlPath, "utf8");
     const migrateLegacyUsersSql = `
       ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(50);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100);
@@ -58,10 +66,11 @@ async function initDb() {
 
     // 执行 SQL 语句，创建 users 表和 profiles 表，并进行迁移。每条 SQL 语句都会被发送到数据库执行，确保数据库结构符合应用的需求。迁移脚本会处理现有数据的兼容性问题，添加必要的字段并设置默认值，以便新旧数据都能正常工作。
     await pool.query(createUsersSql);
-    await pool.query(migrateLegacyUsersSql);
     await pool.query(createProfilesSql);
+    await pool.query(createLikesSql);
+    await pool.query(migrateLegacyUsersSql);
 
-    console.log("Database initialized: users and profiles tables are ready.");
+    console.log("Database initialized: users, profiles, likes tables are ready.",);
   } catch (error) {
     console.error("Failed to initialize database:", error.message);
     process.exitCode = 1;
