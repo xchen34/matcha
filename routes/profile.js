@@ -84,6 +84,19 @@ router.get("/profile/me", async (req, res, next) => {
 
     const row = result.rows[0];
 
+    // Calculate age with birthdate 
+    function getAge(birthDate) {
+      if (!birthDate) return null;
+      const today = new Date();
+      const dob = new Date(birthDate);
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age--;
+      }
+      return age;
+    }
+
     return res.json({
       user: {
         id: row.user_id,
@@ -99,6 +112,7 @@ router.get("/profile/me", async (req, res, next) => {
         sexual_preference: row.sexual_preference || "",
         biography: row.biography || "",
         birth_date: row.birth_date,
+        age: getAge(row.birth_date),
         city: row.city || "",
         latitude: row.latitude,
         longitude: row.longitude,
@@ -120,7 +134,7 @@ router.put("/profile/me", async (req, res, next) => {
       });
     }
 
-    const { biography, gender, sexual_preference, city } = req.body;
+    const { biography, gender, sexual_preference, city, birth_date } = req.body;
 
     if (!isNonEmptyString(biography)) {
       return res.status(400).json({ error: "biography is required" });
@@ -162,11 +176,8 @@ router.put("/profile/me", async (req, res, next) => {
         $2,
         $3,
         $4,
-        COALESCE(
-          (SELECT birth_date FROM profiles WHERE user_id = $1),
-          (CURRENT_DATE - INTERVAL '18 years')::date
-        ),
-        $5,
+        COALESCE($5, (SELECT birth_date FROM profiles WHERE user_id = $1), (CURRENT_DATE - INTERVAL '18 years')::date),
+        $6,
         COALESCE((SELECT fame_rating FROM profiles WHERE user_id = $1), 0)
       )
       ON CONFLICT (user_id)
@@ -174,7 +185,8 @@ router.put("/profile/me", async (req, res, next) => {
         biography = EXCLUDED.biography,
         gender = EXCLUDED.gender,
         sexual_preference = EXCLUDED.sexual_preference,
-        city = EXCLUDED.city
+        city = EXCLUDED.city,
+        birth_date = COALESCE(EXCLUDED.birth_date, profiles.birth_date)
       RETURNING
         user_id,
         biography,
@@ -192,6 +204,7 @@ router.put("/profile/me", async (req, res, next) => {
       gender,
       sexual_preference,
       biography.trim(),
+      birth_date || null,
       city.trim(),
     ];
 

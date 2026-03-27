@@ -1,0 +1,93 @@
+.like-container {
+    position: absolute;
+    bottom: 1.2em;
+    right: 1.5em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3em;
+}
+
+.like-match-labels {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2em;
+}
+
+.like-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.3em 0.6em;
+    outline: none;
+    transition: transform 0.1s;
+    display: flex;
+    align-items: center;
+}
+
+.like-btn:active {
+    transform: scale(0.92);
+}
+
+.like-btn .heart {
+    display: inline-block;
+    font-size: 1.5em;
+    border-radius: 50%;
+    padding: 0.15em 0.22em;
+    transition: background 0.2s, color 0.2s;
+}
+
+.like-btn.liked .heart {
+    color: #000000;
+}
+
+.like-btn:not(.liked) .heart {
+    filter: drop-shadow(0 0 0.5px #000) drop-shadow(0 0 1.5px #000);
+}
+
+.user-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5em;
+    justify-content: flex-start;
+}
+
+.user-card {
+    background: #fff;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 1em;
+    box-shadow: 0 2px 8px #0001;
+    padding: 1.2em 1.5em 1em 1.5em;
+    margin: 0.5em 0;
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+    transition: box-shadow 0.2s, border 0.2s;
+}
+
+.user-card:hover {
+    box-shadow: 0 4px 16px #e74c3c22;
+    border: 1.5px solid #e74c3c;
+}
+
+.match {
+    color: #e74c3c;
+    font-weight: bold;
+    font-size: 1.1em;
+    letter-spacing: 0.5px;
+}
+
+.like-row {
+    position: absolute;
+    bottom: 1.2em;
+    right: 1.5em;
+    display: flex;
+    align-items: center;
+    flex-direction: row-reverse;
+    gap: 8px;
+}

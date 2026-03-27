@@ -46,6 +46,7 @@ h1 {
   margin: 4px 0 6px;
   font-size: clamp(42px, 8vw, 78px);
   line-height: 0.95;
+  color: #111827;
 }
 
 .sub {
@@ -82,7 +83,6 @@ button {
 .nav a:hover,
 button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.12);
 }
 
 .card {
@@ -95,6 +95,7 @@ button:hover {
 
 .card h2 {
   margin-top: 0;
+  color: black;
 }
 
 form {

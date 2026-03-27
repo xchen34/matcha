@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import "./App.css";
-
+import UserCard from "./components/UserCard";
+import FindMatchPage from "./pages/FindMatchPage";
+import { buildApiHeaders } from "./utils.js";
 const STORAGE_KEY = "matcha.currentUser";
 
 function readStoredUser() {
@@ -22,15 +24,6 @@ function readStoredUser() {
   }
 }
 
-function buildApiHeaders(currentUser, extraHeaders = {}) {
-  const headers = { ...extraHeaders };
-
-  if (currentUser?.id) {
-    headers["x-user-id"] = String(currentUser.id);
-  }
-
-  return headers;
-}
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -184,10 +177,8 @@ function LoginPage({ onLogin }) {
   );
 }
 
-// function ProfilePage({ onUnauthorized }) {
 function ProfilePage({ currentUser, onUnauthorized }) {
   const navigate = useNavigate();
-  // const [profileUser, setProfileUser] = useState(readStoredUser());
   const [form, setForm] = useState({
     biography: "",
     gender: "",
@@ -196,7 +187,6 @@ function ProfilePage({ currentUser, onUnauthorized }) {
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  // const userId = profileUser?.id ?? null;
   const userId= currentUser?.id ?? null;
   const loadProfile = useCallback(async () => {
     if (!userId) {
@@ -219,18 +209,12 @@ function ProfilePage({ currentUser, onUnauthorized }) {
         setLoading(false);
 
         if (response.status === 401) {
-          // onUnauthorized();
-          // setProfileUser(null);
-          // navigate("/login");
-
           setMessage("Not authorized. Please login again if needed.");
-          // Do not logout or navigate automatically
         }
 
         return;
       }
 
-      // setProfileUser(data.user); // plus utilisé, remplacé par currentUser
       setForm({
         biography: data.profile.biography || "",
         gender: data.profile.gender || "",
@@ -283,7 +267,6 @@ function ProfilePage({ currentUser, onUnauthorized }) {
         return;
       }
 
-      // setProfileUser(data.user); // plus utilisé, remplacé par currentUser
       setForm({
         biography: data.profile.biography || "",
         gender: data.profile.gender || "",
@@ -383,6 +366,7 @@ function App() {
         {!currentUser && <NavLink to="/login">Login</NavLink>}
         {!currentUser && <NavLink to="/register">Create Account</NavLink>}
         {currentUser && <NavLink to="/profile">My Profile</NavLink>}
+        {currentUser && <NavLink to="/find-match">Find your match</NavLink>}
         {currentUser && (
           <button type="button" className="secondary" onClick={logout}>
             Logout
@@ -398,14 +382,15 @@ function App() {
           path="/profile"
           element={
             currentUser ? (
-              // <ProfilePage onUnauthorized={logout} />
-              // <ProfilePage onUnauthorized={() => {}} />
               <ProfilePage currentUser={currentUser} onUnauthorized={() => {}} />
-
             ) : (
               <Navigate to="/login" replace />
             )
           }
+        />
+        <Route
+          path="/find-match"
+          element={<FindMatchPage currentUser={currentUser} />}
         />
       </Routes>
     </main>
