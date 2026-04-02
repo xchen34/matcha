@@ -227,12 +227,12 @@ function ProfilePage({ currentUser }) {
   const [tagOptions, setTagOptions] = useState([]);
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [locationValidation, setLocationValidation] = useState(null);
-  const [selectedCitySuggestionKey, setSelectedCitySuggestionKey] = useState("");
-  const [selectedNeighborhoodSuggestionKey, setSelectedNeighborhoodSuggestionKey] = useState("");
+  const [cityNeighborhoodOptions, setCityNeighborhoodOptions] = useState([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingGeo, setLoadingGeo] = useState(false);
   const [validatingLocation, setValidatingLocation] = useState(false);
+  const [isCitySuggestionsOpen, setIsCitySuggestionsOpen] = useState(false);
   const userId = currentUser?.id ?? null;
   const hasManualLocationInput =
     (form.city || "").trim().length > 0 ||
@@ -242,9 +242,21 @@ function ProfilePage({ currentUser }) {
     !validatingLocation &&
     Boolean(locationValidation?.is_valid) &&
     hasManualLocationInput;
+  const isCitySelected =
+    (form.city || "").trim().length > 0 &&
+    !validatingLocation &&
+    Boolean(locationValidation?.city_exists);
 
   function buildSuggestionKey(suggestion) {
     return `${suggestion.display_name}-${suggestion.latitude}-${suggestion.longitude}`;
+  }
+
+  function normalizeLocationPrefix(value) {
+    return (value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
   }
 
   const citySuggestionOptions = useMemo(() => {
@@ -258,16 +270,43 @@ function ProfilePage({ currentUser }) {
       }));
   }, [locationSuggestions]);
 
-  const neighborhoodSuggestionOptions = useMemo(() => {
-    return locationSuggestions
-      .filter((item) => (item.neighborhood || "").trim().length > 0)
-      .map((item) => ({
-        key: buildSuggestionKey(item),
-        city: item.city || "",
-        neighborhood: item.neighborhood,
-        label: item.display_name,
-      }));
-  }, [locationSuggestions]);
+  const neighborhoodByCitySuggestions = useMemo(() => {
+    const selectedCity = normalizeLocationPrefix(form.city);
+    if (!selectedCity) return [];
+
+    const byNeighborhood = new Map();
+    for (const item of locationSuggestions) {
+      const itemCity = normalizeLocationPrefix(item.city);
+      const itemNeighborhood = (item.neighborhood || "").trim();
+      if (!itemNeighborhood || itemCity !== selectedCity) continue;
+
+      const neighborhoodKey = normalizeLocationPrefix(itemNeighborhood);
+      if (!byNeighborhood.has(neighborhoodKey)) {
+        byNeighborhood.set(neighborhoodKey, {
+          value: itemNeighborhood,
+          label: `${itemNeighborhood} - ${item.display_name}`,
+        });
+      }
+    }
+
+    return Array.from(byNeighborhood.values())
+      .sort((a, b) => a.value.localeCompare(b.value, undefined, { sensitivity: "base" }))
+      .slice(0, 20);
+  }, [locationSuggestions, form.city]);
+
+  const neighborhoodByCityOptions =
+    cityNeighborhoodOptions.length > 0
+      ? cityNeighborhoodOptions
+      : neighborhoodByCitySuggestions;
+
+  const cityAutocompleteOptions = useMemo(() => {
+    const prefix = normalizeLocationPrefix(form.city);
+    if (!prefix) return [];
+
+    return citySuggestionOptions
+      .filter((item) => normalizeLocationPrefix(item.city).startsWith(prefix))
+      .slice(0, 8);
+  }, [citySuggestionOptions, form.city]);
 
   const loadProfile = useCallback(async () => {
     if (!userId) {
@@ -357,22 +396,27 @@ function ProfilePage({ currentUser }) {
 
   function handleChange(event) {
     const { name, value, type, checked } = event.target;
+
+    if (name === "city") {
+      setForm((prev) => ({
+        ...prev,
+        city: value,
+        neighborhood: "",
+      }));
+    } else {
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+    }
 
-    if (
-      name === "city" ||
-      name === "neighborhood" ||
-      name === "latitude" ||
-      name === "longitude" ||
-      name === "gps_consent"
-    ) {
+    if (name === "city" || name === "neighborhood") {
+      setLocationValidation(null);
+    }
+
+    if (name === "latitude" || name === "longitude" || name === "gps_consent") {
       setLocationValidation(null);
       setLocationSuggestions([]);
-      setSelectedCitySuggestionKey("");
-      setSelectedNeighborhoodSuggestionKey("");
     }
   }
 
@@ -452,8 +496,6 @@ function ProfilePage({ currentUser }) {
             }));
             setLocationValidation(null);
             setLocationSuggestions([]);
-            setSelectedCitySuggestionKey("");
-            setSelectedNeighborhoodSuggestionKey("");
             setMessage(
               "GPS location detected. Verify city/neighborhood before saving.",
             );
@@ -546,23 +588,13 @@ function ProfilePage({ currentUser }) {
   }
 
   function applyCitySuggestion(option) {
-    setSelectedCitySuggestionKey(option.key);
     setForm((prev) => ({
       ...prev,
       city: option.city,
-      neighborhood: prev.neighborhood || option.neighborhood,
+      neighborhood: "",
     }));
+    setIsCitySuggestionsOpen(false);
     setMessage("City suggestion selected.");
-  }
-
-  function applyNeighborhoodSuggestion(option) {
-    setSelectedNeighborhoodSuggestionKey(option.key);
-    setForm((prev) => ({
-      ...prev,
-      neighborhood: option.neighborhood,
-      city: prev.city || option.city,
-    }));
-    setMessage("Neighborhood suggestion selected.");
   }
 
   useEffect(() => {
@@ -592,6 +624,69 @@ function ProfilePage({ currentUser }) {
     form.longitude,
     form.gps_consent,
   ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCityNeighborhoods() {
+      if (!userId || !isCitySelected) {
+        setCityNeighborhoodOptions([]);
+        return;
+      }
+
+      try {
+        const params = new URLSearchParams();
+        params.set("city", form.city.trim());
+        params.set("limit", "20");
+
+        const response = await fetch(
+          `/api/profile/city-neighborhoods?${params.toString()}`,
+          {
+            headers: buildApiHeaders({ id: userId }),
+          },
+        );
+        const data = await response.json();
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        const options = Array.isArray(data.neighborhoods)
+          ? data.neighborhoods.map((item) => ({
+              value: item.name,
+              label: `${item.name} - ${item.display_name}`,
+            }))
+          : [];
+
+        if (!cancelled) {
+          setCityNeighborhoodOptions(options);
+        }
+      } catch {
+        if (!cancelled) {
+          setCityNeighborhoodOptions([]);
+        }
+      }
+    }
+
+    loadCityNeighborhoods();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, isCitySelected, form.city]);
+
+  function handleCityInputChange(event) {
+    handleChange(event);
+    setIsCitySuggestionsOpen(true);
+
+    const typed = normalizeLocationPrefix(event.target.value);
+    if (!typed) return;
+
+    const matched = citySuggestionOptions.find(
+      (item) => normalizeLocationPrefix(item.city) === typed,
+    );
+    if (matched) {
+      applyCitySuggestion(matched);
+    }
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -683,7 +778,7 @@ function ProfilePage({ currentUser }) {
       {loading ? (
         <p className="text-sm text-slate-500">Loading...</p>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
           <textarea
             name="biography"
             placeholder="Biography"
@@ -721,35 +816,39 @@ function ProfilePage({ currentUser }) {
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <input
-                name="city"
-                placeholder="City"
-                value={form.city}
-                onChange={handleChange}
-                className={inputClass}
-              />
-
-              {citySuggestionOptions.length > 0 && (
-                <select
-                  value={selectedCitySuggestionKey}
-                  onChange={(event) => {
-                    const option = citySuggestionOptions.find(
-                      (item) => item.key === event.target.value,
-                    );
-                    if (option) {
-                      applyCitySuggestion(option);
-                    }
+              <div className="relative">
+                <input
+                  name="city"
+                  placeholder="City"
+                  value={form.city}
+                  onChange={handleCityInputChange}
+                  onFocus={() => setIsCitySuggestionsOpen(true)}
+                  onBlur={() => {
+                    setTimeout(() => setIsCitySuggestionsOpen(false), 120);
                   }}
-                  className={selectClass}
-                >
-                  <option value="">Suggestions for city (full address)</option>
-                  {citySuggestionOptions.slice(0, 6).map((option) => (
-                    <option key={option.key} value={option.key}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              )}
+                  className={`${inputClass} ${cityAutocompleteOptions.length > 0 ? "rounded-b-none" : ""}`}
+                  autoComplete="new-password"
+                />
+
+                {isCitySuggestionsOpen && cityAutocompleteOptions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full z-50 rounded-b-xl border border-t-0 border-slate-200 bg-white shadow-lg pointer-events-auto">
+                    {cityAutocompleteOptions.map((option) => (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          applyCitySuggestion(option);
+                        }}
+                        onClick={() => applyCitySuggestion(option)}
+                        className="block w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-50 border-b last:border-b-0 border-slate-100"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {(form.city || "").trim().length > 0 && (
                 <p className={`text-xs ${locationValidation?.city_exists ? "text-emerald-700" : "text-amber-700"}`}>
@@ -763,35 +862,22 @@ function ProfilePage({ currentUser }) {
             </div>
 
             <div className="space-y-1">
-              <input
-                name="neighborhood"
-                placeholder="Neighborhood"
-                value={form.neighborhood}
-                onChange={handleChange}
-                className={inputClass}
-              />
-
-              {neighborhoodSuggestionOptions.length > 0 && (
+              <div className="relative">
                 <select
-                  value={selectedNeighborhoodSuggestionKey}
-                  onChange={(event) => {
-                    const option = neighborhoodSuggestionOptions.find(
-                      (item) => item.key === event.target.value,
-                    );
-                    if (option) {
-                      applyNeighborhoodSuggestion(option);
-                    }
-                  }}
+                  name="neighborhood"
+                  value={form.neighborhood}
+                  onChange={handleChange}
                   className={selectClass}
+                  disabled={!isCitySelected}
                 >
-                  <option value="">Suggestions for neighborhood (full address)</option>
-                  {neighborhoodSuggestionOptions.slice(0, 6).map((option) => (
-                    <option key={option.key} value={option.key}>
+                  <option value="">None</option>
+                  {neighborhoodByCityOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
                 </select>
-              )}
+              </div>
 
               {(form.neighborhood || "").trim().length > 0 && (
                 <p className={`text-xs ${locationValidation?.neighborhood_exists ? "text-emerald-700" : "text-amber-700"}`}>
@@ -800,6 +886,12 @@ function ProfilePage({ currentUser }) {
                     : locationValidation?.neighborhood_exists
                       ? "Neighborhood exists"
                       : "Neighborhood not verified yet"}
+                </p>
+              )}
+
+              {!isCitySelected && (
+                <p className="text-xs text-slate-500">
+                  Select a valid city first. Neighborhood is optional (default: None).
                 </p>
               )}
             </div>
