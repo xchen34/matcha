@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
+import { FaLocationArrow } from "react-icons/fa";
 import UserCard from "./components/UserCard";
 import FindMatchPage from "./pages/FindMatchPage";
 import { buildApiHeaders } from "./utils.js";
@@ -52,6 +53,7 @@ function RegisterPage() {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   }
+
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -210,8 +212,11 @@ function LoginPage({ onLogin }) {
   );
 }
 
-function ProfilePage({ currentUser }) {
+function ProfilePage({ currentUser, onProfileUpdate }) {
   const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
     biography: "",
     gender: "",
     sexual_preference: "",
@@ -221,6 +226,7 @@ function ProfilePage({ currentUser }) {
     latitude: "",
     longitude: "",
     tags: [],
+    photos: [],
   });
   
   const [selectedTag, setSelectedTag] = useState("");
@@ -234,6 +240,11 @@ function ProfilePage({ currentUser }) {
   const [validatingLocation, setValidatingLocation] = useState(false);
   const [isCitySuggestionsOpen, setIsCitySuggestionsOpen] = useState(false);
   const userId = currentUser?.id ?? null;
+
+  function persistUser(user) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    if (onProfileUpdate) onProfileUpdate(user);
+  }
   const validationCacheRef = useRef(new Map());
   const cityNeighborhoodCacheRef = useRef(new Map());
   const hasManualLocationInput =
@@ -347,6 +358,9 @@ function ProfilePage({ currentUser }) {
       }
 
       setForm({
+        first_name: data.user?.first_name || "",
+        last_name: data.user?.last_name || "",
+        email: data.user?.email || "",
         biography: data.profile.biography || "",
         gender: data.profile.gender || "",
         sexual_preference: data.profile.sexual_preference || "",
@@ -362,6 +376,7 @@ function ProfilePage({ currentUser }) {
             ? String(data.profile.longitude)
             : "",
         tags: Array.isArray(data.profile.tags) ? data.profile.tags : [],
+        photos: Array.isArray(data.profile.photos) ? data.profile.photos : [],
       });
     } catch (error) {
       setMessage(`Error: ${error.message}`);
@@ -373,6 +388,7 @@ function ProfilePage({ currentUser }) {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -415,10 +431,10 @@ function ProfilePage({ currentUser }) {
         neighborhood: "",
       }));
     } else {
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+      setForm((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
     }
 
     if (name === "city" || name === "neighborhood") {
@@ -429,6 +445,59 @@ function ProfilePage({ currentUser }) {
       setLocationValidation(null);
       setLocationSuggestions([]);
     }
+  }
+
+  function handlePhotoUpload(event) {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+    const remaining = Math.max(0, 5 - form.photos.length);
+    const slice = files.slice(0, remaining);
+    if (slice.length === 0) return;
+
+    const readers = slice.map(
+      (file) =>
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () =>
+            resolve({
+              data_url: String(reader.result),
+              is_primary: false,
+              name: file.name,
+            });
+          reader.readAsDataURL(file);
+        }),
+    );
+
+    Promise.all(readers).then((newPhotos) => {
+      setForm((prev) => {
+        const merged = [...prev.photos, ...newPhotos];
+        if (!merged.some((p) => p.is_primary) && merged.length > 0) {
+          merged[0].is_primary = true;
+        }
+        return { ...prev, photos: merged };
+      });
+    });
+    event.target.value = "";
+  }
+
+  function setPrimaryPhoto(index) {
+    setForm((prev) => ({
+      ...prev,
+      photos: prev.photos.map((photo, i) => ({
+        ...photo,
+        is_primary: i === index,
+      })),
+    }));
+  }
+
+  function removePhoto(index) {
+    setForm((prev) => {
+      const next = prev.photos.filter((_, i) => i !== index);
+      if (next.length > 0 && !next.some((p) => p.is_primary)) {
+        next[0].is_primary = true;
+      }
+      return { ...prev, photos: next };
+    });
   }
 
   function normalizeTag(tag) {
@@ -736,6 +805,9 @@ function ProfilePage({ currentUser }) {
     );
 
     const payload = {
+      first_name: form.first_name,
+      last_name: form.last_name,
+      email: form.email,
       biography: form.biography,
       gender: form.gender,
       sexual_preference: form.sexual_preference,
@@ -745,6 +817,7 @@ function ProfilePage({ currentUser }) {
       latitude: form.latitude,
       longitude: form.longitude,
       tags: form.tags,
+      photos: form.photos,
     };
 
     try {
@@ -768,6 +841,9 @@ function ProfilePage({ currentUser }) {
 
       setForm((prev) => ({
         ...prev,
+        first_name: data.user?.first_name || prev.first_name,
+        last_name: data.user?.last_name || prev.last_name,
+        email: data.user?.email || prev.email,
         biography: data.profile.biography || "",
         gender: data.profile.gender || "",
         sexual_preference: data.profile.sexual_preference || "",
@@ -783,7 +859,11 @@ function ProfilePage({ currentUser }) {
             ? String(data.profile.longitude)
             : "",
         tags: Array.isArray(data.profile.tags) ? data.profile.tags : prev.tags,
+        photos: Array.isArray(data.profile.photos) ? data.profile.photos : prev.photos,
       }));
+      if (data.user) {
+        persistUser(data.user);
+      }
       setMessage("Success: profile updated");
     } catch (error) {
       setMessage(`Error: ${error.message}`);
@@ -809,40 +889,182 @@ function ProfilePage({ currentUser }) {
         <p className="text-sm text-slate-500">Loading...</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
-          <textarea
-            name="biography"
-            placeholder="Biography"
-            value={form.biography}
-            onChange={handleChange}
-            className={textareaClass}
-            rows={4}
-          />
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+                First name
+              </label>
+              <input
+                name="first_name"
+                placeholder="First name"
+                value={form.first_name}
+                onChange={handleChange}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+                Last name
+              </label>
+              <input
+                name="last_name"
+                placeholder="Last name"
+                value={form.last_name}
+                onChange={handleChange}
+                className={inputClass}
+              />
+            </div>
+          </div>
 
-          <select
-            name="gender"
-            value={form.gender}
-            onChange={handleChange}
-            className={selectClass}
-          >
-            <option value="">Select gender</option>
-            <option value="male">male</option>
-            <option value="female">female</option>
-            <option value="non_binary">non_binary</option>
-            <option value="other">other</option>
-          </select>
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              Email address
+            </label>
+            <input
+              name="email"
+              type="email"
+              placeholder="Email address"
+              value={form.email}
+              onChange={handleChange}
+              className={inputClass}
+            />
+          </div>
 
-          <select
-            name="sexual_preference"
-            value={form.sexual_preference}
-            onChange={handleChange}
-            className={selectClass}
-          >
-            <option value="">Select sexual preference</option>
-            <option value="male">male</option>
-            <option value="female">female</option>
-            <option value="both">both</option>
-            <option value="other">other</option>
-          </select>
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              Bio
+            </label>
+            <textarea
+              name="biography"
+              placeholder="Biography"
+              value={form.biography}
+              onChange={handleChange}
+              className={textareaClass}
+              rows={4}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              Gender
+            </label>
+            <select
+              name="gender"
+              value={form.gender}
+              onChange={handleChange}
+              className={selectClass}
+            >
+              <option value="">Select gender</option>
+              <option value="male">male</option>
+              <option value="female">female</option>
+              <option value="non_binary">non_binary</option>
+              <option value="other">other</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              Sexual preference
+            </label>
+            <select
+              name="sexual_preference"
+              value={form.sexual_preference}
+              onChange={handleChange}
+              className={selectClass}
+            >
+              <option value="">Select sexual preference</option>
+              <option value="male">male</option>
+              <option value="female">female</option>
+              <option value="both">both</option>
+              <option value="other">other</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+                Photos (max 5)
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoUpload}
+                className="text-xs text-slate-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {form.photos.map((photo, index) => (
+                <div
+                  key={`${photo.id || "new"}-${index}`}
+                  className={`relative overflow-hidden rounded-xl border ${photo.is_primary ? "border-brand" : "border-slate-200"}`}
+                >
+                  <img
+                    src={photo.data_url}
+                    alt={`Upload ${index + 1}`}
+                    className="h-32 w-full object-cover"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/50 px-2 py-1 text-xs text-white">
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryPhoto(index)}
+                      className="hover:underline"
+                    >
+                      {photo.is_primary ? "Primary" : "Set primary"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(index)}
+                      className="hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {form.photos.length === 0 && (
+                <div className="col-span-2 sm:col-span-3 rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                  No photos yet. Upload up to 5 images.
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              Location
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                name="gps_consent"
+                checked={form.gps_consent}
+                onChange={handleChange}
+              />
+              I consent to GPS-based location
+            </label>
+
+            <button
+              type="button"
+              className={secondaryButtonClass}
+              onClick={useCurrentLocation}
+              disabled={loadingGeo || !form.gps_consent}
+            >
+              <span className="inline-flex items-center gap-2">
+                <FaLocationArrow className="text-slate-700" />
+                {loadingGeo ? "Locating..." : "Use my position"}
+              </span>
+            </button>
+
+            <span className="text-xs text-slate-500">
+              Enable GPS consent to use location or neighborhood.
+            </span>
+          </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -898,7 +1120,7 @@ function ProfilePage({ currentUser }) {
                   value={form.neighborhood}
                   onChange={handleChange}
                   className={selectClass}
-                  disabled={!isCitySelected}
+                  disabled={!isCitySelected || !form.gps_consent}
                 >
                   <option value="">None</option>
                   {neighborhoodByCityOptions.map((option) => (
@@ -919,9 +1141,15 @@ function ProfilePage({ currentUser }) {
                 </p>
               )}
 
-              {!isCitySelected && (
+              {!isCitySelected && form.gps_consent && (
                 <p className="text-xs text-slate-500">
                   Select a valid city first. Neighborhood is optional (default: None).
+                </p>
+              )}
+
+              {!form.gps_consent && (
+                <p className="text-xs text-slate-500">
+                  Neighborhood is disabled for manual input. Enable GPS consent to use it.
                 </p>
               )}
             </div>
@@ -935,46 +1163,7 @@ function ProfilePage({ currentUser }) {
             </p>
           )}
 
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              name="gps_consent"
-              checked={form.gps_consent}
-              onChange={handleChange}
-            />
-            I consent to GPS-based location
-          </label>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              className={secondaryButtonClass}
-              onClick={useCurrentLocation}
-              disabled={loadingGeo}
-            >
-              {loadingGeo ? "Locating..." : "Use current GPS location"}
-            </button>
-            <span className="text-xs text-slate-500">
-              If disabled, city/neighborhood must be provided manually.
-            </span>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-3">
-            <input
-              name="latitude"
-              placeholder="Latitude"
-              value={form.latitude}
-              onChange={handleChange}
-              className={inputClass}
-            />
-            <input
-              name="longitude"
-              placeholder="Longitude"
-              value={form.longitude}
-              onChange={handleChange}
-              className={inputClass}
-            />
-          </div>
+          {/* Latitude/Longitude UI hidden for now */}
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Interests (tags)</label>
@@ -1123,7 +1312,11 @@ function App() {
           path="/profile"
           element={
             currentUser ? (
-              <ProfilePage currentUser={currentUser} onUnauthorized={() => {}} />
+              <ProfilePage
+                currentUser={currentUser}
+                onUnauthorized={() => {}}
+                onProfileUpdate={setCurrentUser}
+              />
             ) : (
               <Navigate to="/login" replace />
             )

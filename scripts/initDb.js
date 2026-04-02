@@ -24,6 +24,10 @@ async function initDb() {
 
     const likesSqlPath = path.join(__dirname, "sql", "create_likes_table.sql");
     const createLikesSql = fs.readFileSync(likesSqlPath, "utf8");
+    const photosSqlPath = path.join(__dirname, "sql", "create_user_photos_table.sql");
+    const createPhotosSql = fs.readFileSync(photosSqlPath, "utf8");
+    const viewsSqlPath = path.join(__dirname, "sql", "create_views_table.sql");
+    const createViewsSql = fs.readFileSync(viewsSqlPath, "utf8");
     const tagsSqlPath = path.join(__dirname, "sql", "create_tags_table.sql");
     const createTagsSql = fs.readFileSync(tagsSqlPath, "utf8");
     const seedDefaultTagsSqlPath = path.join(
@@ -91,6 +95,8 @@ async function initDb() {
     await pool.query(createUsersSql);
     await pool.query(createProfilesSql);
     await pool.query(createLikesSql);
+    await pool.query(createPhotosSql);
+    await pool.query(createViewsSql);
     await pool.query(createTagsSql);
     await pool.query(seedDefaultTagsSql);
     await pool.query(createProfileTagsSql);

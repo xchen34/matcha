@@ -21,6 +21,32 @@ router.get("/users/:id/like", async (req, res, next) => {
   }
 });
 
+// POST /api/users/:id/view — record that current user viewed user :id
+router.post("/users/:id/view", async (req, res, next) => {
+  try {
+    const viewer_user_id = req.header("x-user-id");
+    const viewed_user_id = req.params.id;
+    if (!viewer_user_id || !viewed_user_id) {
+      return res.status(400).json({
+        error: "viewer_user_id (header) et viewed_user_id (param) requis",
+      });
+    }
+    if (viewer_user_id === viewed_user_id) {
+      return res.status(200).json({ message: "Self view ignored" });
+    }
+    const sql = `
+      INSERT INTO profile_views (viewer_user_id, viewed_user_id, created_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (viewer_user_id, viewed_user_id)
+      DO UPDATE SET created_at = NOW()
+    `;
+    await pool.query(sql, [viewer_user_id, viewed_user_id]);
+    res.json({ message: "View recorded" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/matches — recommandations of users (same city first, then popularity)
 router.get("/matches", async (req, res, next) => {
   try {
@@ -154,6 +180,54 @@ router.get("/matches", async (req, res, next) => {
       };
     });
     res.json(users);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/profile/likes — users who liked current user
+router.get("/profile/likes", async (req, res, next) => {
+  try {
+    const currentUserId = req.header("x-user-id");
+    if (!currentUserId) {
+      return res.status(400).json({ error: "x-user-id header requis" });
+    }
+    const result = await pool.query(
+      `
+      SELECT u.id, u.username, u.email, l.created_at
+      FROM likes l
+      JOIN users u ON u.id = l.liker_user_id
+      WHERE l.liked_user_id = $1
+      ORDER BY l.created_at DESC
+      LIMIT 100
+      `,
+      [currentUserId],
+    );
+    res.json({ users: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/profile/views — users who viewed current user
+router.get("/profile/views", async (req, res, next) => {
+  try {
+    const currentUserId = req.header("x-user-id");
+    if (!currentUserId) {
+      return res.status(400).json({ error: "x-user-id header requis" });
+    }
+    const result = await pool.query(
+      `
+      SELECT u.id, u.username, u.email, v.created_at
+      FROM profile_views v
+      JOIN users u ON u.id = v.viewer_user_id
+      WHERE v.viewed_user_id = $1
+      ORDER BY v.created_at DESC
+      LIMIT 100
+      `,
+      [currentUserId],
+    );
+    res.json({ users: result.rows });
   } catch (error) {
     next(error);
   }

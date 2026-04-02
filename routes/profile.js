@@ -28,6 +28,10 @@ function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 function parseUserIdFromRequest(req) {
   const rawUserId = req.header("x-user-id");
   if (!rawUserId) return null;
@@ -73,6 +77,44 @@ function parseOptionalCoordinate(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return null;
   return parsed;
+}
+
+function normalizePhotosInput(photos) {
+  if (photos === undefined) return null;
+  if (!Array.isArray(photos)) return null;
+  if (photos.length > 5) return { error: "A maximum of 5 photos is allowed" };
+  const normalized = [];
+  let hasPrimary = false;
+  for (const item of photos) {
+    if (!item || typeof item.data_url !== "string") {
+      return { error: "Each photo must include a data_url string" };
+    }
+    const dataUrl = item.data_url.trim();
+    if (!dataUrl.startsWith("data:image/")) {
+      return { error: "Only image data URLs are allowed" };
+    }
+    if (dataUrl.length > 400000) {
+      return { error: "Photo payload is too large (max ~400KB)" };
+    }
+    const isPrimary = Boolean(item.is_primary);
+    if (isPrimary) hasPrimary = true;
+    normalized.push({ data_url: dataUrl, is_primary: isPrimary });
+  }
+  if (!hasPrimary && normalized.length > 0) {
+    normalized[0].is_primary = true;
+  } else if (hasPrimary) {
+    let foundPrimary = false;
+    for (const photo of normalized) {
+      if (photo.is_primary) {
+        if (!foundPrimary) {
+          foundPrimary = true;
+        } else {
+          photo.is_primary = false;
+        }
+      }
+    }
+  }
+  return { photos: normalized };
 }
 
 function getAge(birthDate) {
@@ -566,7 +608,7 @@ router.get("/profile/me", async (req, res, next) => {
       });
     }
 
-    const [profileResult, tagsResult] = await Promise.all([
+    const [profileResult, tagsResult, photosResult] = await Promise.all([
       pool.query(
         `
         SELECT
@@ -604,6 +646,15 @@ router.get("/profile/me", async (req, res, next) => {
         `,
         [currentUserId],
       ),
+      pool.query(
+        `
+        SELECT id, data_url, is_primary
+        FROM user_photos
+        WHERE user_id = $1
+        ORDER BY is_primary DESC, id ASC
+        `,
+        [currentUserId],
+      ),
     ]);
 
     if (profileResult.rows.length === 0) {
@@ -634,6 +685,11 @@ router.get("/profile/me", async (req, res, next) => {
         longitude: row.longitude,
         tags: tagsResult.rows.map((entry) => entry.name),
         fame_rating: row.fame_rating ?? 0,
+        photos: photosResult.rows.map((item) => ({
+          id: item.id,
+          data_url: item.data_url,
+          is_primary: item.is_primary,
+        })),
       },
     });
   } catch (error) {
@@ -654,6 +710,9 @@ router.put("/profile/me", async (req, res, next) => {
     }
 
     const {
+      first_name,
+      last_name,
+      email,
       biography,
       gender,
       sexual_preference,
@@ -664,6 +723,7 @@ router.put("/profile/me", async (req, res, next) => {
       latitude,
       longitude,
       tags,
+      photos,
     } = req.body;
 
     if (!isNonEmptyString(biography)) {
@@ -761,8 +821,43 @@ router.put("/profile/me", async (req, res, next) => {
       }
     }
 
+    let normalizedPhotos = null;
+    if (photos !== undefined) {
+      const photoResult = normalizePhotosInput(photos);
+      if (photoResult && photoResult.error) {
+        return res.status(400).json({ error: photoResult.error });
+      }
+      normalizedPhotos = photoResult ? photoResult.photos : null;
+    }
+
+    const normalizedFirstName = isNonEmptyString(first_name)
+      ? first_name.trim()
+      : null;
+    const normalizedLastName = isNonEmptyString(last_name)
+      ? last_name.trim()
+      : null;
+    const normalizedEmail = isNonEmptyString(email) ? email.trim() : null;
+
+    if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
     await client.query("BEGIN");
     inTransaction = true;
+
+    if (normalizedFirstName || normalizedLastName || normalizedEmail) {
+      await client.query(
+        `
+        UPDATE users
+        SET
+          first_name = COALESCE($1, first_name),
+          last_name = COALESCE($2, last_name),
+          email = COALESCE($3, email)
+        WHERE id = $4
+        `,
+        [normalizedFirstName, normalizedLastName, normalizedEmail, currentUserId],
+      );
+    }
 
     const updated = await client.query(
       `
@@ -867,12 +962,58 @@ router.put("/profile/me", async (req, res, next) => {
       [currentUserId],
     );
 
+    if (normalizedPhotos !== null) {
+      await client.query("DELETE FROM user_photos WHERE user_id = $1", [
+        currentUserId,
+      ]);
+      for (const photo of normalizedPhotos) {
+        await client.query(
+          `
+          INSERT INTO user_photos (user_id, data_url, is_primary)
+          VALUES ($1, $2, $3)
+          `,
+          [currentUserId, photo.data_url, photo.is_primary],
+        );
+      }
+    }
+
+    const updatedUserResult = await client.query(
+      `
+      SELECT id, email, username, first_name, last_name, email_verified, created_at
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [currentUserId],
+    );
+
     await client.query("COMMIT");
     inTransaction = false;
 
     const profile = updated.rows[0];
+    const updatedUser = updatedUserResult.rows[0];
+    const photosResult = await client.query(
+      `
+      SELECT id, data_url, is_primary
+      FROM user_photos
+      WHERE user_id = $1
+      ORDER BY is_primary DESC, id ASC
+      `,
+      [currentUserId],
+    );
     return res.json({
       message: "Profile updated successfully",
+      user: updatedUser
+        ? {
+            id: updatedUser.id,
+            email: updatedUser.email,
+            username: updatedUser.username,
+            first_name: updatedUser.first_name,
+            last_name: updatedUser.last_name,
+            email_verified: updatedUser.email_verified,
+            created_at: updatedUser.created_at,
+          }
+        : undefined,
       profile: {
         gender: profile.gender,
         sexual_preference: profile.sexual_preference,
@@ -885,6 +1026,11 @@ router.put("/profile/me", async (req, res, next) => {
         longitude: profile.longitude,
         tags: tagsResult.rows.map((entry) => entry.name),
         fame_rating: profile.fame_rating,
+        photos: photosResult.rows.map((item) => ({
+          id: item.id,
+          data_url: item.data_url,
+          is_primary: item.is_primary,
+        })),
       },
     });
   } catch (error) {
