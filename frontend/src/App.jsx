@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import UserCard from "./components/UserCard";
 import FindMatchPage from "./pages/FindMatchPage";
@@ -234,6 +234,8 @@ function ProfilePage({ currentUser }) {
   const [validatingLocation, setValidatingLocation] = useState(false);
   const [isCitySuggestionsOpen, setIsCitySuggestionsOpen] = useState(false);
   const userId = currentUser?.id ?? null;
+  const validationCacheRef = useRef(new Map());
+  const cityNeighborhoodCacheRef = useRef(new Map());
   const hasManualLocationInput =
     (form.city || "").trim().length > 0 ||
     (form.neighborhood || "").trim().length > 0;
@@ -257,6 +259,15 @@ function ProfilePage({ currentUser }) {
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function getValidationCacheKey(city, neighborhood, latitude, longitude) {
+    return [
+      normalizeLocationPrefix(city),
+      normalizeLocationPrefix(neighborhood),
+      latitude || "",
+      longitude || "",
+    ].join("|");
   }
 
   const citySuggestionOptions = useMemo(() => {
@@ -529,6 +540,13 @@ function ProfilePage({ currentUser }) {
     const neighborhood = (form.neighborhood || "").trim();
     const latitude = (form.latitude || "").trim();
     const longitude = (form.longitude || "").trim();
+    const cacheKey = getValidationCacheKey(city, neighborhood, latitude, longitude);
+    const cached = validationCacheRef.current.get(cacheKey);
+    if (cached) {
+      setLocationValidation(cached.validation || null);
+      setLocationSuggestions(cached.suggestions || []);
+      return;
+    }
 
     if (!city && !neighborhood && (!latitude || !longitude)) {
       if (!silent) {
@@ -566,6 +584,10 @@ function ProfilePage({ currentUser }) {
 
       setLocationValidation(data.validation || null);
       setLocationSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+      validationCacheRef.current.set(cacheKey, {
+        validation: data.validation || null,
+        suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+      });
 
       if (data.validation?.is_valid) {
         if (!silent) {
@@ -613,7 +635,7 @@ function ProfilePage({ currentUser }) {
 
     const handle = setTimeout(() => {
       validateLocationInput({ silent: true });
-    }, 450);
+    }, 900);
 
     return () => clearTimeout(handle);
   }, [
@@ -631,6 +653,13 @@ function ProfilePage({ currentUser }) {
     async function loadCityNeighborhoods() {
       if (!userId || !isCitySelected) {
         setCityNeighborhoodOptions([]);
+        return;
+      }
+
+      const cityCacheKey = normalizeLocationPrefix(form.city);
+      const cachedNeighborhoods = cityNeighborhoodCacheRef.current.get(cityCacheKey);
+      if (cachedNeighborhoods) {
+        setCityNeighborhoodOptions(cachedNeighborhoods);
         return;
       }
 
@@ -658,6 +687,7 @@ function ProfilePage({ currentUser }) {
           : [];
 
         if (!cancelled) {
+          cityNeighborhoodCacheRef.current.set(cityCacheKey, options);
           setCityNeighborhoodOptions(options);
         }
       } catch {
