@@ -4,6 +4,25 @@ const pool = require("../db");
 const router = express.Router();
 const allowedGenders = ["male", "female", "non_binary", "other"];
 const allowedPreferences = ["male", "female", "both", "other"];
+const GEO_CACHE_TTL_MS = 5 * 60 * 1000;
+const geocodeCache = new Map();
+
+function getCachedValue(cacheKey) {
+  const cached = geocodeCache.get(cacheKey);
+  if (!cached) return null;
+  if (cached.expiresAt < Date.now()) {
+    geocodeCache.delete(cacheKey);
+    return null;
+  }
+  return cached.value;
+}
+
+function setCachedValue(cacheKey, value) {
+  geocodeCache.set(cacheKey, {
+    value,
+    expiresAt: Date.now() + GEO_CACHE_TTL_MS,
+  });
+}
 
 function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
@@ -67,18 +86,37 @@ function getAge(birthDate) {
 }
 
 async function reverseGeocode(latitude, longitude) {
-  const endpoint = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&addressdetails=1`;
-  const response = await fetch(endpoint, {
-    headers: {
-      "User-Agent": "matcha/1.0 (education project)",
-      Accept: "application/json",
-    },
-  });
-  if (!response.ok) throw new Error("Reverse geocoding service unavailable");
+  const cacheKey = `reverse:${latitude}:${longitude}`;
+  const cached = getCachedValue(cacheKey);
+  if (cached) return cached;
 
-  const data = await response.json();
+  const endpoint = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&addressdetails=1&accept-language=en`;
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      headers: {
+        "User-Agent": "matcha/1.0 (education project)",
+        Accept: "application/json",
+        "Accept-Language": "en",
+      },
+    });
+  } catch {
+    return { city: "", neighborhood: "", display_name: "" };
+  }
+
+  if (!response.ok) {
+    return { city: "", neighborhood: "", display_name: "" };
+  }
+
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    return { city: "", neighborhood: "", display_name: "" };
+  }
+
   const address = data.address || {};
-  return {
+  const resolved = {
     city:
       address.city ||
       address.town ||
@@ -93,6 +131,9 @@ async function reverseGeocode(latitude, longitude) {
       "",
     display_name: data.display_name || "",
   };
+
+  setCachedValue(cacheKey, resolved);
+  return resolved;
 }
 
 function extractAddressParts(address) {
@@ -120,6 +161,19 @@ function normalizeLocationText(value) {
     .replace(/\s+/g, " ");
 }
 
+function splitDisplayName(displayName) {
+  if (!isNonEmptyString(displayName)) return "";
+  return displayName.split(",")[0].trim();
+}
+
+function locationTextMatches(expected, candidate) {
+  const wanted = normalizeLocationText(expected);
+  const got = normalizeLocationText(candidate);
+  if (!wanted) return true;
+  if (!got) return false;
+  return wanted === got || got.startsWith(wanted) || wanted.startsWith(got);
+}
+
 function dedupeLocationSuggestions(suggestions) {
   const byAddress = new Map();
 
@@ -137,36 +191,142 @@ function dedupeLocationSuggestions(suggestions) {
 }
 
 async function forwardGeocode({ city, neighborhood, limit }) {
+  const cacheKey = `forward:${normalizeLocationText(city)}:${normalizeLocationText(neighborhood)}:${limit}`;
+  const cached = getCachedValue(cacheKey);
+  if (cached) return cached;
+
   const parts = [];
   if (isNonEmptyString(neighborhood)) parts.push(neighborhood.trim());
   if (isNonEmptyString(city)) parts.push(city.trim());
 
   if (parts.length === 0) return [];
 
-  const endpoint =
-    "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=" +
-    encodeURIComponent(limit) +
-    "&q=" +
-    encodeURIComponent(parts.join(", "));
+  const headers = {
+    "User-Agent": "matcha/1.0 (education project)",
+    Accept: "application/json",
+    "Accept-Language": "en",
+  };
 
-  const response = await fetch(endpoint, {
-    headers: {
-      "User-Agent": "matcha/1.0 (education project)",
-      Accept: "application/json",
-    },
+  const queryVariants = [parts.join(", ")];
+  if (parts.length > 1 && isNonEmptyString(city)) {
+    // Fallback to city-only query when neighborhood+city is too restrictive.
+    queryVariants.push(city.trim());
+  }
+
+  // If the user types an incomplete second word (e.g. "las v"), try a broader prefix ("las").
+  if (isNonEmptyString(city)) {
+    const normalizedCity = city.trim().replace(/\s+/g, " ");
+    const cityTokens = normalizedCity.split(" ");
+    if (cityTokens.length > 1) {
+      const lastToken = cityTokens[cityTokens.length - 1];
+      if (lastToken.length > 0 && lastToken.length < 3) {
+        const broaderCity = cityTokens.slice(0, -1).join(" ").trim();
+        if (broaderCity) {
+          queryVariants.push(broaderCity);
+        }
+      }
+    }
+  }
+
+  const uniqueQueryVariants = Array.from(
+    new Set(queryVariants.filter((item) => isNonEmptyString(item))),
+  );
+
+  let data = [];
+  for (const query of uniqueQueryVariants) {
+    const endpoint =
+      "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=en&limit=" +
+      encodeURIComponent(limit) +
+      "&q=" +
+      encodeURIComponent(query);
+
+    let response;
+    try {
+      response = await fetch(endpoint, { headers });
+    } catch {
+      continue;
+    }
+
+    if (!response.ok) {
+      continue;
+    }
+
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      continue;
+    }
+
+    if (Array.isArray(result) && result.length > 0) {
+      data = result;
+      break;
+    }
+  }
+
+  if (!Array.isArray(data) || data.length === 0) return [];
+
+  const mapped = data.map((entry) => {
+    const partsFromApi = extractAddressParts(entry.address);
+    const fallbackCity = splitDisplayName(entry.display_name || "");
+    return {
+      display_name: entry.display_name || "",
+      latitude: parseOptionalCoordinate(entry.lat),
+      longitude: parseOptionalCoordinate(entry.lon),
+      city: partsFromApi.city || entry.name || fallbackCity,
+      neighborhood: partsFromApi.neighborhood,
+      country: partsFromApi.country,
+      importance:
+        typeof entry.importance === "number"
+          ? entry.importance
+          : Number(entry.importance) || 0,
+    };
   });
 
-  if (!response.ok) throw new Error("Forward geocoding service unavailable");
+  const deduped = dedupeLocationSuggestions(mapped);
+  setCachedValue(cacheKey, deduped);
+  return deduped;
+}
 
-  const data = await response.json();
+async function searchLocationsByQuery(query, limit) {
+  const cacheKey = `search:${normalizeLocationText(query)}:${limit}`;
+  const cached = getCachedValue(cacheKey);
+  if (cached) return cached;
+
+  const endpoint =
+    "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=en&limit=" +
+    encodeURIComponent(limit) +
+    "&q=" +
+    encodeURIComponent(query);
+
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      headers: {
+        "User-Agent": "matcha/1.0 (education project)",
+        Accept: "application/json",
+        "Accept-Language": "en",
+      },
+    });
+  } catch {
+    return [];
+  }
+
+  if (!response.ok) return [];
+
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    return [];
+  }
+
   if (!Array.isArray(data)) return [];
 
   const mapped = data.map((entry) => {
     const partsFromApi = extractAddressParts(entry.address);
     return {
       display_name: entry.display_name || "",
-      latitude: parseOptionalCoordinate(entry.lat),
-      longitude: parseOptionalCoordinate(entry.lon),
       city: partsFromApi.city,
       neighborhood: partsFromApi.neighborhood,
       country: partsFromApi.country,
@@ -177,7 +337,54 @@ async function forwardGeocode({ city, neighborhood, limit }) {
     };
   });
 
-  return dedupeLocationSuggestions(mapped);
+  setCachedValue(cacheKey, mapped);
+  return mapped;
+}
+
+async function fetchNeighborhoodsForCity(city, limit) {
+  const cacheKey = `neighborhoods:${normalizeLocationText(city)}:${limit}`;
+  const cached = getCachedValue(cacheKey);
+  if (cached) return cached;
+
+  const cleanCity = city.trim();
+  const variants = [
+    cleanCity,
+    `district, ${cleanCity}`,
+    `borough, ${cleanCity}`,
+    `arrondissement, ${cleanCity}`,
+    `quartier, ${cleanCity}`,
+    `neighborhood, ${cleanCity}`,
+  ];
+
+  const uniqueVariants = Array.from(new Set(variants));
+  const neighborhoodsByKey = new Map();
+
+  for (const query of uniqueVariants) {
+    const results = await searchLocationsByQuery(query, limit);
+    for (const item of results) {
+      const neighborhood = (item.neighborhood || "").trim();
+      if (!neighborhood) continue;
+
+      const key = normalizeLocationText(neighborhood);
+      const existing = neighborhoodsByKey.get(key);
+      if (!existing || item.importance > existing.importance) {
+        neighborhoodsByKey.set(key, {
+          name: neighborhood,
+          display_name: item.display_name,
+          importance: item.importance,
+        });
+      }
+    }
+  }
+
+  const result = Array.from(neighborhoodsByKey.values())
+    .sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+    )
+    .slice(0, limit);
+
+  setCachedValue(cacheKey, result);
+  return result;
 }
 
 router.get("/profile/tags", async (req, res, next) => {
@@ -248,8 +455,8 @@ router.get("/profile/validate-location", async (req, res, next) => {
 
     const rawLimit = Number(req.query.limit);
     const limit = Number.isInteger(rawLimit)
-      ? Math.max(1, Math.min(rawLimit, 8))
-      : 5;
+      ? Math.max(1, Math.min(rawLimit, 20))
+      : 12;
 
     if (!city && !neighborhood && (latitude === null || longitude === null)) {
       return res.status(400).json({
@@ -260,7 +467,11 @@ router.get("/profile/validate-location", async (req, res, next) => {
 
     let gpsResolved = null;
     if (latitude !== null && longitude !== null) {
-      gpsResolved = await reverseGeocode(latitude, longitude);
+      try {
+        gpsResolved = await reverseGeocode(latitude, longitude);
+      } catch {
+        gpsResolved = { city: "", neighborhood: "", display_name: "" };
+      }
     }
 
     const effectiveCity = city || (gpsResolved ? gpsResolved.city : "");
@@ -288,14 +499,11 @@ router.get("/profile/validate-location", async (req, res, next) => {
       }) || null;
 
     const cityExists = wantedCity
-      ? suggestions.some(
-          (item) => normalizeLocationText(item.city) === wantedCity,
-        )
+      ? suggestions.some((item) => locationTextMatches(wantedCity, item.city))
       : true;
     const neighborhoodExists = wantedNeighborhood
-      ? suggestions.some(
-          (item) =>
-            normalizeLocationText(item.neighborhood) === wantedNeighborhood,
+      ? suggestions.some((item) =>
+          locationTextMatches(wantedNeighborhood, item.neighborhood),
         )
       : true;
 
@@ -318,6 +526,32 @@ router.get("/profile/validate-location", async (req, res, next) => {
       matched_suggestion: matchedSuggestion,
       suggestions,
     });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/profile/city-neighborhoods", async (req, res, next) => {
+  try {
+    const currentUserId = await resolveCurrentUserId(req);
+    if (!currentUserId) {
+      return res.status(401).json({
+        error: "Not authenticated. Please login and provide x-user-id.",
+      });
+    }
+
+    const city = isNonEmptyString(req.query.city) ? req.query.city.trim() : "";
+    if (!city) {
+      return res.status(400).json({ error: "city query param is required" });
+    }
+
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isInteger(rawLimit)
+      ? Math.max(1, Math.min(rawLimit, 30))
+      : 20;
+
+    const neighborhoods = await fetchNeighborhoodsForCity(city, limit);
+    return res.json({ city, neighborhoods });
   } catch (error) {
     return next(error);
   }
