@@ -24,6 +24,20 @@ async function initDb() {
 
     const likesSqlPath = path.join(__dirname, "sql", "create_likes_table.sql");
     const createLikesSql = fs.readFileSync(likesSqlPath, "utf8");
+    const tagsSqlPath = path.join(__dirname, "sql", "create_tags_table.sql");
+    const createTagsSql = fs.readFileSync(tagsSqlPath, "utf8");
+    const profileTagsSqlPath = path.join(
+      __dirname,
+      "sql",
+      "create_profile_tags_table.sql",
+    );
+    const createProfileTagsSql = fs.readFileSync(profileTagsSqlPath, "utf8");
+    const seedFakeUsersSqlPath = path.join(
+      __dirname,
+      "sql",
+      "seed_fake_users.sql",
+    );
+    const seedFakeUsersSql = fs.readFileSync(seedFakeUsersSqlPath, "utf8");
     const migrateLegacyUsersSql = `
       ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(50);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100);
@@ -62,15 +76,23 @@ async function initDb() {
       CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users (email);
       CREATE UNIQUE INDEX IF NOT EXISTS users_username_key ON users (username);
 
+      ALTER TABLE profiles ADD COLUMN IF NOT EXISTS neighborhood VARCHAR(120) NOT NULL DEFAULT '';
+      ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gps_consent BOOLEAN NOT NULL DEFAULT FALSE;
+
     `;
 
     // 执行 SQL 语句，创建 users 表和 profiles 表，并进行迁移。每条 SQL 语句都会被发送到数据库执行，确保数据库结构符合应用的需求。迁移脚本会处理现有数据的兼容性问题，添加必要的字段并设置默认值，以便新旧数据都能正常工作。
     await pool.query(createUsersSql);
     await pool.query(createProfilesSql);
     await pool.query(createLikesSql);
+    await pool.query(createTagsSql);
+    await pool.query(createProfileTagsSql);
     await pool.query(migrateLegacyUsersSql);
+    await pool.query(seedFakeUsersSql);
 
-    console.log("Database initialized: users, profiles, likes tables are ready.",);
+    console.log(
+      "Database initialized: users, profiles, likes, tags tables are ready and fake users are seeded.",
+    );
   } catch (error) {
     console.error("Failed to initialize database:", error.message);
     process.exitCode = 1;
@@ -80,7 +102,6 @@ async function initDb() {
 }
 
 initDb();
-
 
 /**
 ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...：如果还没有 email_verified 列，就加一个，类型布尔，默认值 FALSE。

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import UserCard from "./components/UserCard";
 import FindMatchPage from "./pages/FindMatchPage";
@@ -210,17 +210,65 @@ function LoginPage({ onLogin }) {
   );
 }
 
-function ProfilePage({ currentUser, onUnauthorized }) {
-  const navigate = useNavigate();
+function ProfilePage({ currentUser }) {
   const [form, setForm] = useState({
     biography: "",
     gender: "",
     sexual_preference: "",
     city: "",
+    neighborhood: "",
+    gps_consent: false,
+    latitude: "",
+    longitude: "",
+    tags: [],
   });
+  
+  const [selectedTag, setSelectedTag] = useState("");
+  const [tagOptions, setTagOptions] = useState([]);
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [locationValidation, setLocationValidation] = useState(null);
+  const [selectedCitySuggestionKey, setSelectedCitySuggestionKey] = useState("");
+  const [selectedNeighborhoodSuggestionKey, setSelectedNeighborhoodSuggestionKey] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const userId= currentUser?.id ?? null;
+  const [loadingGeo, setLoadingGeo] = useState(false);
+  const [validatingLocation, setValidatingLocation] = useState(false);
+  const userId = currentUser?.id ?? null;
+  const hasManualLocationInput =
+    (form.city || "").trim().length > 0 ||
+    (form.neighborhood || "").trim().length > 0;
+  const canSaveProfile =
+    !loading &&
+    !validatingLocation &&
+    Boolean(locationValidation?.is_valid) &&
+    hasManualLocationInput;
+
+  function buildSuggestionKey(suggestion) {
+    return `${suggestion.display_name}-${suggestion.latitude}-${suggestion.longitude}`;
+  }
+
+  const citySuggestionOptions = useMemo(() => {
+    return locationSuggestions
+      .filter((item) => (item.city || "").trim().length > 0)
+      .map((item) => ({
+        key: buildSuggestionKey(item),
+        city: item.city,
+        neighborhood: item.neighborhood || "",
+        label: item.display_name,
+      }));
+  }, [locationSuggestions]);
+
+  const neighborhoodSuggestionOptions = useMemo(() => {
+    return locationSuggestions
+      .filter((item) => (item.neighborhood || "").trim().length > 0)
+      .map((item) => ({
+        key: buildSuggestionKey(item),
+        city: item.city || "",
+        neighborhood: item.neighborhood,
+        label: item.display_name,
+      }));
+  }, [locationSuggestions]);
+
   const loadProfile = useCallback(async () => {
     if (!userId) {
       setMessage("Please login first.");
@@ -253,39 +301,332 @@ function ProfilePage({ currentUser, onUnauthorized }) {
         gender: data.profile.gender || "",
         sexual_preference: data.profile.sexual_preference || "",
         city: data.profile.city || "",
+        neighborhood: data.profile.neighborhood || "",
+        gps_consent: Boolean(data.profile.gps_consent),
+        latitude:
+          data.profile.latitude !== null && data.profile.latitude !== undefined
+            ? String(data.profile.latitude)
+            : "",
+        longitude:
+          data.profile.longitude !== null && data.profile.longitude !== undefined
+            ? String(data.profile.longitude)
+            : "",
+        tags: Array.isArray(data.profile.tags) ? data.profile.tags : [],
       });
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }
-  }, [userId, navigate, onUnauthorized]);
+  }, [userId]);
 
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchTagOptions() {
+      if (!userId) {
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/profile/tags", {
+          headers: buildApiHeaders({ id: userId }),
+        });
+        const data = await response.json();
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        setTagOptions(Array.isArray(data.tags) ? data.tags : []);
+      } catch {
+        if (!cancelled) {
+          setTagOptions([]);
+        }
+      }
+    }
+
+    fetchTagOptions();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
   function handleChange(event) {
-    const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = event.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+
+    if (
+      name === "city" ||
+      name === "neighborhood" ||
+      name === "latitude" ||
+      name === "longitude" ||
+      name === "gps_consent"
+    ) {
+      setLocationValidation(null);
+      setLocationSuggestions([]);
+      setSelectedCitySuggestionKey("");
+      setSelectedNeighborhoodSuggestionKey("");
+    }
   }
+
+  function normalizeTag(tag) {
+    let value = (tag || "").trim().toLowerCase();
+    if (!value) {
+      return "";
+    }
+    if (!value.startsWith("#")) {
+      value = `#${value}`;
+    }
+    return /^#[a-z0-9_]{1,30}$/.test(value) ? value : "";
+  }
+
+  function addTag(rawTag) {
+    const tag = normalizeTag(rawTag);
+    if (!tag) {
+      setMessage("Error: invalid tag format. Use letters, numbers or underscore.");
+      return;
+    }
+
+    if (form.tags.length >= 10) {
+      setMessage("Error: maximum 10 tags allowed.");
+      return;
+    }
+
+    setForm((prev) => {
+      if (prev.tags.includes(tag)) {
+        return prev;
+      }
+      return { ...prev, tags: [...prev.tags, tag] };
+    });
+    setSelectedTag("");
+    setMessage("");
+  }
+
+  function removeTag(tagToRemove) {
+    setForm((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
+    }));
+  }
+
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      setMessage("Error: geolocation is not available in your browser.");
+      return;
+    }
+
+    setLoadingGeo(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const latitude = String(position.coords.latitude.toFixed(6));
+        const longitude = String(position.coords.longitude.toFixed(6));
+
+        setForm((prev) => ({
+          ...prev,
+          gps_consent: true,
+          latitude,
+          longitude,
+        }));
+
+        try {
+          const response = await fetch(
+            `/api/profile/reverse-geocode?latitude=${encodeURIComponent(latitude)}&longitude=${encodeURIComponent(longitude)}`,
+            {
+              headers: buildApiHeaders({ id: userId }),
+            },
+          );
+          const data = await response.json();
+
+          if (response.ok) {
+            setForm((prev) => ({
+              ...prev,
+              city: data.city || prev.city,
+              neighborhood: data.neighborhood || prev.neighborhood,
+            }));
+            setLocationValidation(null);
+            setLocationSuggestions([]);
+            setSelectedCitySuggestionKey("");
+            setSelectedNeighborhoodSuggestionKey("");
+            setMessage(
+              "GPS location detected. Verify city/neighborhood before saving.",
+            );
+          } else {
+            setMessage("GPS detected. Please enter your neighborhood manually to confirm.");
+          }
+        } catch {
+          setMessage("GPS detected. Reverse geocoding unavailable, please fill city/neighborhood manually.");
+        } finally {
+          setLoadingGeo(false);
+        }
+      },
+      () => {
+        setLoadingGeo(false);
+        setMessage("Error: unable to retrieve your GPS location.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
+
+  async function validateLocationInput(options = {}) {
+    const { silent = false } = options;
+    if (!userId) {
+      if (!silent) {
+        setMessage("Please login first.");
+      }
+      return;
+    }
+
+    const city = (form.city || "").trim();
+    const neighborhood = (form.neighborhood || "").trim();
+    const latitude = (form.latitude || "").trim();
+    const longitude = (form.longitude || "").trim();
+
+    if (!city && !neighborhood && (!latitude || !longitude)) {
+      if (!silent) {
+        setMessage("Enter city/neighborhood or coordinates before verification.");
+      }
+      return;
+    }
+
+    setValidatingLocation(true);
+    if (!silent) {
+      setMessage("Checking location...");
+    }
+
+    const params = new URLSearchParams();
+    if (city) params.set("city", city);
+    if (neighborhood) params.set("neighborhood", neighborhood);
+    if (latitude) params.set("latitude", latitude);
+    if (longitude) params.set("longitude", longitude);
+    params.set("limit", "5");
+
+    try {
+      const response = await fetch(`/api/profile/validate-location?${params.toString()}`, {
+        headers: buildApiHeaders({ id: userId }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setLocationValidation(null);
+        setLocationSuggestions([]);
+        if (!silent) {
+          setMessage(`Error: ${data.error || "Location verification failed"}`);
+        }
+        return;
+      }
+
+      setLocationValidation(data.validation || null);
+      setLocationSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+
+      if (data.validation?.is_valid) {
+        if (!silent) {
+          setMessage("Location verified. You can save safely.");
+        }
+      } else {
+        if (!silent) {
+          setMessage("Location needs confirmation. Choose a suggestion or adjust your input.");
+        }
+      }
+    } catch (error) {
+      setLocationValidation(null);
+      setLocationSuggestions([]);
+      if (!silent) {
+        setMessage(`Error: ${error.message}`);
+      }
+    } finally {
+      setValidatingLocation(false);
+    }
+  }
+
+  function applyCitySuggestion(option) {
+    setSelectedCitySuggestionKey(option.key);
+    setForm((prev) => ({
+      ...prev,
+      city: option.city,
+      neighborhood: prev.neighborhood || option.neighborhood,
+    }));
+    setMessage("City suggestion selected.");
+  }
+
+  function applyNeighborhoodSuggestion(option) {
+    setSelectedNeighborhoodSuggestionKey(option.key);
+    setForm((prev) => ({
+      ...prev,
+      neighborhood: option.neighborhood,
+      city: prev.city || option.city,
+    }));
+    setMessage("Neighborhood suggestion selected.");
+  }
+
+  useEffect(() => {
+    if (!userId) {
+      return undefined;
+    }
+
+    const city = (form.city || "").trim();
+    const neighborhood = (form.neighborhood || "").trim();
+
+    if (!city && !neighborhood) {
+      setLocationValidation(null);
+      setLocationSuggestions([]);
+      return undefined;
+    }
+
+    const handle = setTimeout(() => {
+      validateLocationInput({ silent: true });
+    }, 450);
+
+    return () => clearTimeout(handle);
+  }, [
+    userId,
+    form.city,
+    form.neighborhood,
+    form.latitude,
+    form.longitude,
+    form.gps_consent,
+  ]);
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (!locationValidation?.is_valid) {
+      setMessage("Error: location is not verified. Please choose a valid city/neighborhood.");
+      return;
+    }
+
     setMessage("Submitting...");
 
-    // Ajout du log pour debug
-    console.log("handleSubmit userId:", userId);
-    const headers = buildApiHeaders({ id: userId }, {
-      "Content-Type": "application/json",
-    });
-    console.log("handleSubmit headers:", headers);
+    const headers = buildApiHeaders(
+      { id: userId },
+      {
+        "Content-Type": "application/json",
+      },
+    );
+
+    const payload = {
+      biography: form.biography,
+      gender: form.gender,
+      sexual_preference: form.sexual_preference,
+      city: form.city,
+      neighborhood: form.neighborhood,
+      gps_consent: form.gps_consent,
+      latitude: form.latitude,
+      longitude: form.longitude,
+      tags: form.tags,
+    };
 
     try {
       const response = await fetch("/api/profile/me", {
         method: "PUT",
         headers,
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -300,12 +641,24 @@ function ProfilePage({ currentUser, onUnauthorized }) {
         return;
       }
 
-      setForm({
+      setForm((prev) => ({
+        ...prev,
         biography: data.profile.biography || "",
         gender: data.profile.gender || "",
         sexual_preference: data.profile.sexual_preference || "",
         city: data.profile.city || "",
-      });
+        neighborhood: data.profile.neighborhood || "",
+        gps_consent: Boolean(data.profile.gps_consent),
+        latitude:
+          data.profile.latitude !== null && data.profile.latitude !== undefined
+            ? String(data.profile.latitude)
+            : "",
+        longitude:
+          data.profile.longitude !== null && data.profile.longitude !== undefined
+            ? String(data.profile.longitude)
+            : "",
+        tags: Array.isArray(data.profile.tags) ? data.profile.tags : prev.tags,
+      }));
       setMessage("Success: profile updated");
     } catch (error) {
       setMessage(`Error: ${error.message}`);
@@ -366,16 +719,190 @@ function ProfilePage({ currentUser, onUnauthorized }) {
             <option value="other">other</option>
           </select>
 
-          <input
-            name="city"
-            placeholder="City"
-            value={form.city}
-            onChange={handleChange}
-            className={inputClass}
-          />
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <input
+                name="city"
+                placeholder="City"
+                value={form.city}
+                onChange={handleChange}
+                className={inputClass}
+              />
+
+              {citySuggestionOptions.length > 0 && (
+                <select
+                  value={selectedCitySuggestionKey}
+                  onChange={(event) => {
+                    const option = citySuggestionOptions.find(
+                      (item) => item.key === event.target.value,
+                    );
+                    if (option) {
+                      applyCitySuggestion(option);
+                    }
+                  }}
+                  className={selectClass}
+                >
+                  <option value="">Suggestions for city (full address)</option>
+                  {citySuggestionOptions.slice(0, 6).map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {(form.city || "").trim().length > 0 && (
+                <p className={`text-xs ${locationValidation?.city_exists ? "text-emerald-700" : "text-amber-700"}`}>
+                  {validatingLocation
+                    ? "Checking city..."
+                    : locationValidation?.city_exists
+                      ? "City exists"
+                      : "City not verified yet"}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <input
+                name="neighborhood"
+                placeholder="Neighborhood"
+                value={form.neighborhood}
+                onChange={handleChange}
+                className={inputClass}
+              />
+
+              {neighborhoodSuggestionOptions.length > 0 && (
+                <select
+                  value={selectedNeighborhoodSuggestionKey}
+                  onChange={(event) => {
+                    const option = neighborhoodSuggestionOptions.find(
+                      (item) => item.key === event.target.value,
+                    );
+                    if (option) {
+                      applyNeighborhoodSuggestion(option);
+                    }
+                  }}
+                  className={selectClass}
+                >
+                  <option value="">Suggestions for neighborhood (full address)</option>
+                  {neighborhoodSuggestionOptions.slice(0, 6).map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {(form.neighborhood || "").trim().length > 0 && (
+                <p className={`text-xs ${locationValidation?.neighborhood_exists ? "text-emerald-700" : "text-amber-700"}`}>
+                  {validatingLocation
+                    ? "Checking neighborhood..."
+                    : locationValidation?.neighborhood_exists
+                      ? "Neighborhood exists"
+                      : "Neighborhood not verified yet"}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {locationValidation && (
+            <p className={`text-xs ${locationValidation.is_valid ? "text-emerald-700" : "text-amber-700"}`}>
+              {locationValidation.is_valid
+                ? "Location exists. Save is enabled."
+                : "Location not fully verified yet. Adjust city or neighborhood."}
+            </p>
+          )}
+
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              name="gps_consent"
+              checked={form.gps_consent}
+              onChange={handleChange}
+            />
+            I consent to GPS-based location
+          </label>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className={secondaryButtonClass}
+              onClick={useCurrentLocation}
+              disabled={loadingGeo}
+            >
+              {loadingGeo ? "Locating..." : "Use current GPS location"}
+            </button>
+            <span className="text-xs text-slate-500">
+              If disabled, city/neighborhood must be provided manually.
+            </span>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input
+              name="latitude"
+              placeholder="Latitude"
+              value={form.latitude}
+              onChange={handleChange}
+              className={inputClass}
+            />
+            <input
+              name="longitude"
+              placeholder="Longitude"
+              value={form.longitude}
+              onChange={handleChange}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">Interests (tags)</label>
+            <div className="flex gap-2">
+              <select
+                value={selectedTag}
+                onChange={(event) => setSelectedTag(event.target.value)}
+                className={selectClass}
+              >
+                <option value="">Select an interest tag</option>
+                {tagOptions.map((item) => (
+                  <option key={item.name} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => addTag(selectedTag)}
+                className={secondaryButtonClass}
+                disabled={!selectedTag || form.tags.length >= 10}
+              >
+                Add
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">{form.tags.length}/10 tags selected</p>
+            {form.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {form.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 text-white text-xs px-3 py-1"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="text-white/80 hover:text-white"
+                      aria-label={`Remove ${tag}`}
+                    >
+                      x
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-3">
-            <button type="submit" className={primaryButtonClass}>
+            <button type="submit" className={primaryButtonClass} disabled={!canSaveProfile}>
               Save Profile
             </button>
             <button
@@ -386,6 +913,12 @@ function ProfilePage({ currentUser, onUnauthorized }) {
               Reload Profile
             </button>
           </div>
+
+          {!canSaveProfile && (
+            <p className="text-xs text-amber-700">
+              Save is locked until city or neighborhood is entered and verified.
+            </p>
+          )}
         </form>
       )}
 

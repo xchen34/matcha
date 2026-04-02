@@ -92,6 +92,26 @@ function UserCard({ user, currentUser }) {
         <p className="text-sm text-slate-600">
           City: <span className="font-semibold text-slate-800">{user.city || "-"}</span>
         </p>
+        <p className="text-sm text-slate-600">
+          Neighborhood: <span className="font-semibold text-slate-800">{user.neighborhood || "-"}</span>
+        </p>
+        <div className="text-sm text-slate-600">
+          Tags:{" "}
+          {Array.isArray(user.tags) && user.tags.length > 0 ? (
+            <span className="inline-flex flex-wrap gap-1 align-middle">
+              {user.tags.map((tag) => (
+                <span
+                  key={`${user.id}-${tag}`}
+                  className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700"
+                >
+                  {tag}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span className="font-semibold text-slate-800">-</span>
+          )}
+        </div>
       </div>
 
       <div className="absolute right-4 bottom-4 flex flex-col items-center gap-1">

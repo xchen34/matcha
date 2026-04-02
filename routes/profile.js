@@ -11,93 +11,372 @@ function isNonEmptyString(value) {
 
 function parseUserIdFromRequest(req) {
   const rawUserId = req.header("x-user-id");
-  console.log("x-user-id reçu:", rawUserId);
-
-  if (!rawUserId) {
-    return null;
-  }
-
+  if (!rawUserId) return null;
   const parsed = Number(rawUserId);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
+  if (!Number.isInteger(parsed) || parsed <= 0) return null;
   return parsed;
 }
 
-// resolveCurrentUserId 是一个异步函数，用于从请求中解析出当前用户的 ID。它首先调用 parseUserIdFromRequest 从请求头中获取 x-user-id，并尝试将其解析为一个整数。如果解析失败或 ID 无效，函数返回 null。否则，它会查询数据库确认该用户 ID 是否存在，如果存在则返回该 ID，否则返回 null。这种方式确保了只有有效且存在的用户 ID 才能被识别为当前用户，增强了安全性。
 async function resolveCurrentUserId(req) {
   const requestedUserId = parseUserIdFromRequest(req);
-
-  if (!requestedUserId) {
-    return null;
-  }
-
+  if (!requestedUserId) return null;
   const userResult = await pool.query("SELECT id FROM users WHERE id = $1", [
     requestedUserId,
-  ]); //query 方法执行 SQL 查询，$1 是参数占位符，后面数组中的 requestedUserId 会替换掉 $1，防止 SQL 注入攻击。查询结果保存在 userResult 变量中，包含了查询返回的数据和相关信息。
-
-  if (userResult.rows.length === 0) {
-    return null;
-  }
-
+  ]);
+  if (userResult.rows.length === 0) return null;
   return userResult.rows[0].id;
 }
 
-router.get("/profile/me", async (req, res, next) => {
+function normalizeTag(tag) {
+  if (typeof tag !== "string") return "";
+  let normalized = tag.trim().toLowerCase();
+  if (!normalized) return "";
+  if (!normalized.startsWith("#")) normalized = `#${normalized}`;
+  if (!/^#[a-z0-9_]{1,30}$/.test(normalized)) return "";
+  return normalized;
+}
+
+function normalizeTagsInput(tags) {
+  if (!Array.isArray(tags)) return null;
+  const normalized = [];
+  const seen = new Set();
+  for (const tag of tags) {
+    const cleaned = normalizeTag(tag);
+    if (!cleaned || seen.has(cleaned)) continue;
+    seen.add(cleaned);
+    normalized.push(cleaned);
+  }
+  return normalized;
+}
+
+function parseOptionalCoordinate(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed;
+}
+
+function getAge(birthDate) {
+  if (!birthDate) return null;
+  const today = new Date();
+  const dob = new Date(birthDate);
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age;
+}
+
+async function reverseGeocode(latitude, longitude) {
+  const endpoint = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&addressdetails=1`;
+  const response = await fetch(endpoint, {
+    headers: {
+      "User-Agent": "matcha/1.0 (education project)",
+      Accept: "application/json",
+    },
+  });
+  if (!response.ok) throw new Error("Reverse geocoding service unavailable");
+
+  const data = await response.json();
+  const address = data.address || {};
+  return {
+    city:
+      address.city ||
+      address.town ||
+      address.village ||
+      address.municipality ||
+      "",
+    neighborhood:
+      address.neighbourhood ||
+      address.suburb ||
+      address.quarter ||
+      address.city_district ||
+      "",
+    display_name: data.display_name || "",
+  };
+}
+
+function extractAddressParts(address) {
+  const source = address || {};
+  return {
+    city:
+      source.city || source.town || source.village || source.municipality || "",
+    neighborhood:
+      source.neighbourhood ||
+      source.suburb ||
+      source.quarter ||
+      source.city_district ||
+      "",
+    country: source.country || "",
+  };
+}
+
+function normalizeLocationText(value) {
+  if (!isNonEmptyString(value)) return "";
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function dedupeLocationSuggestions(suggestions) {
+  const byAddress = new Map();
+
+  for (const item of suggestions) {
+    const key = normalizeLocationText(item.display_name);
+    const existing = byAddress.get(key);
+
+    // Keep the most relevant duplicate when Nominatim returns the same address multiple times.
+    if (!existing || item.importance > existing.importance) {
+      byAddress.set(key, item);
+    }
+  }
+
+  return Array.from(byAddress.values());
+}
+
+async function forwardGeocode({ city, neighborhood, limit }) {
+  const parts = [];
+  if (isNonEmptyString(neighborhood)) parts.push(neighborhood.trim());
+  if (isNonEmptyString(city)) parts.push(city.trim());
+
+  if (parts.length === 0) return [];
+
+  const endpoint =
+    "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=" +
+    encodeURIComponent(limit) +
+    "&q=" +
+    encodeURIComponent(parts.join(", "));
+
+  const response = await fetch(endpoint, {
+    headers: {
+      "User-Agent": "matcha/1.0 (education project)",
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) throw new Error("Forward geocoding service unavailable");
+
+  const data = await response.json();
+  if (!Array.isArray(data)) return [];
+
+  const mapped = data.map((entry) => {
+    const partsFromApi = extractAddressParts(entry.address);
+    return {
+      display_name: entry.display_name || "",
+      latitude: parseOptionalCoordinate(entry.lat),
+      longitude: parseOptionalCoordinate(entry.lon),
+      city: partsFromApi.city,
+      neighborhood: partsFromApi.neighborhood,
+      country: partsFromApi.country,
+      importance:
+        typeof entry.importance === "number"
+          ? entry.importance
+          : Number(entry.importance) || 0,
+    };
+  });
+
+  return dedupeLocationSuggestions(mapped);
+}
+
+router.get("/profile/tags", async (req, res, next) => {
+  try {
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isInteger(rawLimit)
+      ? Math.max(1, Math.min(rawLimit, 100))
+      : 100;
+    const result = await pool.query(
+      `
+      SELECT t.name, COUNT(upt.user_id)::int AS usage_count
+      FROM tags t
+      LEFT JOIN user_profile_tags upt ON upt.tag_id = t.id
+      GROUP BY t.id, t.name
+      ORDER BY usage_count DESC, t.name ASC
+      LIMIT $1
+      `,
+      [limit],
+    );
+    return res.json({
+      tags: result.rows.map((row) => ({
+        name: row.name,
+        usage_count: row.usage_count,
+      })),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/profile/reverse-geocode", async (req, res, next) => {
   try {
     const currentUserId = await resolveCurrentUserId(req);
+    if (!currentUserId) {
+      return res.status(401).json({
+        error: "Not authenticated. Please login and provide x-user-id.",
+      });
+    }
+    const latitude = parseOptionalCoordinate(req.query.latitude);
+    const longitude = parseOptionalCoordinate(req.query.longitude);
+    if (latitude === null || longitude === null) {
+      return res
+        .status(400)
+        .json({ error: "latitude and longitude query params are required" });
+    }
+    const resolved = await reverseGeocode(latitude, longitude);
+    return res.json(resolved);
+  } catch (error) {
+    return next(error);
+  }
+});
 
+router.get("/profile/validate-location", async (req, res, next) => {
+  try {
+    const currentUserId = await resolveCurrentUserId(req);
     if (!currentUserId) {
       return res.status(401).json({
         error: "Not authenticated. Please login and provide x-user-id.",
       });
     }
 
-    const sql = `
-      SELECT
-        u.id AS user_id, 
-        u.email,
-        u.username,
-        u.first_name,
-        u.last_name,
-        u.email_verified,
-        u.created_at,
-        p.gender,
-        p.sexual_preference,
-        p.biography,
-        p.birth_date,
-        p.city,
-        p.latitude,
-        p.longitude,
-        p.fame_rating
-      FROM users as u
-      LEFT JOIN profiles as p ON p.user_id = u.id
-      WHERE u.id = $1
-      LIMIT 1
-    `;  // SQL 查询语句，使用 LEFT JOIN 将 users 表和 profiles 表连接起来，以获取用户的基本信息和相关的个人资料信息。查询条件是根据用户 ID（$1）来查找特定用户的记录。查询结果将包含用户的 id、email、username、first_name、last_name、email_verified、created_at，以及 profile 中的 gender、sexual_preference、biography、birth_date、city、latitude、longitude 和 fame_rating 字段。LIMIT 1 确保只返回一条记录。
+    const city = isNonEmptyString(req.query.city) ? req.query.city.trim() : "";
+    const neighborhood = isNonEmptyString(req.query.neighborhood)
+      ? req.query.neighborhood.trim()
+      : "";
+    const latitude = parseOptionalCoordinate(req.query.latitude);
+    const longitude = parseOptionalCoordinate(req.query.longitude);
 
-    const result = await pool.query(sql, [currentUserId]);
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isInteger(rawLimit)
+      ? Math.max(1, Math.min(rawLimit, 8))
+      : 5;
 
-    if (result.rows.length === 0) {
+    if (!city && !neighborhood && (latitude === null || longitude === null)) {
+      return res.status(400).json({
+        error:
+          "Provide city/neighborhood or latitude/longitude to validate location.",
+      });
+    }
+
+    let gpsResolved = null;
+    if (latitude !== null && longitude !== null) {
+      gpsResolved = await reverseGeocode(latitude, longitude);
+    }
+
+    const effectiveCity = city || (gpsResolved ? gpsResolved.city : "");
+    const effectiveNeighborhood =
+      neighborhood || (gpsResolved ? gpsResolved.neighborhood : "");
+
+    const suggestions = await forwardGeocode({
+      city: effectiveCity,
+      neighborhood: effectiveNeighborhood,
+      limit,
+    });
+
+    const wantedCity = normalizeLocationText(city);
+    const wantedNeighborhood = normalizeLocationText(neighborhood);
+
+    const matchedSuggestion =
+      suggestions.find((item) => {
+        const cityOk = wantedCity
+          ? normalizeLocationText(item.city) === wantedCity
+          : true;
+        const neighborhoodOk = wantedNeighborhood
+          ? normalizeLocationText(item.neighborhood) === wantedNeighborhood
+          : true;
+        return cityOk && neighborhoodOk;
+      }) || null;
+
+    const cityExists = wantedCity
+      ? suggestions.some(
+          (item) => normalizeLocationText(item.city) === wantedCity,
+        )
+      : true;
+    const neighborhoodExists = wantedNeighborhood
+      ? suggestions.some(
+          (item) =>
+            normalizeLocationText(item.neighborhood) === wantedNeighborhood,
+        )
+      : true;
+
+    const isValid = suggestions.length > 0 && cityExists && neighborhoodExists;
+
+    return res.json({
+      validation: {
+        is_valid: isValid,
+        city_exists: cityExists,
+        neighborhood_exists: neighborhoodExists,
+        matched_exact_suggestion: Boolean(matchedSuggestion),
+      },
+      requested: {
+        city,
+        neighborhood,
+        latitude,
+        longitude,
+      },
+      resolved_from_gps: gpsResolved,
+      matched_suggestion: matchedSuggestion,
+      suggestions,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/profile/me", async (req, res, next) => {
+  try {
+    const currentUserId = await resolveCurrentUserId(req);
+    if (!currentUserId) {
+      return res.status(401).json({
+        error: "Not authenticated. Please login and provide x-user-id.",
+      });
+    }
+
+    const [profileResult, tagsResult] = await Promise.all([
+      pool.query(
+        `
+        SELECT
+          u.id AS user_id,
+          u.email,
+          u.username,
+          u.first_name,
+          u.last_name,
+          u.email_verified,
+          u.created_at,
+          p.gender,
+          p.sexual_preference,
+          p.biography,
+          p.birth_date,
+          p.city,
+          p.neighborhood,
+          p.gps_consent,
+          p.latitude,
+          p.longitude,
+          p.fame_rating
+        FROM users AS u
+        LEFT JOIN profiles AS p ON p.user_id = u.id
+        WHERE u.id = $1
+        LIMIT 1
+        `,
+        [currentUserId],
+      ),
+      pool.query(
+        `
+        SELECT t.name
+        FROM user_profile_tags upt
+        JOIN tags t ON t.id = upt.tag_id
+        WHERE upt.user_id = $1
+        ORDER BY t.name ASC
+        `,
+        [currentUserId],
+      ),
+    ]);
+
+    if (profileResult.rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const row = result.rows[0];
-
-    // Calculate age with birthdate 
-    function getAge(birthDate) {
-      if (!birthDate) return null;
-      const today = new Date();
-      const dob = new Date(birthDate);
-      let age = today.getFullYear() - dob.getFullYear();
-      const m = today.getMonth() - dob.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-        age--;
-      }
-      return age;
-    }
-
+    const row = profileResult.rows[0];
     return res.json({
       user: {
         id: row.user_id,
@@ -115,9 +394,12 @@ router.get("/profile/me", async (req, res, next) => {
         birth_date: row.birth_date,
         age: getAge(row.birth_date),
         city: row.city || "",
+        neighborhood: row.neighborhood || "",
+        gps_consent: Boolean(row.gps_consent),
         latitude: row.latitude,
         longitude: row.longitude,
-        fame_rating: row.fame_rating ?? 0, // 如果 fame_rating 是 null 或 undefined，则使用 0 作为默认值
+        tags: tagsResult.rows.map((entry) => entry.name),
+        fame_rating: row.fame_rating ?? 0,
       },
     });
   } catch (error) {
@@ -126,32 +408,38 @@ router.get("/profile/me", async (req, res, next) => {
 });
 
 router.put("/profile/me", async (req, res, next) => {
+  const client = await pool.connect();
+  let inTransaction = false;
+
   try {
     const currentUserId = await resolveCurrentUserId(req);
-
     if (!currentUserId) {
       return res.status(401).json({
         error: "Not authenticated. Please login and provide x-user-id.",
       });
     }
 
-    const { biography, gender, sexual_preference, city, birth_date } = req.body;
+    const {
+      biography,
+      gender,
+      sexual_preference,
+      city,
+      neighborhood,
+      birth_date,
+      gps_consent,
+      latitude,
+      longitude,
+      tags,
+    } = req.body;
 
     if (!isNonEmptyString(biography)) {
       return res.status(400).json({ error: "biography is required" });
     }
-
-    if (!isNonEmptyString(city)) {
-      return res.status(400).json({ error: "city is required" });
-    }
-
     if (!isNonEmptyString(gender) || !allowedGenders.includes(gender)) {
-      return res.status(400).json({
-        error: "gender is invalid",
-        allowed_values: allowedGenders,
-      });
+      return res
+        .status(400)
+        .json({ error: "gender is invalid", allowed_values: allowedGenders });
     }
-
     if (
       !isNonEmptyString(sexual_preference) ||
       !allowedPreferences.includes(sexual_preference)
@@ -162,7 +450,88 @@ router.put("/profile/me", async (req, res, next) => {
       });
     }
 
-    const updateSql = `
+    const gpsConsent = Boolean(gps_consent);
+    const safeCity = isNonEmptyString(city) ? city.trim() : "";
+    let safeNeighborhood = isNonEmptyString(neighborhood)
+      ? neighborhood.trim()
+      : "";
+    const parsedLatitude = parseOptionalCoordinate(latitude);
+    const parsedLongitude = parseOptionalCoordinate(longitude);
+
+    if (gpsConsent) {
+      if (parsedLatitude === null || parsedLongitude === null) {
+        return res.status(400).json({
+          error:
+            "latitude and longitude are required when gps_consent is enabled",
+        });
+      }
+      const resolved = await reverseGeocode(parsedLatitude, parsedLongitude);
+      safeNeighborhood = safeNeighborhood || resolved.neighborhood;
+      if (!safeNeighborhood) {
+        return res.status(400).json({
+          error:
+            "Unable to determine neighborhood from GPS. Please enter it manually to confirm.",
+        });
+      }
+    } else if (!safeCity && !safeNeighborhood) {
+      return res.status(400).json({
+        error: "city or neighborhood is required when gps_consent is disabled",
+      });
+    }
+
+    const locationSuggestions = await forwardGeocode({
+      city: safeCity,
+      neighborhood: safeNeighborhood,
+      limit: 5,
+    });
+
+    if (locationSuggestions.length === 0) {
+      return res.status(400).json({
+        error: "Unable to validate the provided city/neighborhood",
+      });
+    }
+
+    const wantedCity = normalizeLocationText(safeCity);
+    const wantedNeighborhood = normalizeLocationText(safeNeighborhood);
+    const cityExists = wantedCity
+      ? locationSuggestions.some(
+          (item) => normalizeLocationText(item.city) === wantedCity,
+        )
+      : true;
+    const neighborhoodExists = wantedNeighborhood
+      ? locationSuggestions.some(
+          (item) =>
+            normalizeLocationText(item.neighborhood) === wantedNeighborhood,
+        )
+      : true;
+
+    if (!cityExists || !neighborhoodExists) {
+      return res.status(400).json({
+        error:
+          "Location could not be verified. Please choose a valid city/neighborhood suggestion.",
+      });
+    }
+
+    let normalizedTags = null;
+    if (tags !== undefined) {
+      normalizedTags = normalizeTagsInput(tags);
+      if (normalizedTags === null) {
+        return res
+          .status(400)
+          .json({ error: "tags must be an array of strings" });
+      }
+      if (normalizedTags.length > 10) {
+        return res
+          .status(400)
+          .json({ error: "A maximum of 10 tags is allowed" });
+      }
+    }
+
+    await client.query("BEGIN");
+    inTransaction = true;
+
+    const updated = await client.query(
+      `
       INSERT INTO profiles (
         user_id,
         gender,
@@ -170,6 +539,10 @@ router.put("/profile/me", async (req, res, next) => {
         biography,
         birth_date,
         city,
+        neighborhood,
+        gps_consent,
+        latitude,
+        longitude,
         fame_rating
       )
       VALUES (
@@ -179,6 +552,10 @@ router.put("/profile/me", async (req, res, next) => {
         $4,
         COALESCE($5, (SELECT birth_date FROM profiles WHERE user_id = $1), (CURRENT_DATE - INTERVAL '18 years')::date),
         $6,
+        $7,
+        $8,
+        $9,
+        $10,
         COALESCE((SELECT fame_rating FROM profiles WHERE user_id = $1), 0)
       )
       ON CONFLICT (user_id)
@@ -187,6 +564,10 @@ router.put("/profile/me", async (req, res, next) => {
         gender = EXCLUDED.gender,
         sexual_preference = EXCLUDED.sexual_preference,
         city = EXCLUDED.city,
+        neighborhood = EXCLUDED.neighborhood,
+        gps_consent = EXCLUDED.gps_consent,
+        latitude = EXCLUDED.latitude,
+        longitude = EXCLUDED.longitude,
         birth_date = COALESCE(EXCLUDED.birth_date, profiles.birth_date)
       RETURNING
         user_id,
@@ -194,86 +575,92 @@ router.put("/profile/me", async (req, res, next) => {
         gender,
         sexual_preference,
         city,
+        neighborhood,
+        gps_consent,
         birth_date,
         latitude,
         longitude,
         fame_rating
-    `;
+      `,
+      [
+        currentUserId,
+        gender,
+        sexual_preference,
+        biography.trim(),
+        birth_date || null,
+        safeCity,
+        safeNeighborhood,
+        gpsConsent,
+        parsedLatitude,
+        parsedLongitude,
+      ],
+    );
 
-    const updateValues = [
-      currentUserId,
-      gender,
-      sexual_preference,
-      biography.trim(),
-      birth_date || null,
-      city.trim(),
-    ];
+    if (normalizedTags !== null) {
+      await client.query("DELETE FROM user_profile_tags WHERE user_id = $1", [
+        currentUserId,
+      ]);
+      for (const tag of normalizedTags) {
+        const tagResult = await client.query(
+          `
+          INSERT INTO tags (name)
+          VALUES ($1)
+          ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+          RETURNING id
+          `,
+          [tag],
+        );
 
-    // 执行 SQL 查询，插入或更新用户的 profile 信息。使用 ON CONFLICT 子句确保如果 profile 已存在则进行更新，而不是插入新记录。COALESCE 函数用于在插入时设置默认值，如果已有记录则保留原值。查询结果将包含更新后的 profile 信息，包括 user_id、biography、gender、sexual_preference、city、birth_date、latitude、longitude 和 fame_rating 字段。
-    const updated = await pool.query(updateSql, updateValues);
-
-    // 更新完成后，再次查询用户的基本信息和 profile 信息，以便在响应中返回完整的用户数据。这个查询与之前获取用户信息的查询类似，使用 LEFT JOIN 将 users 表和 profiles 表连接起来，根据用户 ID 查找特定用户的记录，并返回相关字段。
-    const userSql = `
-      SELECT id, email, username, first_name, last_name, email_verified, created_at
-      FROM users
-      WHERE id = $1
-      LIMIT 1
-    `;
-
-    const userResult = await pool.query(userSql, [currentUserId]);
-
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
+        await client.query(
+          `
+          INSERT INTO user_profile_tags (user_id, tag_id)
+          VALUES ($1, $2)
+          ON CONFLICT DO NOTHING
+          `,
+          [currentUserId, tagResult.rows[0].id],
+        );
+      }
     }
 
-    const user = userResult.rows[0];
-    const profile = updated.rows[0];
+    const tagsResult = await client.query(
+      `
+      SELECT t.name
+      FROM user_profile_tags upt
+      JOIN tags t ON t.id = upt.tag_id
+      WHERE upt.user_id = $1
+      ORDER BY t.name ASC
+      `,
+      [currentUserId],
+    );
 
+    await client.query("COMMIT");
+    inTransaction = false;
+
+    const profile = updated.rows[0];
     return res.json({
       message: "Profile updated successfully",
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email_verified: user.email_verified,
-        created_at: user.created_at,
-      },
       profile: {
         gender: profile.gender,
         sexual_preference: profile.sexual_preference,
         biography: profile.biography,
         birth_date: profile.birth_date,
         city: profile.city,
+        neighborhood: profile.neighborhood,
+        gps_consent: Boolean(profile.gps_consent),
         latitude: profile.latitude,
         longitude: profile.longitude,
+        tags: tagsResult.rows.map((entry) => entry.name),
         fame_rating: profile.fame_rating,
       },
     });
   } catch (error) {
+    if (inTransaction) {
+      await client.query("ROLLBACK");
+    }
     return next(error);
+  } finally {
+    client.release();
   }
 });
 
 module.exports = router;
-
-/**
- * 这段是“更新/创建用户 profile”的 UPSERT 语句，逐行说明：
-
-INSERT INTO profiles (...) VALUES (...)：尝试插入一行。占位符 $1..$5 的值在后面的 updateValues 里传入：[$1=user_id, $2=gender, $3=sexual_preference, $4=biography, $5=city]。
-birth_date 的值用 COALESCE(...)：
-先查 profiles 里这个用户现有的 birth_date（SELECT birth_date ... WHERE user_id = $1）。
-如果已有值，沿用；如果没有（返回 NULL），就用默认 (CURRENT_DATE - INTERVAL '18 years')::date，相当于默认 18 周岁生日。
-fame_rating 同理：如果已有评分就沿用，否则默认 0。
-ON CONFLICT (user_id) DO UPDATE SET ...：如果 user_id 已存在（唯一约束冲突），不报错，而是改为执行 UPDATE，更新传入的 biography、gender、sexual_preference、city（birth_date 和 fame_rating 在 UPDATE 部分不改，保持上面的沿用逻辑）。
-RETURNING ...：把插入/更新后的字段返回给应用（包含地理坐标、评分等）。
-$5 是第 6 个列 city 的值，和上面的 COALESCE 没有直接关系，只是下一个逗号后的参数占位符
-
-含义是：如果 user_id 冲突，就把现有行更新成“这次 INSERT 提交过来的值”（EXCLUDED.*）。
-对比：
-
-EXCLUDED 是 PostgreSQL 在 ON CONFLICT ... DO UPDATE 里提供的一个“伪表”别名，指向“本次 INSERT 试图写入、但因冲突被排除的那一行”的值。用它可以在 UPDATE 子句里引用本次提交的字段值。
-EXCLUDED.col：本次 INSERT 请求的值。
-profiles.col（或表别名）：库里已存在、发生冲突的那行的当前值。
- */

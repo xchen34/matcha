@@ -57,12 +57,6 @@ router.get("/matches", async (req, res, next) => {
       return res.status(400).json({ error: "x-user-id header requis" });
     }
 
-    const cityResult = await pool.query(
-      `SELECT city FROM profiles WHERE user_id = $1`,
-      [userId],
-    );
-    const myCity = cityResult.rows[0]?.city || null;
-
     // Retrieve likes to determine liked and is_match status
     const likesGivenRes = await pool.query(
       `SELECT liked_user_id FROM likes WHERE liker_user_id = $1`,
@@ -90,11 +84,18 @@ router.get("/matches", async (req, res, next) => {
         u.username,
         u.email,
         p.city,
+        p.neighborhood,
         p.fame_rating,
-        p.birth_date
+        p.birth_date,
+        COALESCE(
+          ARRAY_REMOVE(ARRAY_AGG(DISTINCT t.name), NULL),
+          ARRAY[]::varchar[]
+        ) AS tags
       FROM users u
       LEFT JOIN profiles p ON p.user_id = u.id
-      CROSS JOIN me
+      LEFT JOIN user_profile_tags upt ON upt.user_id = u.id
+      LEFT JOIN tags t ON t.id = upt.tag_id
+      LEFT JOIN me ON TRUE
       WHERE u.id <> $1
         AND (
           $2::int IS NULL
@@ -110,8 +111,9 @@ router.get("/matches", async (req, res, next) => {
         AND (
           $5::numeric IS NULL OR p.fame_rating <= $5::numeric
         )
+      GROUP BY u.id, u.username, u.email, p.city, p.neighborhood, p.fame_rating, p.birth_date, me.city
       ORDER BY
-        (p.city IS NOT NULL AND p.city = me.city) DESC,
+        (me.city IS NOT NULL AND p.city IS NOT NULL AND p.city = me.city) DESC,
         p.fame_rating DESC NULLS LAST,
         u.id ASC
       LIMIT $6::int
