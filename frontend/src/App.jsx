@@ -3,6 +3,7 @@ import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom"
 import { FaLocationArrow } from "react-icons/fa";
 import UserCard from "./components/UserCard";
 import FindMatchPage from "./pages/FindMatchPage";
+import UserProfilePage from "./pages/UserProfilePage";
 import { buildApiHeaders } from "./utils.js";
 const STORAGE_KEY = "matcha.currentUser";
 
@@ -1321,6 +1322,10 @@ function App() {
         <Route
           path="/find-match"
           element={<FindMatchPage currentUser={currentUser} />}
+        />
+        <Route
+          path="/users/:id"
+          element={<UserProfilePage currentUser={currentUser} />}
         />
       </Routes>
     </main>

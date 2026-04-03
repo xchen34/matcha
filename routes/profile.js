@@ -719,6 +719,91 @@ router.get("/profile/me", async (req, res, next) => {
   }
 });
 
+// Public profile for viewing another user
+router.get("/profile/:id", async (req, res, next) => {
+  try {
+    const requestedId = Number(req.params.id);
+    if (!Number.isInteger(requestedId) || requestedId <= 0) {
+      return res.status(400).json({ error: "Invalid user id" });
+    }
+
+    const [profileResult, tagsResult, photosResult] = await Promise.all([
+      pool.query(
+        `
+        SELECT
+          u.id AS user_id,
+          u.username,
+          u.first_name,
+          u.last_name,
+          p.gender,
+          p.sexual_preference,
+          p.biography,
+          p.birth_date,
+          p.city,
+          p.neighborhood,
+          p.fame_rating
+        FROM users AS u
+        LEFT JOIN profiles AS p ON p.user_id = u.id
+        WHERE u.id = $1
+        LIMIT 1
+        `,
+        [requestedId],
+      ),
+      pool.query(
+        `
+        SELECT t.name
+        FROM user_profile_tags upt
+        JOIN tags t ON t.id = upt.tag_id
+        WHERE upt.user_id = $1
+        ORDER BY t.name ASC
+        `,
+        [requestedId],
+      ),
+      pool.query(
+        `
+        SELECT id, data_url, is_primary
+        FROM user_photos
+        WHERE user_id = $1
+        ORDER BY is_primary DESC, id ASC
+        `,
+        [requestedId],
+      ),
+    ]);
+
+    if (profileResult.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const row = profileResult.rows[0];
+    return res.json({
+      user: {
+        id: row.user_id,
+        username: row.username,
+        first_name: row.first_name,
+        last_name: row.last_name,
+      },
+      profile: {
+        gender: row.gender || "",
+        sexual_preference: row.sexual_preference || "",
+        biography: row.biography || "",
+        birth_date: row.birth_date,
+        age: getAge(row.birth_date),
+        city: row.city || "",
+        neighborhood: row.neighborhood || "",
+        fame_rating: row.fame_rating ?? 0,
+        tags: tagsResult.rows.map((entry) => entry.name),
+        photos: photosResult.rows.map((item) => ({
+          id: item.id,
+          data_url: item.data_url,
+          is_primary: item.is_primary,
+        })),
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.put("/profile/me", async (req, res, next) => {
   const client = await pool.connect();
   let inTransaction = false;
