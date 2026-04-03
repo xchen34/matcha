@@ -128,11 +128,25 @@ function UserProfilePage({ currentUser }) {
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white/70 p-3 text-sm text-slate-700">
-        <div className="flex items-center justify-between">
-          <span>Fame rating</span>
-          <span className="font-semibold text-slate-900">{profile.fame_rating ?? 0}</span>
+      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand via-brand/90 to-brand-deep p-5 text-white shadow-lg shadow-orange-200/50">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
+              Fame rating
+            </p>
+            <p className="mt-2 text-sm text-white/85">Total likes received</p>
+          </div>
+          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+            Profile score
+          </span>
         </div>
+        <div className="mt-5 flex items-end gap-2">
+          <span className="text-5xl font-bold leading-none">{profile.fame_rating ?? 0}</span>
+          <span className="pb-1 text-sm font-medium text-white/80">likes</span>
+        </div>
+        <p className="mt-3 text-xs text-white/70">
+          This reflects how many users have liked this profile.
+        </p>
       </div>
     </section>
   );

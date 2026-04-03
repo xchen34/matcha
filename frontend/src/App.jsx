@@ -3,6 +3,7 @@ import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom"
 import { FaLocationArrow } from "react-icons/fa";
 import UserCard from "./components/UserCard";
 import FindMatchPage from "./pages/FindMatchPage";
+import MyPopularityPage from "./pages/MyPopularityPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import { buildApiHeaders } from "./utils.js";
 const STORAGE_KEY = "matcha.currentUser";
@@ -1295,6 +1296,13 @@ function App() {
           </NavLink>
         )}
         {currentUser && (
+          <NavLink to="/popularity" className={({ isActive }) =>
+            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          }>
+            My Popularity
+          </NavLink>
+        )}
+        {currentUser && (
           <button type="button" className={secondaryButtonClass} onClick={logout}>
             Logout
           </button>
@@ -1322,6 +1330,10 @@ function App() {
         <Route
           path="/find-match"
           element={<FindMatchPage currentUser={currentUser} />}
+        />
+        <Route
+          path="/popularity"
+          element={<MyPopularityPage currentUser={currentUser} />}
         />
         <Route
           path="/users/:id"
