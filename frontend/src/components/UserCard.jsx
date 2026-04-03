@@ -37,12 +37,6 @@ function UserCard({ user, currentUser }) {
     if (user && currentUser) {
       fetchLikeStatus();
       fetchMatchStatus();
-      if (user.id !== currentUser.id) {
-        fetch(`/api/users/${user.id}/view`, {
-          method: "POST",
-          headers: { "x-user-id": currentUser.id },
-        }).catch(() => {});
-      }
     }
     return () => { cancelled = true; };
   }, [user, currentUser]);
