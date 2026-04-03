@@ -389,6 +389,22 @@ async function fetchNeighborhoodsForCity(city, limit) {
   if (cached) return cached;
 
   const cleanCity = city.trim();
+
+  // First, resolve the city to get its country
+  const cityResults = await forwardGeocode({
+    city: cleanCity,
+    neighborhood: "",
+    limit: 1,
+  });
+
+  if (cityResults.length === 0) {
+    setCachedValue(cacheKey, []);
+    return [];
+  }
+
+  const cityCountry = cityResults[0].country || "";
+
+  // Now search for neighborhoods within that country
   const variants = [
     cleanCity,
     `district, ${cleanCity}`,
@@ -406,6 +422,12 @@ async function fetchNeighborhoodsForCity(city, limit) {
     for (const item of results) {
       const neighborhood = (item.neighborhood || "").trim();
       if (!neighborhood) continue;
+
+      // Filter by country: only include neighborhoods from the same country
+      const itemCountry = (item.country || "").trim();
+      if (cityCountry && itemCountry && itemCountry !== cityCountry) {
+        continue;
+      }
 
       const key = normalizeLocationText(neighborhood);
       const existing = neighborhoodsByKey.get(key);
@@ -855,7 +877,12 @@ router.put("/profile/me", async (req, res, next) => {
           email = COALESCE($3, email)
         WHERE id = $4
         `,
-        [normalizedFirstName, normalizedLastName, normalizedEmail, currentUserId],
+        [
+          normalizedFirstName,
+          normalizedLastName,
+          normalizedEmail,
+          currentUserId,
+        ],
       );
     }
 

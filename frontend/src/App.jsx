@@ -1060,9 +1060,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 {loadingGeo ? "Locating..." : "Use my position"}
               </span>
             </button>
-
             <span className="text-xs text-slate-500">
-              Enable GPS consent to use location or neighborhood.
+              Neighborhood is optional and available once a city is entered.
             </span>
           </div>
 
@@ -1146,12 +1145,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                   Select a valid city first. Neighborhood is optional (default: None).
                 </p>
               )}
-
-              {!form.gps_consent && (
-                <p className="text-xs text-slate-500">
-                  Neighborhood is disabled for manual input. Enable GPS consent to use it.
-                </p>
-              )}
+              <p className="text-xs text-slate-500">
+                Neighborhood is optional and helps make the location more precise.
+              </p>
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const healthRouter = require("./routes/health"); 
+const healthRouter = require("./routes/health");
 const dbHealthRouter = require("./routes/dbHealth");
 const usersRouter = require("./routes/users");
 const authRouter = require("./routes/auth");
@@ -15,7 +15,7 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-app.use(cors(corsOptions)); 
+app.use(cors(corsOptions));
 
 // Parse JSON request bodies - 这行代码启用 Express 内置的 JSON 解析中间件，允许服务器自动解析 Content-Type: application/json 的请求体，并将解析后的对象赋值给 req.body，方便后续路由处理使用。没有这行代码，req.body 将是 undefined，无法获取客户端发送的 JSON 数据。
 /**
@@ -24,7 +24,8 @@ app.use(cors(corsOptions));
 输出结果：在路由里可直接用 req.body.email 之类访问——这就是 JS 对象。
 仅针对 JSON：Content-Type 需是 application/json（含 charset 也行）；表单 multipart/form-data 或 application/x-www-form-urlencoded 要用别的中间件。
  */
-app.use(express.json()); 
+app.use(express.json({ limit: "6mb" }));
+app.use(express.urlencoded({ extended: true, limit: "6mb" }));
 
 /**
  * curl 手动测：开发者临时验证功能是否通、数据是否落库。需要人操作、看结果，无法持续监控，失败了也没人自动处理。
@@ -40,7 +41,6 @@ app.use(express.json());
 总结：curl 是手工验收；健康检查是自动、频繁、无副作用的存活/就绪信号。这是成熟应用的常规做法，尤其在容器/K8s/有负载均衡的环境里几乎是标配。
  */
 
-
 //挂载子路由 不算中间件 /api：统一前缀，便于前端或反向代理只转发以 /api 开头的请求，页面静态资源等保持分离。实际路径分别是 /api/health, /api/db-health, /api/users, /api/auth/...。
 app.use("/api", healthRouter);
 app.use("/api", dbHealthRouter);
@@ -53,8 +53,6 @@ app.use("/api", likesRouter);
 app.use((req, res) => {
   res.status(404).json({ error: "Not found" });
 });
-
-
 
 /*
 错误处理 23505 → 409：PostgreSQL 错误码 23505 表示唯一约束冲突（unique constraint violation），例如 email/username 已存在。
@@ -77,7 +75,14 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error(err);
 
-  if (err.code === "23505") { 
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({
+      error:
+        "Request payload is too large. Please reduce image size or number of images.",
+    });
+  }
+
+  if (err.code === "23505") {
     return res.status(409).json({ error: "Duplicate value" });
   }
 
