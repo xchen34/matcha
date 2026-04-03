@@ -1,45 +1,17 @@
 import { FaHeart } from "react-icons/fa";
 
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 function UserCard({ user, currentUser }) {
-  const navigate = useNavigate();
-  const [liked, setLiked] = useState(false);
-  const [isMatch, setIsMatch] = useState(false);
+  const [liked, setLiked] = useState(Boolean(user?.liked));
+  const [isMatch, setIsMatch] = useState(Boolean(user?.is_match));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
-    async function fetchLikeStatus() {
-      try {
-        const res = await fetch(`/api/users/${user.id}/like`, {
-          headers: { "x-user-id": currentUser.id },
-        });
-        const data = await res.json();
-        if (!cancelled) setLiked(!!data.liked);
-      } catch {
-        if (!cancelled) setLiked(false);
-      }
-    }
-    async function fetchMatchStatus() {
-      try {
-        const res = await fetch(`/api/users/${user.id}/is-match`, {
-          headers: { "x-user-id": currentUser.id },
-        });
-        const data = await res.json();
-        if (!cancelled) setIsMatch(!!data.is_match);
-      } catch {
-        if (!cancelled) setIsMatch(false);
-      }
-    }
-    if (user && currentUser) {
-      fetchLikeStatus();
-      fetchMatchStatus();
-    }
-    return () => { cancelled = true; };
-  }, [user, currentUser]);
+    setLiked(Boolean(user?.liked));
+    setIsMatch(Boolean(user?.is_match));
+  }, [user?.id, user?.liked, user?.is_match]);
 
   async function handleToggleLike() {
     setLoading(true);
@@ -53,7 +25,10 @@ function UserCard({ user, currentUser }) {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          if (data.message !== "Already liked") throw new Error(data.error || "Error while liking");
+          const alreadyLikedMessages = ["Already liked", "Déjà liké", "Deja like"];
+          if (!alreadyLikedMessages.includes(data.message)) {
+            throw new Error(data.error || "Error while liking");
+          }
         }
         setLiked(true);
       } else {
@@ -114,13 +89,6 @@ function UserCard({ user, currentUser }) {
             <span className="font-semibold text-slate-800">-</span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => navigate(`/users/${user.id}`)}
-          className="mt-2 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:-translate-y-0.5 transition"
-        >
-          View profile
-        </button>
       </div>
 
       <div className="absolute right-4 bottom-4 flex flex-col items-center gap-1">
