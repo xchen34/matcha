@@ -51,7 +51,7 @@ router.post("/users/:id/view", async (req, res, next) => {
 router.get("/matches", async (req, res, next) => {
   try {
     const userId = req.header("x-user-id");
-    const { min_age, max_age, min_fame, max_fame } = req.query;
+    const { min_age, max_age, min_fame, max_fame, q } = req.query;
     const parsedLimit = Number(req.query.limit);
     const parsedOffset = Number(req.query.offset);
     const limit = Number.isFinite(parsedLimit)
@@ -78,6 +78,8 @@ router.get("/matches", async (req, res, next) => {
     const maxAge = parseOptionalNumber(max_age);
     const minFame = parseOptionalNumber(min_fame);
     const maxFame = parseOptionalNumber(max_fame);
+    const searchQuery =
+      typeof q === "string" && q.trim().length > 0 ? q.trim() : null;
 
     if (!userId) {
       return res.status(400).json({ error: "x-user-id header requis" });
@@ -137,6 +139,9 @@ router.get("/matches", async (req, res, next) => {
         AND (
           $5::numeric IS NULL OR p.fame_rating <= $5::numeric
         )
+        AND (
+          $8::text IS NULL OR u.username ILIKE '%' || $8::text || '%'
+        )
       GROUP BY u.id, u.username, u.email, p.city, p.neighborhood, p.fame_rating, p.birth_date, me.city
       ORDER BY
         (me.city IS NOT NULL AND p.city IS NOT NULL AND p.city = me.city) DESC,
@@ -153,6 +158,7 @@ router.get("/matches", async (req, res, next) => {
       maxFame,
       limit,
       offset,
+      searchQuery,
     ]);
 
     // Calculate age from birth_date

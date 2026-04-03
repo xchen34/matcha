@@ -19,12 +19,14 @@ function FindMatchPage({ currentUser }) {
   const [likesList, setLikesList] = useState([]);
   const [fameRating, setFameRating] = useState(0);
   const [draftFilters, setDraftFilters] = useState({
+    q: "",
     min_age: "",
     max_age: "",
     min_fame: "",
     max_fame: "",
   });
   const [appliedFilters, setAppliedFilters] = useState({
+    q: "",
     min_age: "",
     max_age: "",
     min_fame: "",
@@ -148,7 +150,7 @@ function FindMatchPage({ currentUser }) {
   }
 
   function resetFilters() {
-    const empty = { min_age: "", max_age: "", min_fame: "", max_fame: "" };
+    const empty = { q: "", min_age: "", max_age: "", min_fame: "", max_fame: "" };
     setDraftFilters(empty);
     setAppliedFilters(empty);
     setOffset(0);
@@ -218,6 +220,17 @@ function FindMatchPage({ currentUser }) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-4">
+          <label className="text-xs font-semibold text-slate-500">Search username</label>
+          <input
+            type="text"
+            name="q"
+            value={draftFilters.q}
+            onChange={handleFilterChange}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
+            placeholder="Search by username"
+          />
+        </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs font-semibold text-slate-500">Min age</label>
           <input
@@ -278,7 +291,7 @@ function FindMatchPage({ currentUser }) {
           onClick={applyFilters}
           className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-4 py-2 text-sm font-semibold text-white shadow-md shadow-orange-200 hover:-translate-y-0.5 transition"
         >
-          Apply filters
+          Search
         </button>
         <button
           type="button"
