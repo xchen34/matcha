@@ -14,19 +14,15 @@ function FindMatchPage({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
-  const [insightsTab, setInsightsTab] = useState("fame");
-  const [viewsList, setViewsList] = useState([]);
-  const [likesList, setLikesList] = useState([]);
-  const [fameRating, setFameRating] = useState(0);
   const [draftFilters, setDraftFilters] = useState({
-    q: "",
+    username: "",
     min_age: "",
     max_age: "",
     min_fame: "",
     max_fame: "",
   });
   const [appliedFilters, setAppliedFilters] = useState({
-    q: "",
+    username: "",
     min_age: "",
     max_age: "",
     min_fame: "",
@@ -90,55 +86,6 @@ function FindMatchPage({ currentUser }) {
     fetchMatches();
   }, [fetchMatches]);
 
-  useEffect(() => {
-    async function fetchViews() {
-      try {
-        const response = await fetch("/api/profile/views", {
-          headers: buildApiHeaders(currentUser),
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setViewsList(Array.isArray(data.users) ? data.users : []);
-        }
-      } catch {
-        setViewsList([]);
-      }
-    }
-
-    async function fetchLikes() {
-      try {
-        const response = await fetch("/api/profile/likes", {
-          headers: buildApiHeaders(currentUser),
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setLikesList(Array.isArray(data.users) ? data.users : []);
-        }
-      } catch {
-        setLikesList([]);
-      }
-    }
-
-    async function fetchFame() {
-      try {
-        const response = await fetch("/api/profile/me", {
-          headers: buildApiHeaders(currentUser),
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setFameRating(Number(data.profile?.fame_rating || 0));
-        }
-      } catch {
-        setFameRating(0);
-      }
-    }
-
-    if (!currentUser) return;
-    if (insightsTab === "views") fetchViews();
-    if (insightsTab === "likes") fetchLikes();
-    if (insightsTab === "fame") fetchFame();
-  }, [currentUser, insightsTab]);
-
   function handleFilterChange(e) {
     const { name, value } = e.target;
     setDraftFilters((prev) => ({ ...prev, [name]: value }));
@@ -150,7 +97,13 @@ function FindMatchPage({ currentUser }) {
   }
 
   function resetFilters() {
-    const empty = { q: "", min_age: "", max_age: "", min_fame: "", max_fame: "" };
+    const empty = {
+      username: "",
+      min_age: "",
+      max_age: "",
+      min_fame: "",
+      max_fame: "",
+    };
     setDraftFilters(empty);
     setAppliedFilters(empty);
     setOffset(0);
@@ -169,63 +122,17 @@ function FindMatchPage({ currentUser }) {
         <h2 className="text-2xl font-semibold text-slate-900">Find your match</h2>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {["fame", "views", "likes"].map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setInsightsTab(tab)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
-                insightsTab === tab
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-slate-700 border-slate-200"
-              }`}
-            >
-              {tab === "fame" ? "Fame rating" : tab === "views" ? "Who viewed me" : "Who liked me"}
-            </button>
-          ))}
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white/70 p-3 text-sm text-slate-700">
-          {insightsTab === "fame" && (
-            <div className="flex items-center justify-between">
-              <span>Fame rating</span>
-              <span className="font-semibold text-slate-900">{fameRating}</span>
-            </div>
-          )}
-          {insightsTab === "views" && (
-            <div className="space-y-2">
-              {viewsList.length === 0 && <p className="text-slate-500">No views yet.</p>}
-              {viewsList.map((user) => (
-                <div key={user.id} className="flex items-center justify-between">
-                  <span>@{user.username}</span>
-                  <span className="text-xs text-slate-500">{user.email}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {insightsTab === "likes" && (
-            <div className="space-y-2">
-              {likesList.length === 0 && <p className="text-slate-500">No likes yet.</p>}
-              {likesList.map((user) => (
-                <div key={user.id} className="flex items-center justify-between">
-                  <span>@{user.username}</span>
-                  <span className="text-xs text-slate-500">{user.email}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      <p className="text-sm text-slate-600">
+        Browse compatible profiles and apply filters. Your views/likes activity is now in a separate page.
+      </p>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-4">
           <label className="text-xs font-semibold text-slate-500">Search username</label>
           <input
             type="text"
-            name="q"
-            value={draftFilters.q}
+            name="username"
+            value={draftFilters.username}
             onChange={handleFilterChange}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
             placeholder="Search by username"
@@ -291,7 +198,7 @@ function FindMatchPage({ currentUser }) {
           onClick={applyFilters}
           className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-4 py-2 text-sm font-semibold text-white shadow-md shadow-orange-200 hover:-translate-y-0.5 transition"
         >
-          Search
+          Apply filters
         </button>
         <button
           type="button"

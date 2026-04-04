@@ -1,7 +1,124 @@
 const express = require("express");
 const pool = require("../db");
+const { createNotification } = require("./notificationsService");
 
 const router = express.Router();
+
+// GET /api/profile/likes — users who liked the current user
+router.get("/profile/likes", async (req, res, next) => {
+  try {
+    const currentUserId = req.header("x-user-id");
+    if (!currentUserId) {
+      return res.status(400).json({ error: "x-user-id header requis" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT DISTINCT ON (u.id)
+        u.id,
+        u.username,
+        u.email,
+        l.created_at
+      FROM likes l
+      JOIN users u ON u.id = l.liker_user_id
+      WHERE l.liked_user_id = $1
+      ORDER BY u.id, l.created_at DESC
+      `,
+      [currentUserId],
+    );
+
+    return res.json({
+      users: result.rows.map((row) => ({
+        id: row.id,
+        username: row.username,
+        email: row.email,
+        created_at: row.created_at,
+      })),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// GET /api/profile/views — users who viewed the current user
+router.get("/profile/views", async (req, res, next) => {
+  try {
+    const currentUserId = req.header("x-user-id");
+    if (!currentUserId) {
+      return res.status(400).json({ error: "x-user-id header requis" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT DISTINCT ON (u.id)
+        u.id,
+        u.username,
+        u.email,
+        v.created_at
+      FROM profile_views v
+      JOIN users u ON u.id = v.viewer_user_id
+      WHERE v.viewed_user_id = $1
+      ORDER BY u.id, v.created_at DESC
+      `,
+      [currentUserId],
+    );
+
+    return res.json({
+      users: result.rows.map((row) => ({
+        id: row.id,
+        username: row.username,
+        email: row.email,
+        created_at: row.created_at,
+      })),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// POST /api/users/:id/view — record that the current user viewed user :id
+router.post("/users/:id/view", async (req, res, next) => {
+  try {
+    const viewer_user_id = req.header("x-user-id");
+    const viewed_user_id = req.params.id;
+
+    if (!viewer_user_id || !viewed_user_id) {
+      return res.status(400).json({
+        error: "viewer_user_id (header) et viewed_user_id (param) requis",
+      });
+    }
+
+    if (String(viewer_user_id) === String(viewed_user_id)) {
+      return res.status(400).json({ error: "Impossible to view myself" });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO profile_views (viewer_user_id, viewed_user_id)
+      VALUES ($1, $2)
+      ON CONFLICT DO NOTHING
+      RETURNING viewer_user_id, viewed_user_id, created_at
+      `,
+      [viewer_user_id, viewed_user_id],
+    );
+
+    if (result.rowCount > 0) {
+      await createNotification({
+        userId: viewed_user_id,
+        actorUserId: viewer_user_id,
+        type: "profile_view",
+        message: "Your profile was viewed.",
+        metadata: { viewer_user_id },
+      });
+    }
+
+    return res.status(result.rowCount > 0 ? 201 : 200).json({
+      message: result.rowCount > 0 ? "View recorded" : "View already recorded",
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
 
 // GET /api/users/:id/like — check if current user likes user :id
 router.get("/users/:id/like", async (req, res, next) => {
@@ -21,37 +138,11 @@ router.get("/users/:id/like", async (req, res, next) => {
   }
 });
 
-// POST /api/users/:id/view — record that current user viewed user :id
-router.post("/users/:id/view", async (req, res, next) => {
-  try {
-    const viewer_user_id = req.header("x-user-id");
-    const viewed_user_id = req.params.id;
-    if (!viewer_user_id || !viewed_user_id) {
-      return res.status(400).json({
-        error: "viewer_user_id (header) et viewed_user_id (param) requis",
-      });
-    }
-    if (viewer_user_id === viewed_user_id) {
-      return res.status(200).json({ message: "Self view ignored" });
-    }
-    const sql = `
-      INSERT INTO profile_views (viewer_user_id, viewed_user_id, created_at)
-      VALUES ($1, $2, NOW())
-      ON CONFLICT (viewer_user_id, viewed_user_id)
-      DO UPDATE SET created_at = NOW()
-    `;
-    await pool.query(sql, [viewer_user_id, viewed_user_id]);
-    res.json({ message: "View recorded" });
-  } catch (error) {
-    next(error);
-  }
-});
-
 // GET /api/matches — recommandations of users (same city first, then popularity)
 router.get("/matches", async (req, res, next) => {
   try {
     const userId = req.header("x-user-id");
-    const { min_age, max_age, min_fame, max_fame, q } = req.query;
+    const { min_age, max_age, min_fame, max_fame, username } = req.query;
     const parsedLimit = Number(req.query.limit);
     const parsedOffset = Number(req.query.offset);
     const limit = Number.isFinite(parsedLimit)
@@ -78,8 +169,10 @@ router.get("/matches", async (req, res, next) => {
     const maxAge = parseOptionalNumber(max_age);
     const minFame = parseOptionalNumber(min_fame);
     const maxFame = parseOptionalNumber(max_fame);
-    const searchQuery =
-      typeof q === "string" && q.trim().length > 0 ? q.trim() : null;
+    const usernameFilter =
+      typeof username === "string" && username.trim().length > 0
+        ? username.trim()
+        : null;
 
     if (!userId) {
       return res.status(400).json({ error: "x-user-id header requis" });
@@ -140,15 +233,15 @@ router.get("/matches", async (req, res, next) => {
           $5::numeric IS NULL OR p.fame_rating <= $5::numeric
         )
         AND (
-          $8::text IS NULL OR u.username ILIKE '%' || $8::text || '%'
+          $6::text IS NULL OR u.username ILIKE ('%' || $6::text || '%')
         )
       GROUP BY u.id, u.username, u.email, p.city, p.neighborhood, p.fame_rating, p.birth_date, me.city
       ORDER BY
         (me.city IS NOT NULL AND p.city IS NOT NULL AND p.city = me.city) DESC,
         p.fame_rating DESC NULLS LAST,
         u.id ASC
-      LIMIT $6::int
-      OFFSET $7::int
+      LIMIT $7::int
+      OFFSET $8::int
     `;
     const result = await pool.query(sql, [
       userId,
@@ -156,9 +249,9 @@ router.get("/matches", async (req, res, next) => {
       maxAge,
       minFame,
       maxFame,
+      usernameFilter,
       limit,
       offset,
-      searchQuery,
     ]);
 
     // Calculate age from birth_date
@@ -191,54 +284,6 @@ router.get("/matches", async (req, res, next) => {
   }
 });
 
-// GET /api/profile/likes — users who liked current user
-router.get("/profile/likes", async (req, res, next) => {
-  try {
-    const currentUserId = req.header("x-user-id");
-    if (!currentUserId) {
-      return res.status(400).json({ error: "x-user-id header requis" });
-    }
-    const result = await pool.query(
-      `
-      SELECT u.id, u.username, u.email, l.created_at
-      FROM likes l
-      JOIN users u ON u.id = l.liker_user_id
-      WHERE l.liked_user_id = $1
-      ORDER BY l.created_at DESC
-      LIMIT 100
-      `,
-      [currentUserId],
-    );
-    res.json({ users: result.rows });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// GET /api/profile/views — users who viewed current user
-router.get("/profile/views", async (req, res, next) => {
-  try {
-    const currentUserId = req.header("x-user-id");
-    if (!currentUserId) {
-      return res.status(400).json({ error: "x-user-id header requis" });
-    }
-    const result = await pool.query(
-      `
-      SELECT u.id, u.username, u.email, v.created_at
-      FROM profile_views v
-      JOIN users u ON u.id = v.viewer_user_id
-      WHERE v.viewed_user_id = $1
-      ORDER BY v.created_at DESC
-      LIMIT 100
-      `,
-      [currentUserId],
-    );
-    res.json({ users: result.rows });
-  } catch (error) {
-    next(error);
-  }
-});
-
 // POST /api/users/:id/like — current user likes user :id
 router.post("/users/:id/like", async (req, res, next) => {
   try {
@@ -258,6 +303,38 @@ router.post("/users/:id/like", async (req, res, next) => {
     if (result.rowCount === 0) {
       return res.status(200).json({ message: "Déjà liké" });
     }
+
+    await createNotification({
+      userId: liked_user_id,
+      actorUserId: liker_user_id,
+      type: "like_received",
+      message: "You received a like.",
+      metadata: { liker_user_id },
+    });
+
+    const reciprocalLike = await pool.query(
+      `SELECT 1 FROM likes WHERE liker_user_id = $1 AND liked_user_id = $2`,
+      [liked_user_id, liker_user_id],
+    );
+
+    if (reciprocalLike.rowCount > 0) {
+      await createNotification({
+        userId: liked_user_id,
+        actorUserId: liker_user_id,
+        type: "match",
+        message: "A user you liked liked you back.",
+        metadata: { with_user_id: liker_user_id },
+      });
+
+      await createNotification({
+        userId: liker_user_id,
+        actorUserId: liked_user_id,
+        type: "match",
+        message: "A user you liked liked you back.",
+        metadata: { with_user_id: liked_user_id },
+      });
+    }
+
     res.status(201).json({ message: "Like enregistré" });
   } catch (error) {
     next(error);
@@ -278,6 +355,11 @@ router.delete("/users/:id/like", async (req, res, next) => {
       return res.status(400).json({ error: "Impossible to unlike myself" });
     }
 
+    const wasMatch = await pool.query(
+      `SELECT 1 FROM likes WHERE liker_user_id = $1 AND liked_user_id = $2`,
+      [liked_user_id, liker_user_id],
+    );
+
     const sql = `DELETE FROM likes WHERE liker_user_id = $1 AND liked_user_id = $2`;
     const result = await pool.query(sql, [liker_user_id, liked_user_id]);
     if (result.rowCount === 0) {
@@ -285,6 +367,17 @@ router.delete("/users/:id/like", async (req, res, next) => {
         .status(200)
         .json({ message: "Like déjà retiré ou inexistant" });
     }
+
+    if (wasMatch.rowCount > 0) {
+      await createNotification({
+        userId: liked_user_id,
+        actorUserId: liker_user_id,
+        type: "unlike",
+        message: "A connected user unliked you.",
+        metadata: { unliked_by_user_id: liker_user_id },
+      });
+    }
+
     res.status(200).json({ message: "Like retiré" });
   } catch (error) {
     next(error);

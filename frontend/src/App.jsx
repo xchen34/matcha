@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
-import { FaLocationArrow } from "react-icons/fa";
+import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import UserCard from "./components/UserCard";
 import FindMatchPage from "./pages/FindMatchPage";
-import UserProfilePage from "./pages/UserProfilePage";
+import ActivityPage from "./pages/ActivityPage";
+import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
+import NotificationsBell from "./notifications/NotificationsBell.jsx";
 import { buildApiHeaders } from "./utils.js";
 const STORAGE_KEY = "matcha.currentUser";
 
@@ -28,11 +29,15 @@ function readStoredUser() {
     }
 
     const parsed = JSON.parse(raw);
-    if (!parsed || !Number.isInteger(parsed.id)) {
+    const userId = parsed?.id ?? parsed?.user_id ?? parsed?.userId;
+    if (!parsed || !Number.isInteger(Number(userId))) {
       return null;
     }
 
-    return parsed;
+    return {
+      ...parsed,
+      id: Number(userId),
+    };
   } catch {
     return null;
   }
@@ -55,7 +60,6 @@ function RegisterPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-
   async function handleSubmit(event) {
     event.preventDefault();
     setMessage("Submitting...");
@@ -73,14 +77,12 @@ function RegisterPage() {
         setMessage(`Error: ${data.error || "Register failed"}`);
         return;
       }
-
       setMessage("Success: account created, please login.");
       setTimeout(() => navigate("/login"), 700);
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     }
   }
-
   return (
     <section className={cardClass}>
       <div className="space-y-1">
@@ -213,11 +215,8 @@ function LoginPage({ onLogin }) {
   );
 }
 
-function ProfilePage({ currentUser, onProfileUpdate }) {
+function ProfilePage({ currentUser }) {
   const [form, setForm] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
     biography: "",
     gender: "",
     sexual_preference: "",
@@ -227,42 +226,59 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     latitude: "",
     longitude: "",
     tags: [],
-    photos: [],
   });
   
   const [selectedTag, setSelectedTag] = useState("");
   const [tagOptions, setTagOptions] = useState([]);
   const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [citySearchSuggestions, setCitySearchSuggestions] = useState([]);
   const [locationValidation, setLocationValidation] = useState(null);
   const [cityNeighborhoodOptions, setCityNeighborhoodOptions] = useState([]);
+  const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingGeo, setLoadingGeo] = useState(false);
   const [validatingLocation, setValidatingLocation] = useState(false);
   const [isCitySuggestionsOpen, setIsCitySuggestionsOpen] = useState(false);
+  const [isNeighborhoodSelected, setIsNeighborhoodSelected] = useState(false);
+  const [isCityConfirmed, setIsCityConfirmed] = useState(false);
+  const [cityTouched, setCityTouched] = useState(false);
   const userId = currentUser?.id ?? null;
-
-  function persistUser(user) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    if (onProfileUpdate) onProfileUpdate(user);
-  }
   const validationCacheRef = useRef(new Map());
   const cityNeighborhoodCacheRef = useRef(new Map());
+  const latestValidationRequestRef = useRef(0);
   const hasManualLocationInput =
     (form.city || "").trim().length > 0 ||
     (form.neighborhood || "").trim().length > 0;
+  const hasCityInput = (form.city || "").trim().length > 0;
+  const hasNeighborhoodInput = (form.neighborhood || "").trim().length > 0;
+  const hasBiography = (form.biography || "").trim().length > 0;
+  const hasGender = (form.gender || "").trim().length > 0;
+  const hasSexualPreference = (form.sexual_preference || "").trim().length > 0;
+  const hasRequiredFields =
+    hasBiography && hasGender && hasSexualPreference && hasManualLocationInput;
+  const missingRequiredFields = [
+    !hasBiography ? "biography" : null,
+    !hasGender ? "gender" : null,
+    !hasSexualPreference ? "sexual preference" : null,
+    !hasManualLocationInput ? "city or neighborhood" : null,
+  ].filter(Boolean);
+  const isLocationAccepted =
+    Boolean(locationValidation?.is_valid) ||
+    (isCityConfirmed && !hasNeighborhoodInput);
+
   const canSaveProfile =
     !loading &&
     !validatingLocation &&
-    Boolean(locationValidation?.is_valid) &&
-    hasManualLocationInput;
+    isLocationAccepted &&
+    hasRequiredFields;
   const isCitySelected =
     (form.city || "").trim().length > 0 &&
-    !validatingLocation &&
-    Boolean(locationValidation?.city_exists);
+    (isCityConfirmed ||
+      (!validatingLocation && Boolean(locationValidation?.city_exists)));
 
   function buildSuggestionKey(suggestion) {
-    return `${suggestion.display_name}-${suggestion.latitude}-${suggestion.longitude}`;
+    return `${suggestion.city || ""}-${suggestion.display_name || ""}-${suggestion.latitude ?? ""}-${suggestion.longitude ?? ""}`;
   }
 
   function normalizeLocationPrefix(value) {
@@ -283,7 +299,12 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   }
 
   const citySuggestionOptions = useMemo(() => {
-    return locationSuggestions
+    const sourceSuggestions =
+      citySearchSuggestions.length > 0
+        ? citySearchSuggestions
+        : locationSuggestions;
+
+    return sourceSuggestions
       .filter((item) => (item.city || "").trim().length > 0)
       .map((item) => ({
         key: buildSuggestionKey(item),
@@ -291,7 +312,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         neighborhood: item.neighborhood || "",
         label: item.display_name,
       }));
-  }, [locationSuggestions]);
+  }, [citySearchSuggestions, locationSuggestions]);
 
   const neighborhoodByCitySuggestions = useMemo(() => {
     const selectedCity = normalizeLocationPrefix(form.city);
@@ -327,9 +348,90 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     if (!prefix) return [];
 
     return citySuggestionOptions
-      .filter((item) => normalizeLocationPrefix(item.city).startsWith(prefix))
-      .slice(0, 8);
+      .filter((item) => {
+        const normalizedCity = normalizeLocationPrefix(item.city);
+        return (
+          normalizedCity.startsWith(prefix) || normalizedCity.includes(prefix)
+        );
+      })
+      .slice(0, 12);
   }, [citySuggestionOptions, form.city]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchCitySuggestions() {
+      if (!userId) {
+        setCitySearchSuggestions([]);
+        return;
+      }
+
+      const city = (form.city || "").trim();
+      if (city.length < 2) {
+        setCitySearchSuggestions([]);
+        return;
+      }
+
+      try {
+        const params = new URLSearchParams();
+        params.set("query", city);
+        params.set("limit", "20");
+
+        const response = await fetch(
+          `/api/profile/city-suggestions?${params.toString()}`,
+          {
+            headers: buildApiHeaders({ id: userId }),
+          },
+        );
+
+        const data = await response.json();
+        console.log("[city-suggestions] response", {
+          city,
+          status: response.status,
+          ok: response.ok,
+          count: Array.isArray(data?.suggestions) ? data.suggestions.length : 0,
+          sample: Array.isArray(data?.suggestions)
+            ? data.suggestions.slice(0, 3).map((item) => item.city)
+            : [],
+        });
+        if (!response.ok || cancelled) {
+          if (!cancelled) {
+            setMessage(
+              `City suggestions unavailable (${response.status}). ${data?.error || "Check backend logs."}`,
+            );
+          }
+          return;
+        }
+
+        const suggestions = Array.isArray(data.suggestions)
+          ? data.suggestions.map((item) => ({
+              city: item.city,
+              neighborhood: "",
+              display_name: item.display_name || item.city,
+            }))
+          : [];
+
+        if (!cancelled) {
+          setCitySearchSuggestions(suggestions);
+        }
+      } catch (error) {
+        console.log("[city-suggestions] failed", {
+          city,
+          message: error?.message || "unknown error",
+        });
+        if (!cancelled) {
+          setCitySearchSuggestions([]);
+          setMessage("City suggestions failed. Check backend availability.");
+        }
+      }
+    }
+
+    const timeoutId = setTimeout(fetchCitySuggestions, 220);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [userId, form.city]);
 
   const loadProfile = useCallback(async () => {
     if (!userId) {
@@ -359,9 +461,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       }
 
       setForm({
-        first_name: data.user?.first_name || "",
-        last_name: data.user?.last_name || "",
-        email: data.user?.email || "",
         biography: data.profile.biography || "",
         gender: data.profile.gender || "",
         sexual_preference: data.profile.sexual_preference || "",
@@ -377,8 +476,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
             ? String(data.profile.longitude)
             : "",
         tags: Array.isArray(data.profile.tags) ? data.profile.tags : [],
-        photos: Array.isArray(data.profile.photos) ? data.profile.photos : [],
       });
+      setCityTouched(Boolean((data.profile.city || "").trim()));
+      setIsCityConfirmed(Boolean((data.profile.city || "").trim()));
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -389,7 +489,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
-
 
   useEffect(() => {
     let cancelled = false;
@@ -431,74 +530,37 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         city: value,
         neighborhood: "",
       }));
-    } else {
+      setIsCityConfirmed(false);
+      setCityNeighborhoodOptions([]);
+      setIsNeighborhoodSelected(false);
+    } else if (name === "neighborhood") {
       setForm((prev) => ({
         ...prev,
-        [name]: type === "checkbox" ? checked : value,
+        [name]: value,
       }));
+      if (value.trim().length > 0) {
+        setIsNeighborhoodSelected(true);
+      } else {
+        setIsNeighborhoodSelected(false);
+      }
+    } else {
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
     }
 
     if (name === "city" || name === "neighborhood") {
       setLocationValidation(null);
+      if (name === "city") {
+        setCitySearchSuggestions([]);
+      }
     }
 
     if (name === "latitude" || name === "longitude" || name === "gps_consent") {
       setLocationValidation(null);
       setLocationSuggestions([]);
     }
-  }
-
-  function handlePhotoUpload(event) {
-    const files = Array.from(event.target.files || []);
-    if (files.length === 0) return;
-    const remaining = Math.max(0, 5 - form.photos.length);
-    const slice = files.slice(0, remaining);
-    if (slice.length === 0) return;
-
-    const readers = slice.map(
-      (file) =>
-        new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () =>
-            resolve({
-              data_url: String(reader.result),
-              is_primary: false,
-              name: file.name,
-            });
-          reader.readAsDataURL(file);
-        }),
-    );
-
-    Promise.all(readers).then((newPhotos) => {
-      setForm((prev) => {
-        const merged = [...prev.photos, ...newPhotos];
-        if (!merged.some((p) => p.is_primary) && merged.length > 0) {
-          merged[0].is_primary = true;
-        }
-        return { ...prev, photos: merged };
-      });
-    });
-    event.target.value = "";
-  }
-
-  function setPrimaryPhoto(index) {
-    setForm((prev) => ({
-      ...prev,
-      photos: prev.photos.map((photo, i) => ({
-        ...photo,
-        is_primary: i === index,
-      })),
-    }));
-  }
-
-  function removePhoto(index) {
-    setForm((prev) => {
-      const next = prev.photos.filter((_, i) => i !== index);
-      if (next.length > 0 && !next.some((p) => p.is_primary)) {
-        next[0].is_primary = true;
-      }
-      return { ...prev, photos: next };
-    });
   }
 
   function normalizeTag(tag) {
@@ -575,6 +637,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               city: data.city || prev.city,
               neighborhood: data.neighborhood || prev.neighborhood,
             }));
+            setIsCityConfirmed(Boolean((data.city || "").trim()));
+            setCityTouched(Boolean((data.city || "").trim()));
             setLocationValidation(null);
             setLocationSuggestions([]);
             setMessage(
@@ -630,6 +694,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       setMessage("Checking location...");
     }
 
+    const requestId = latestValidationRequestRef.current + 1;
+    latestValidationRequestRef.current = requestId;
+
     const params = new URLSearchParams();
     if (city) params.set("city", city);
     if (neighborhood) params.set("neighborhood", neighborhood);
@@ -642,6 +709,20 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         headers: buildApiHeaders({ id: userId }),
       });
       const data = await response.json();
+
+      // Ignore stale responses from older requests (e.g. "Pari") arriving after newer ones (e.g. "Paris").
+      if (requestId !== latestValidationRequestRef.current) {
+        return;
+      }
+
+      console.log("[validate-location] response", {
+        city,
+        neighborhood,
+        status: response.status,
+        ok: response.ok,
+        validation: data?.validation || null,
+        suggestionsCount: Array.isArray(data?.suggestions) ? data.suggestions.length : 0,
+      });
 
       if (!response.ok) {
         setLocationValidation(null);
@@ -669,24 +750,54 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         }
       }
     } catch (error) {
+      if (requestId !== latestValidationRequestRef.current) {
+        return;
+      }
       setLocationValidation(null);
       setLocationSuggestions([]);
       if (!silent) {
         setMessage(`Error: ${error.message}`);
       }
     } finally {
-      setValidatingLocation(false);
+      if (requestId === latestValidationRequestRef.current) {
+        setValidatingLocation(false);
+      }
     }
   }
 
   function applyCitySuggestion(option) {
+    setCityTouched(true);
     setForm((prev) => ({
       ...prev,
       city: option.city,
       neighborhood: "",
     }));
+    setIsCityConfirmed(true);
+    setLocationValidation((prev) => ({
+      ...(prev || {}),
+      is_valid: true,
+      city_exists: true,
+      neighborhood_exists: true,
+      matched_exact_suggestion: true,
+    }));
+    setCityNeighborhoodOptions([]);
+    setCitySearchSuggestions([]);
+    setIsNeighborhoodSelected(false);
     setIsCitySuggestionsOpen(false);
-    setMessage("City suggestion selected.");
+    setMessage("City suggestion selected. Choose a neighborhood.");
+  }
+
+  function handleEditLocation() {
+    setCityTouched(true);
+    setForm((prev) => ({
+      ...prev,
+      neighborhood: "",
+    }));
+    setIsCityConfirmed(false);
+    setCityNeighborhoodOptions([]);
+    setLocationValidation(null);
+    setIsNeighborhoodSelected(false);
+    setMessage("Edit your city if needed.");
   }
 
   useEffect(() => {
@@ -696,10 +807,17 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
 
     const city = (form.city || "").trim();
     const neighborhood = (form.neighborhood || "").trim();
+    const latitude = (form.latitude || "").trim();
+    const longitude = (form.longitude || "").trim();
 
     if (!city && !neighborhood) {
       setLocationValidation(null);
       setLocationSuggestions([]);
+      return undefined;
+    }
+
+    // Avoid hammering validate-location while typing city only; city confirmation comes from suggestion click.
+    if (city && !neighborhood && !latitude && !longitude && isCityConfirmed) {
       return undefined;
     }
 
@@ -721,8 +839,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     let cancelled = false;
 
     async function loadCityNeighborhoods() {
-      if (!userId || !isCitySelected) {
+      if (!userId || !hasCityInput || !isCitySelected) {
         setCityNeighborhoodOptions([]);
+        setLoadingNeighborhoods(false);
         return;
       }
 
@@ -730,10 +849,12 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       const cachedNeighborhoods = cityNeighborhoodCacheRef.current.get(cityCacheKey);
       if (cachedNeighborhoods) {
         setCityNeighborhoodOptions(cachedNeighborhoods);
+        setLoadingNeighborhoods(false);
         return;
       }
 
       try {
+        setLoadingNeighborhoods(true);
         const params = new URLSearchParams();
         params.set("city", form.city.trim());
         params.set("limit", "20");
@@ -764,6 +885,10 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         if (!cancelled) {
           setCityNeighborhoodOptions([]);
         }
+      } finally {
+        if (!cancelled) {
+          setLoadingNeighborhoods(false);
+        }
       }
     }
 
@@ -771,11 +896,14 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     return () => {
       cancelled = true;
     };
-  }, [userId, isCitySelected, form.city]);
+  }, [userId, hasCityInput, isCitySelected, form.city]);
 
   function handleCityInputChange(event) {
+    setCityTouched(true);
     handleChange(event);
-    setIsCitySuggestionsOpen(true);
+    if (!isNeighborhoodSelected) {
+      setIsCitySuggestionsOpen(true);
+    }
 
     const typed = normalizeLocationPrefix(event.target.value);
     if (!typed) return;
@@ -791,7 +919,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (!locationValidation?.is_valid) {
+    if (!isLocationAccepted) {
       setMessage("Error: location is not verified. Please choose a valid city/neighborhood.");
       return;
     }
@@ -806,9 +934,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     );
 
     const payload = {
-      first_name: form.first_name,
-      last_name: form.last_name,
-      email: form.email,
       biography: form.biography,
       gender: form.gender,
       sexual_preference: form.sexual_preference,
@@ -818,7 +943,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       latitude: form.latitude,
       longitude: form.longitude,
       tags: form.tags,
-      photos: form.photos,
     };
 
     try {
@@ -842,9 +966,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
 
       setForm((prev) => ({
         ...prev,
-        first_name: data.user?.first_name || prev.first_name,
-        last_name: data.user?.last_name || prev.last_name,
-        email: data.user?.email || prev.email,
         biography: data.profile.biography || "",
         gender: data.profile.gender || "",
         sexual_preference: data.profile.sexual_preference || "",
@@ -860,11 +981,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
             ? String(data.profile.longitude)
             : "",
         tags: Array.isArray(data.profile.tags) ? data.profile.tags : prev.tags,
-        photos: Array.isArray(data.profile.photos) ? data.profile.photos : prev.photos,
       }));
-      if (data.user) {
-        persistUser(data.user);
-      }
       setMessage("Success: profile updated");
     } catch (error) {
       setMessage(`Error: ${error.message}`);
@@ -890,197 +1007,67 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         <p className="text-sm text-slate-500">Loading...</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-                First name
-              </label>
-              <input
-                name="first_name"
-                placeholder="First name"
-                value={form.first_name}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-                Last name
-              </label>
-              <input
-                name="last_name"
-                placeholder="Last name"
-                value={form.last_name}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-          </div>
+          <textarea
+            name="biography"
+            placeholder="Biography"
+            value={form.biography}
+            onChange={handleChange}
+            className={textareaClass}
+            rows={4}
+          />
 
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Email address
-            </label>
-            <input
-              name="email"
-              type="email"
-              placeholder="Email address"
-              value={form.email}
-              onChange={handleChange}
-              className={inputClass}
-            />
-          </div>
+          <select
+            name="gender"
+            value={form.gender}
+            onChange={handleChange}
+            className={selectClass}
+          >
+            <option value="">Select gender</option>
+            <option value="male">male</option>
+            <option value="female">female</option>
+            <option value="non_binary">non_binary</option>
+            <option value="other">other</option>
+          </select>
 
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Bio
-            </label>
-            <textarea
-              name="biography"
-              placeholder="Biography"
-              value={form.biography}
-              onChange={handleChange}
-              className={textareaClass}
-              rows={4}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Gender
-            </label>
-            <select
-              name="gender"
-              value={form.gender}
-              onChange={handleChange}
-              className={selectClass}
-            >
-              <option value="">Select gender</option>
-              <option value="male">male</option>
-              <option value="female">female</option>
-              <option value="non_binary">non_binary</option>
-              <option value="other">other</option>
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Sexual preference
-            </label>
-            <select
-              name="sexual_preference"
-              value={form.sexual_preference}
-              onChange={handleChange}
-              className={selectClass}
-            >
-              <option value="">Select sexual preference</option>
-              <option value="male">male</option>
-              <option value="female">female</option>
-              <option value="both">both</option>
-              <option value="other">other</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-                Photos (max 5)
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="text-xs text-slate-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {form.photos.map((photo, index) => (
-                <div
-                  key={`${photo.id || "new"}-${index}`}
-                  className={`relative overflow-hidden rounded-xl border ${photo.is_primary ? "border-brand" : "border-slate-200"}`}
-                >
-                  <img
-                    src={photo.data_url}
-                    alt={`Upload ${index + 1}`}
-                    className="h-32 w-full object-cover"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/50 px-2 py-1 text-xs text-white">
-                    <button
-                      type="button"
-                      onClick={() => setPrimaryPhoto(index)}
-                      className="hover:underline"
-                    >
-                      {photo.is_primary ? "Primary" : "Set primary"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(index)}
-                      className="hover:underline"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {form.photos.length === 0 && (
-                <div className="col-span-2 sm:col-span-3 rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
-                  No photos yet. Upload up to 5 images.
-                </div>
-              )}
-            </div>
-
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Location
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                name="gps_consent"
-                checked={form.gps_consent}
-                onChange={handleChange}
-              />
-              I consent to GPS-based location
-            </label>
-
-            <button
-              type="button"
-              className={secondaryButtonClass}
-              onClick={useCurrentLocation}
-              disabled={loadingGeo || !form.gps_consent}
-            >
-              <span className="inline-flex items-center gap-2">
-                <FaLocationArrow className="text-slate-700" />
-                {loadingGeo ? "Locating..." : "Use my position"}
-              </span>
-            </button>
-            <span className="text-xs text-slate-500">
-              Neighborhood is optional and available once a city is entered.
-            </span>
-          </div>
+          <select
+            name="sexual_preference"
+            value={form.sexual_preference}
+            onChange={handleChange}
+            className={selectClass}
+          >
+            <option value="">Select sexual preference</option>
+            <option value="male">male</option>
+            <option value="female">female</option>
+            <option value="both">both</option>
+            <option value="other">other</option>
+          </select>
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <div className="relative">
+              <div className="relative flex gap-2">
                 <input
                   name="city"
                   placeholder="City"
                   value={form.city}
                   onChange={handleCityInputChange}
-                  onFocus={() => setIsCitySuggestionsOpen(true)}
+                  onFocus={() => !isNeighborhoodSelected && setIsCitySuggestionsOpen(true)}
                   onBlur={() => {
                     setTimeout(() => setIsCitySuggestionsOpen(false), 120);
                   }}
-                  className={`${inputClass} ${cityAutocompleteOptions.length > 0 ? "rounded-b-none" : ""}`}
+                  className={`${inputClass} flex-1 ${cityAutocompleteOptions.length > 0 ? "rounded-b-none" : ""} ${isNeighborhoodSelected ? "opacity-60" : ""}`}
                   autoComplete="new-password"
+                  disabled={isNeighborhoodSelected}
                 />
+                
+                {isNeighborhoodSelected && (
+                  <button
+                    type="button"
+                    onClick={handleEditLocation}
+                    className={secondaryButtonClass}
+                  >
+                    Edit
+                  </button>
+                )}
 
                 {isCitySuggestionsOpen && cityAutocompleteOptions.length > 0 && (
                   <div className="absolute left-0 right-0 top-full z-50 rounded-b-xl border border-t-0 border-slate-200 bg-white shadow-lg pointer-events-auto">
@@ -1102,13 +1089,19 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 )}
               </div>
 
-              {(form.city || "").trim().length > 0 && (
+              {(form.city || "").trim().length > 0 && !isNeighborhoodSelected && (
                 <p className={`text-xs ${locationValidation?.city_exists ? "text-emerald-700" : "text-amber-700"}`}>
                   {validatingLocation
                     ? "Checking city..."
                     : locationValidation?.city_exists
-                      ? "City exists"
+                      ? "✓ City verified"
                       : "City not verified yet"}
+                </p>
+              )}
+              
+              {isNeighborhoodSelected && (
+                <p className="text-xs text-emerald-700">
+                  ✓ {form.city} - confirmed
                 </p>
               )}
             </div>
@@ -1119,10 +1112,14 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                   name="neighborhood"
                   value={form.neighborhood}
                   onChange={handleChange}
-                  className={selectClass}
-                  disabled={!isCitySelected || !form.gps_consent}
+                  className={`${selectClass} ${isCitySelected ? "" : "opacity-60 cursor-not-allowed"}`}
+                  disabled={!isCitySelected || loadingNeighborhoods || neighborhoodByCityOptions.length === 0}
                 >
-                  <option value="">None</option>
+                  <option value="">
+                    {isCitySelected
+                      ? "Select neighborhood (optional)"
+                      : "Select a valid city first"}
+                  </option>
                   {neighborhoodByCityOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -1131,24 +1128,41 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 </select>
               </div>
 
+              {!hasCityInput && (
+                <p className="text-xs text-slate-500">
+                  Enter a city first to unlock neighborhood.
+                </p>
+              )}
+
+              {hasCityInput && !isCitySelected && (
+                <p className="text-xs text-slate-500">
+                  Confirm a valid city first to unlock neighborhood suggestions.
+                </p>
+              )}
+
+              {isCitySelected && neighborhoodByCityOptions.length === 0 && (
+                <p className="text-xs text-slate-500">
+                  {loadingNeighborhoods
+                    ? "Loading neighborhoods..."
+                    : "No neighborhoods available yet for this city."}
+                </p>
+              )}
+
               {(form.neighborhood || "").trim().length > 0 && (
                 <p className={`text-xs ${locationValidation?.neighborhood_exists ? "text-emerald-700" : "text-amber-700"}`}>
                   {validatingLocation
                     ? "Checking neighborhood..."
                     : locationValidation?.neighborhood_exists
-                      ? "Neighborhood exists"
+                      ? "✓ Neighborhood verified"
                       : "Neighborhood not verified yet"}
                 </p>
               )}
 
-              {!isCitySelected && form.gps_consent && (
+              {isCitySelected && !isNeighborhoodSelected && (
                 <p className="text-xs text-slate-500">
-                  Select a valid city first. Neighborhood is optional (default: None).
+                  Neighborhood is optional, but helps with better precision.
                 </p>
               )}
-              <p className="text-xs text-slate-500">
-                Neighborhood is optional and helps make the location more precise.
-              </p>
             </div>
           </div>
 
@@ -1160,7 +1174,36 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
             </p>
           )}
 
-          {/* Latitude/Longitude UI hidden for now */}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className={secondaryButtonClass}
+              onClick={useCurrentLocation}
+              disabled={loadingGeo}
+            >
+              {loadingGeo ? "Locating..." : "Use current GPS location"}
+            </button>
+            <span className="text-xs text-slate-500">
+              You can use city only. Neighborhood is optional and helps refine the location.
+            </span>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input
+              name="latitude"
+              placeholder="Latitude"
+              value={form.latitude}
+              onChange={handleChange}
+              className={inputClass}
+            />
+            <input
+              name="longitude"
+              placeholder="Longitude"
+              value={form.longitude}
+              onChange={handleChange}
+              className={inputClass}
+            />
+          </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Interests (tags)</label>
@@ -1224,7 +1267,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
 
           {!canSaveProfile && (
             <p className="text-xs text-amber-700">
-              Save is locked until city or neighborhood is entered and verified.
+              Save is locked. Required: {missingRequiredFields.join(", ") || "verified location"}.
             </p>
           )}
         </form>
@@ -1237,7 +1280,15 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
 
 function App() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/login";
   const [currentUser, setCurrentUser] = useState(readStoredUser());
+
+  useEffect(() => {
+    if (currentUser && location.pathname === "/login") {
+      navigate("/profile", { replace: true });
+    }
+  }, [currentUser, location.pathname, navigate]);
 
   useEffect(() => {
     const onStorage = () => setCurrentUser(readStoredUser());
@@ -1252,20 +1303,30 @@ function App() {
   }
 
   return (
-    <main className="max-w-5xl mx-auto px-5 py-10 space-y-10">
-      <header className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.16em] text-brand-deep font-semibold">
-          42 Matchmaking Playground
-        </p>
-        <h1 className="text-5xl sm:text-6xl font-bold text-slate-900 leading-none">
-          Matcha
-        </h1>
-        <p className="text-slate-600">
-          Clean routes, clear session flow, no fake current user.
-        </p>
-      </header>
+    <NotificationsProvider currentUser={currentUser}>
+      {currentUser && !isLoginPage && (
+        <div className="fixed inset-x-0 top-4 z-[9999] pointer-events-none">
+          <div className="mx-auto flex max-w-5xl justify-end px-5 sm:px-6 lg:px-8">
+            <div className="pointer-events-auto rounded-full border border-orange-300 bg-orange-50/95 p-2 shadow-lg shadow-orange-200/60 backdrop-blur">
+              <NotificationsBell />
+            </div>
+          </div>
+        </div>
+      )}
+      <main className="max-w-5xl mx-auto px-5 py-10 space-y-10">
+        <header className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.16em] text-brand-deep font-semibold">
+            42 Matchmaking Playground
+          </p>
+          <h1 className="text-5xl sm:text-6xl font-bold text-slate-900 leading-none">
+            Matcha
+          </h1>
+          <p className="text-slate-600">
+            Clean routes, clear session flow, no fake current user.
+          </p>
+        </header>
 
-      <nav className="flex flex-wrap items-center gap-3">
+        <nav className="flex flex-wrap items-center gap-3">
         {!currentUser && (
           <NavLink to="/login" className={({ isActive }) =>
             `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
@@ -1295,40 +1356,47 @@ function App() {
           </NavLink>
         )}
         {currentUser && (
+          <NavLink to="/activity" className={({ isActive }) =>
+            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          }>
+            Who viewed/liked me
+          </NavLink>
+        )}
+        {currentUser && (
           <button type="button" className={secondaryButtonClass} onClick={logout}>
             Logout
           </button>
         )}
-      </nav>
+        </nav>
 
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<LoginPage onLogin={setCurrentUser} />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route
-          path="/profile"
-          element={
-            currentUser ? (
-              <ProfilePage
-                currentUser={currentUser}
-                onUnauthorized={() => {}}
-                onProfileUpdate={setCurrentUser}
-              />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/find-match"
-          element={<FindMatchPage currentUser={currentUser} />}
-        />
-        <Route
-          path="/users/:id"
-          element={<UserProfilePage currentUser={currentUser} />}
-        />
-      </Routes>
-    </main>
+        <Routes>
+          <Route
+            path="/"
+            element={<Navigate to={currentUser ? "/profile" : "/login"} replace />}
+          />
+          <Route path="/login" element={<LoginPage onLogin={setCurrentUser} />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/profile"
+            element={
+              currentUser ? (
+                <ProfilePage currentUser={currentUser} onUnauthorized={() => {}} />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/find-match"
+            element={<FindMatchPage currentUser={currentUser} />}
+          />
+          <Route
+            path="/activity"
+            element={<ActivityPage currentUser={currentUser} />}
+          />
+        </Routes>
+      </main>
+    </NotificationsProvider>
   );
 }
 

@@ -6,6 +6,14 @@ const allowedGenders = ["male", "female", "non_binary", "other"];
 const allowedPreferences = ["male", "female", "both", "other"];
 const GEO_CACHE_TTL_MS = 5 * 60 * 1000;
 const geocodeCache = new Map();
+const NOMINATIM_MIN_INTERVAL_MS = 1100;
+const NOMINATIM_HEADERS = {
+  "User-Agent": "matcha/1.0 (education project)",
+  Accept: "application/json",
+  "Accept-Language": "en",
+};
+let nominatimQueue = Promise.resolve();
+let lastNominatimRequestAt = 0;
 
 function getCachedValue(cacheKey) {
   const cached = geocodeCache.get(cacheKey);
@@ -22,6 +30,42 @@ function setCachedValue(cacheKey, value) {
     value,
     expiresAt: Date.now() + GEO_CACHE_TTL_MS,
   });
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchNominatim(endpoint) {
+  const run = async () => {
+    const now = Date.now();
+    const waitMs = Math.max(
+      0,
+      NOMINATIM_MIN_INTERVAL_MS - (now - lastNominatimRequestAt),
+    );
+    if (waitMs > 0) {
+      await sleep(waitMs);
+    }
+
+    lastNominatimRequestAt = Date.now();
+    let response = await fetch(endpoint, { headers: NOMINATIM_HEADERS });
+
+    if (response.status === 429) {
+      console.warn("[nominatim] rate limited, retrying", { endpoint });
+      await sleep(1500);
+      lastNominatimRequestAt = Date.now();
+      response = await fetch(endpoint, { headers: NOMINATIM_HEADERS });
+    }
+
+    return response;
+  };
+
+  const task = nominatimQueue.then(run, run);
+  nominatimQueue = task.then(
+    () => undefined,
+    () => undefined,
+  );
+  return task;
 }
 
 function isNonEmptyString(value) {
@@ -135,13 +179,7 @@ async function reverseGeocode(latitude, longitude) {
   const endpoint = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&addressdetails=1&accept-language=en`;
   let response;
   try {
-    response = await fetch(endpoint, {
-      headers: {
-        "User-Agent": "matcha/1.0 (education project)",
-        Accept: "application/json",
-        "Accept-Language": "en",
-      },
-    });
+    response = await fetchNominatim(endpoint);
   } catch {
     return { city: "", neighborhood: "", display_name: "" };
   }
@@ -243,12 +281,6 @@ async function forwardGeocode({ city, neighborhood, limit }) {
 
   if (parts.length === 0) return [];
 
-  const headers = {
-    "User-Agent": "matcha/1.0 (education project)",
-    Accept: "application/json",
-    "Accept-Language": "en",
-  };
-
   const queryVariants = [parts.join(", ")];
   if (parts.length > 1 && isNonEmptyString(city)) {
     // Fallback to city-only query when neighborhood+city is too restrictive.
@@ -284,12 +316,15 @@ async function forwardGeocode({ city, neighborhood, limit }) {
 
     let response;
     try {
-      response = await fetch(endpoint, { headers });
+      response = await fetchNominatim(endpoint);
     } catch {
       continue;
     }
 
     if (!response.ok) {
+      if (response.status === 429) {
+        console.warn("[geocode] rate limited", { endpoint, query });
+      }
       continue;
     }
 
@@ -343,18 +378,17 @@ async function searchLocationsByQuery(query, limit) {
 
   let response;
   try {
-    response = await fetch(endpoint, {
-      headers: {
-        "User-Agent": "matcha/1.0 (education project)",
-        Accept: "application/json",
-        "Accept-Language": "en",
-      },
-    });
+    response = await fetchNominatim(endpoint);
   } catch {
     return [];
   }
 
-  if (!response.ok) return [];
+  if (!response.ok) {
+    if (response.status === 429) {
+      console.warn("[searchLocationsByQuery] rate limited", { query, limit });
+    }
+    return [];
+  }
 
   let data;
   try {
@@ -403,6 +437,7 @@ async function fetchNeighborhoodsForCity(city, limit) {
   }
 
   const cityCountry = cityResults[0].country || "";
+  const normalizedCityCountry = normalizeLocationText(cityCountry);
 
   // Now search for neighborhoods within that country
   const variants = [
@@ -425,7 +460,12 @@ async function fetchNeighborhoodsForCity(city, limit) {
 
       // Filter by country: only include neighborhoods from the same country
       const itemCountry = (item.country || "").trim();
-      if (cityCountry && itemCountry && itemCountry !== cityCountry) {
+      const normalizedItemCountry = normalizeLocationText(itemCountry);
+      if (
+        normalizedCityCountry &&
+        normalizedItemCountry &&
+        normalizedItemCountry !== normalizedCityCountry
+      ) {
         continue;
       }
 
@@ -437,6 +477,27 @@ async function fetchNeighborhoodsForCity(city, limit) {
           display_name: item.display_name,
           importance: item.importance,
         });
+      }
+    }
+  }
+
+  // Fallback: if strict country filtering produced no result, try once without country filter.
+  if (neighborhoodsByKey.size === 0) {
+    for (const query of uniqueVariants) {
+      const results = await searchLocationsByQuery(query, limit);
+      for (const item of results) {
+        const neighborhood = (item.neighborhood || "").trim();
+        if (!neighborhood) continue;
+
+        const key = normalizeLocationText(neighborhood);
+        const existing = neighborhoodsByKey.get(key);
+        if (!existing || item.importance > existing.importance) {
+          neighborhoodsByKey.set(key, {
+            name: neighborhood,
+            display_name: item.display_name,
+            importance: item.importance,
+          });
+        }
       }
     }
   }
@@ -503,12 +564,7 @@ router.get("/profile/reverse-geocode", async (req, res, next) => {
 
 router.get("/profile/validate-location", async (req, res, next) => {
   try {
-    const currentUserId = await resolveCurrentUserId(req);
-    if (!currentUserId) {
-      return res.status(401).json({
-        error: "Not authenticated. Please login and provide x-user-id.",
-      });
-    }
+    const currentUserId = parseUserIdFromRequest(req);
 
     const city = isNonEmptyString(req.query.city) ? req.query.city.trim() : "";
     const neighborhood = isNonEmptyString(req.query.neighborhood)
@@ -521,6 +577,15 @@ router.get("/profile/validate-location", async (req, res, next) => {
     const limit = Number.isInteger(rawLimit)
       ? Math.max(1, Math.min(rawLimit, 20))
       : 12;
+
+    console.info("[profile/validate-location] request", {
+      userId: currentUserId,
+      city,
+      neighborhood,
+      latitude,
+      longitude,
+      limit,
+    });
 
     if (!city && !neighborhood && (latitude === null || longitude === null)) {
       return res.status(400).json({
@@ -542,11 +607,32 @@ router.get("/profile/validate-location", async (req, res, next) => {
     const effectiveNeighborhood =
       neighborhood || (gpsResolved ? gpsResolved.neighborhood : "");
 
-    const suggestions = await forwardGeocode({
+    let suggestions = await forwardGeocode({
       city: effectiveCity,
       neighborhood: effectiveNeighborhood,
       limit,
     });
+
+    if (suggestions.length === 0 && effectiveCity) {
+      const fallbackResults = await searchLocationsByQuery(
+        effectiveNeighborhood
+          ? `${effectiveNeighborhood}, ${effectiveCity}`
+          : effectiveCity,
+        Math.max(limit * 3, 20),
+      );
+
+      suggestions = dedupeLocationSuggestions(
+        fallbackResults.map((item) => ({
+          display_name: item.display_name || "",
+          latitude: null,
+          longitude: null,
+          city: item.city || splitDisplayName(item.display_name || ""),
+          neighborhood: item.neighborhood || "",
+          country: item.country || "",
+          importance: item.importance || 0,
+        })),
+      ).slice(0, limit);
+    }
 
     const wantedCity = normalizeLocationText(city);
     const wantedNeighborhood = normalizeLocationText(neighborhood);
@@ -573,6 +659,15 @@ router.get("/profile/validate-location", async (req, res, next) => {
 
     const isValid = suggestions.length > 0 && cityExists && neighborhoodExists;
 
+    console.info("[profile/validate-location] result", {
+      city,
+      neighborhood,
+      suggestionsCount: suggestions.length,
+      cityExists,
+      neighborhoodExists,
+      isValid,
+    });
+
     return res.json({
       validation: {
         is_valid: isValid,
@@ -597,12 +692,7 @@ router.get("/profile/validate-location", async (req, res, next) => {
 
 router.get("/profile/city-neighborhoods", async (req, res, next) => {
   try {
-    const currentUserId = await resolveCurrentUserId(req);
-    if (!currentUserId) {
-      return res.status(401).json({
-        error: "Not authenticated. Please login and provide x-user-id.",
-      });
-    }
+    const currentUserId = parseUserIdFromRequest(req);
 
     const city = isNonEmptyString(req.query.city) ? req.query.city.trim() : "";
     if (!city) {
@@ -616,6 +706,110 @@ router.get("/profile/city-neighborhoods", async (req, res, next) => {
 
     const neighborhoods = await fetchNeighborhoodsForCity(city, limit);
     return res.json({ city, neighborhoods });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/profile/city-suggestions", async (req, res, next) => {
+  try {
+    const currentUserId = parseUserIdFromRequest(req);
+
+    const query = isNonEmptyString(req.query.query)
+      ? req.query.query.trim()
+      : "";
+    if (query.length < 2) {
+      console.info("[profile/city-suggestions] short query", {
+        userId: currentUserId,
+        query,
+      });
+      return res.json({ query, suggestions: [] });
+    }
+
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isInteger(rawLimit)
+      ? Math.max(1, Math.min(rawLimit, 50))
+      : 20;
+
+    const searchLimit = Math.max(limit * 6, 60);
+    const primaryResults = await searchLocationsByQuery(query, searchLimit);
+    let results = primaryResults;
+    if (results.length === 0) {
+      const geocodeFallback = await forwardGeocode({
+        city: query,
+        neighborhood: "",
+        limit: searchLimit,
+      });
+      results = geocodeFallback.map((item) => ({
+        display_name: item.display_name || item.city || "",
+        city: item.city || "",
+        neighborhood: item.neighborhood || "",
+        country: item.country || "",
+        importance: item.importance || 0,
+      }));
+    }
+
+    const normalizedQuery = normalizeLocationText(query);
+    const byCity = new Map();
+
+    for (const item of results) {
+      const city = (item.city || splitDisplayName(item.display_name)).trim();
+      if (!city) continue;
+
+      const normalizedCity = normalizeLocationText(city);
+      if (
+        normalizedQuery &&
+        !normalizedCity.startsWith(normalizedQuery) &&
+        !normalizedCity.includes(normalizedQuery)
+      ) {
+        continue;
+      }
+
+      const existing = byCity.get(normalizedCity);
+      if (!existing || item.importance > existing.importance) {
+        byCity.set(normalizedCity, {
+          city,
+          display_name: item.display_name || city,
+          importance: item.importance || 0,
+        });
+      }
+    }
+
+    const suggestions = Array.from(byCity.values())
+      .sort((a, b) => {
+        const aStarts = normalizeLocationText(a.city).startsWith(
+          normalizedQuery,
+        )
+          ? 1
+          : 0;
+        const bStarts = normalizeLocationText(b.city).startsWith(
+          normalizedQuery,
+        )
+          ? 1
+          : 0;
+        if (aStarts !== bStarts) return bStarts - aStarts;
+        if ((b.importance || 0) !== (a.importance || 0)) {
+          return (b.importance || 0) - (a.importance || 0);
+        }
+        return a.city.localeCompare(b.city, undefined, { sensitivity: "base" });
+      })
+      .slice(0, limit)
+      .map((item) => ({
+        city: item.city,
+        display_name: item.display_name,
+      }));
+
+    console.info("[profile/city-suggestions] result", {
+      userId: currentUserId,
+      query,
+      searchLimit,
+      rawResults: results.length,
+      primaryRawResults: primaryResults.length,
+      suggestionsCount: suggestions.length,
+      sample: suggestions.slice(0, 3).map((item) => item.city),
+    });
+
+    return res.json({ query, suggestions });
   } catch (error) {
     return next(error);
   }
