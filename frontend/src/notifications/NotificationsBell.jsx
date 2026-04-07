@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useNotifications } from "./NotificationsProvider.jsx";
 
 function formatDateTime(value) {
@@ -27,10 +28,19 @@ function renderNotificationMessage(item) {
     );
   }
 
+  if (item.type === "unlike") {
+    return (
+      <p className="text-sm text-slate-800">
+        <span className="font-semibold text-slate-950">{actorName}</span> unliked you.
+      </p>
+    );
+  }
+
   return <p className="text-sm text-slate-800">{item.message}</p>;
 }
 
 export default function NotificationsBell() {
+  const navigate = useNavigate();
   const {
     notifications,
     unreadCount,
@@ -61,6 +71,34 @@ export default function NotificationsBell() {
     document.addEventListener("mousedown", onDocumentClick);
     return () => document.removeEventListener("mousedown", onDocumentClick);
   }, []);
+
+  function getTargetUserId(item) {
+    if (!item) return null;
+    const target = Number(item.actor_user_id);
+    return Number.isInteger(target) && target > 0 ? target : null;
+  }
+
+  function handleNotificationClick(item) {
+    if (!item) return;
+
+    if (!item.is_read) {
+      void markNotificationAsRead(item.id);
+    }
+  }
+
+  function handleViewProfile(event, item) {
+    event.stopPropagation();
+
+    if (item && !item.is_read) {
+      void markNotificationAsRead(item.id);
+    }
+
+    const targetUserId = getTargetUserId(item);
+    if (targetUserId) {
+      setOpen(false);
+      navigate(`/users/${targetUserId}`);
+    }
+  }
 
   return (
     <div ref={rootRef} className="relative">
@@ -120,19 +158,28 @@ export default function NotificationsBell() {
               {notifications.map((item) => (
                 <li
                   key={item.id}
-                  onClick={() => {
-                    if (!item.is_read) {
-                      markNotificationAsRead(item.id);
-                    }
-                  }}
-                  className={`rounded-xl border px-3 py-2 ${
+                  onClick={() => handleNotificationClick(item)}
+                  className={`group rounded-xl border px-3 py-2 transition ${
                     item.is_read
                       ? "border-slate-200 bg-slate-50"
-                      : "border-orange-200 bg-orange-50 cursor-pointer"
+                      : "cursor-pointer border-orange-200 bg-orange-50 hover:bg-orange-100"
                   }`}
                 >
                   {renderNotificationMessage(item)}
-                  <p className="mt-1 text-[11px] text-slate-500">{formatDateTime(item.created_at)}</p>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p className="text-[11px] text-slate-500 group-hover:text-slate-700">
+                      {formatDateTime(item.created_at)}
+                    </p>
+                    {getTargetUserId(item) && (
+                      <button
+                        type="button"
+                        onClick={(event) => handleViewProfile(event, item)}
+                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        View
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

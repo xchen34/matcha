@@ -131,12 +131,11 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
       </div>
 
       <div className="absolute right-4 bottom-4 flex flex-col items-center gap-1">
-        {(!liked || isMatch) && (
-          <div className="flex flex-col items-center text-xs font-semibold text-slate-700">
-            {!liked && <span>Like</span>}
-            {isMatch && <span className="text-brand">Match!</span>}
-          </div>
-        )}
+        <div className="flex flex-col items-center text-xs font-semibold text-slate-700">
+          <span className={isMatch ? "text-brand" : "text-slate-700"}>
+            {isMatch ? "Match" : liked ? "Liked" : "Like"}
+          </span>
+        </div>
         <button
           className={`flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-gradient-to-br from-brand to-brand-deep shadow-md shadow-orange-200 transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${liked ? "ring-2 ring-brand/60" : ""}`}
           onClick={handleToggleLike}

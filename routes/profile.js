@@ -1,5 +1,6 @@
 const express = require("express");
 const pool = require("../db");
+const { isUserOnline } = require("../realtime/presence");
 const {
   validatePhotoMimeType,
   normalizePhotosInput,
@@ -138,11 +139,6 @@ function getAge(birthDate) {
   const m = today.getMonth() - dob.getMonth();
   if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
   return age;
-}
-
-function isOnlineFromLastSeen(lastSeenAt) {
-  if (!lastSeenAt) return false;
-  return new Date(lastSeenAt).getTime() >= Date.now() - 30 * 1000;
 }
 
 async function reverseGeocode(latitude, longitude) {
@@ -968,7 +964,7 @@ router.get("/profile/:id", async (req, res, next) => {
         username: row.username,
         first_name: row.first_name,
         last_name: row.last_name,
-        is_online: isOnlineFromLastSeen(row.last_seen_at),
+        is_online: isUserOnline(row.user_id),
         last_seen_at: row.last_seen_at,
       },
       profile: {

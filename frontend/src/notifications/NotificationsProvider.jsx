@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { buildApiHeaders } from "../utils.js";
+import { onRealtimeEvent } from "../realtime/socket.js";
 
 const NotificationsContext = createContext(null);
 const POLL_INTERVAL_MS = 10000;
@@ -113,6 +114,27 @@ export function NotificationsProvider({ currentUser, children }) {
       window.clearInterval(intervalId);
     };
   }, [currentUser, fetchNotifications]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return undefined;
+
+    const offNotificationCreated = onRealtimeEvent(
+      "notification:created",
+      (payload) => {
+        const incoming = payload?.notification;
+        if (!incoming || Number(incoming.user_id) !== Number(currentUser.id)) {
+          return;
+        }
+
+        setNotifications((prev) => [incoming, ...prev]);
+        setUnreadCount((prev) => prev + (incoming.is_read ? 0 : 1));
+      },
+    );
+
+    return () => {
+      offNotificationCreated();
+    };
+  }, [currentUser?.id]);
 
   const value = useMemo(
     () => ({

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { FaHeart } from "react-icons/fa";
 import { Navigate, useParams } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
+import { onRealtimeEvent } from "../realtime/socket.js";
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
@@ -18,10 +20,13 @@ function UserProfilePage({ currentUser }) {
   const [reportedFake, setReportedFake] = useState(false);
   const [blockedUser, setBlockedUser] = useState(false);
   const [moderationMessage, setModerationMessage] = useState("");
+  const [liked, setLiked] = useState(false);
+  const [isMatch, setIsMatch] = useState(false);
+  const [loadingLike, setLoadingLike] = useState(false);
+  const [likeError, setLikeError] = useState("");
+  const [canLikeProfiles, setCanLikeProfiles] = useState(false);
 
   useEffect(() => {
-    let intervalId = null;
-
     async function fetchProfile() {
       setLoading(true);
       setError("");
@@ -67,31 +72,105 @@ function UserProfilePage({ currentUser }) {
       }
     }
 
+    async function fetchLikeState() {
+      if (!currentUser?.id || !id || String(currentUser.id) === String(id)) return;
+
+      try {
+        const [likeResponse, matchResponse, meResponse] = await Promise.all([
+          fetch(`/api/users/${id}/like`, {
+            headers: buildApiHeaders(currentUser),
+          }),
+          fetch(`/api/users/${id}/is-match`, {
+            headers: buildApiHeaders(currentUser),
+          }),
+          fetch("/api/profile/me", {
+            headers: buildApiHeaders(currentUser),
+          }),
+        ]);
+
+        const likePayload = await likeResponse.json().catch(() => ({}));
+        const matchPayload = await matchResponse.json().catch(() => ({}));
+        const mePayload = await meResponse.json().catch(() => ({}));
+
+        setLiked(Boolean(likeResponse.ok && likePayload?.liked));
+        setIsMatch(Boolean(matchResponse.ok && matchPayload?.is_match));
+        setCanLikeProfiles(
+          Array.isArray(mePayload?.profile?.photos) &&
+            mePayload.profile.photos.some((photo) => photo.is_primary),
+        );
+      } catch {
+        setLiked(false);
+        setIsMatch(false);
+        setCanLikeProfiles(false);
+      }
+    }
+
     if (id) {
       fetchProfile();
       recordView();
       fetchModerationStatus();
-
-      intervalId = setInterval(() => {
-        fetch(`/api/profile/${id}`, {
-          headers: buildApiHeaders(currentUser),
-        })
-          .then((response) => response.json().then((payload) => ({ response, payload })))
-          .then(({ response, payload }) => {
-            if (response.ok) {
-              setData(payload);
-            }
-          })
-          .catch(() => {});
-      }, 15000);
+      fetchLikeState();
     }
+  }, [id, currentUser]);
+
+  useEffect(() => {
+    if (!id) return undefined;
+
+    const viewedUserId = Number(id);
+    if (!Number.isInteger(viewedUserId)) return undefined;
+
+    const offPresenceUpdate = onRealtimeEvent("presence:update", (payload) => {
+      const targetUserId = Number(payload?.user_id);
+      if (targetUserId !== viewedUserId) return;
+
+      setData((prev) => {
+        if (!prev || !prev.user) return prev;
+        return {
+          ...prev,
+          user: {
+            ...prev.user,
+            is_online: Boolean(payload.is_online),
+            last_seen_at: payload.last_seen_at || prev.user.last_seen_at,
+          },
+        };
+      });
+    });
 
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      offPresenceUpdate();
     };
-  }, [id, currentUser]);
+  }, [id]);
+
+  useEffect(() => {
+    if (!id || !currentUser?.id) return undefined;
+
+    const viewedUserId = Number(id);
+    if (!Number.isInteger(viewedUserId)) return undefined;
+
+    const offNotificationCreated = onRealtimeEvent(
+      "notification:created",
+      (payload) => {
+        const incoming = payload?.notification;
+        if (!incoming) return;
+        if (Number(incoming.user_id) !== Number(currentUser.id)) return;
+        if (Number(incoming.actor_user_id) !== viewedUserId) return;
+
+        if (incoming.type === "match") {
+          setLiked(true);
+          setIsMatch(true);
+          return;
+        }
+
+        if (incoming.type === "unlike") {
+          setIsMatch(false);
+        }
+      },
+    );
+
+    return () => {
+      offNotificationCreated();
+    };
+  }, [id, currentUser?.id]);
 
   async function handleReportSubmit(event) {
     event.preventDefault();
@@ -154,6 +233,53 @@ function UserProfilePage({ currentUser }) {
     }
   }
 
+  async function handleToggleLike() {
+    if (!currentUser?.id || isOwnProfile) return;
+
+    setLoadingLike(true);
+    setLikeError("");
+    try {
+      if (!liked && !canLikeProfiles) {
+        throw new Error("Add a profile picture first to like users.");
+      }
+
+      if (!liked) {
+        const response = await fetch(`/api/users/${id}/like`, {
+          method: "POST",
+          headers: buildApiHeaders(currentUser),
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          const alreadyLikedMessages = ["Already liked", "Déjà liké", "Deja like"];
+          if (!alreadyLikedMessages.includes(payload.message)) {
+            throw new Error(payload.error || "Error while liking");
+          }
+        }
+        setLiked(true);
+      } else {
+        const response = await fetch(`/api/users/${id}/like`, {
+          method: "DELETE",
+          headers: buildApiHeaders(currentUser),
+        });
+        if (!response.ok) {
+          throw new Error("Error when unliking");
+        }
+        setLiked(false);
+        setIsMatch(false);
+      }
+
+      const matchResponse = await fetch(`/api/users/${id}/is-match`, {
+        headers: buildApiHeaders(currentUser),
+      });
+      const matchPayload = await matchResponse.json().catch(() => ({}));
+      setIsMatch(Boolean(matchPayload?.is_match));
+    } catch (error) {
+      setLikeError(error?.message || "Network error");
+    } finally {
+      setLoadingLike(false);
+    }
+  }
+
   if (!currentUser) return <Navigate to="/login" replace />;
   if (loading) return <p className="text-sm text-slate-600">Loading profile...</p>;
   if (error) return <p className="text-sm text-red-600">{error}</p>;
@@ -191,7 +317,34 @@ function UserProfilePage({ currentUser }) {
           </div>
 
           {!isOwnProfile && (
-            <div className="relative">
+            <div className="relative flex items-center gap-2">
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${isMatch ? "bg-emerald-100 text-emerald-700" : liked ? "bg-orange-100 text-orange-700" : "bg-slate-200 text-slate-700"}`}
+              >
+                {isMatch ? "Match" : liked ? "Liked" : "Like"}
+              </span>
+
+              <button
+                type="button"
+                onClick={handleToggleLike}
+                disabled={loadingLike || user.id === currentUser.id || (!liked && !canLikeProfiles)}
+                aria-label={liked ? "Remove like" : "Like this user"}
+                title={
+                  !liked && !canLikeProfiles
+                    ? "Add a profile picture first"
+                    : liked
+                      ? "Unlike"
+                      : "Like"
+                }
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-gradient-to-br from-brand to-brand-deep shadow-md shadow-orange-200 transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${liked ? "ring-2 ring-brand/60" : ""}`}
+              >
+                <FaHeart
+                  color="#fff"
+                  style={{ stroke: liked ? "#fff" : "#0f172a" }}
+                  size={16}
+                />
+              </button>
+
               <button
                 type="button"
                 onClick={() => setMenuOpen((prev) => !prev)}
@@ -202,7 +355,7 @@ function UserProfilePage({ currentUser }) {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
                   <button
                     type="button"
                     onClick={() => {
@@ -263,6 +416,8 @@ function UserProfilePage({ currentUser }) {
       {moderationMessage && (
         <p className="text-sm text-red-600">{moderationMessage}</p>
       )}
+
+      {likeError && <p className="text-sm text-red-600">{likeError}</p>}
 
       {Array.isArray(profile.photos) && profile.photos.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

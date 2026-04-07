@@ -7,6 +7,7 @@ import MyPopularityPage from "./pages/MyPopularityPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
 import NotificationsBell from "./notifications/NotificationsBell.jsx";
+import { connectRealtime, disconnectRealtime } from "./realtime/socket.js";
 import {
   MAX_PHOTO_SIZE_BYTES,
   MAX_TOTAL_PHOTOS_SIZE_BYTES,
@@ -53,6 +54,10 @@ function readStoredUser() {
   } catch {
     return null;
   }
+}
+
+function writeStoredUser(user) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
 }
 
 
@@ -159,7 +164,7 @@ function LoginPage({ onLogin }) {
   const [message, setMessage] = useState("");
 
   function persistUser(user) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    writeStoredUser(user);
   }
 
   function handleChange(event) {
@@ -1526,7 +1531,59 @@ function App() {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function ensureRealtimeToken() {
+      if (!currentUser?.id || currentUser?.realtime_token) {
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/auth/realtime-token", {
+          headers: buildApiHeaders(currentUser),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.realtime_token || cancelled) {
+          return;
+        }
+
+        setCurrentUser((prev) => {
+          if (!prev) return prev;
+          const next = {
+            ...prev,
+            realtime_token: payload.realtime_token,
+          };
+          writeStoredUser(next);
+          return next;
+        });
+      } catch {
+        // Keep app usable even if realtime token refresh fails temporarily.
+      }
+    }
+
+    ensureRealtimeToken();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id, currentUser?.realtime_token]);
+
+  useEffect(() => {
+    if (currentUser?.id && currentUser?.realtime_token) {
+      connectRealtime(currentUser.id, currentUser.realtime_token);
+      return () => {
+        disconnectRealtime();
+      };
+    }
+
+    disconnectRealtime();
+    return undefined;
+  }, [currentUser?.id, currentUser?.realtime_token]);
+
   function logout() {
+    disconnectRealtime();
     localStorage.removeItem(STORAGE_KEY);
     setCurrentUser(null);
     navigate("/login", { replace: true });

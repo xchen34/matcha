@@ -1,13 +1,9 @@
 const express = require("express");
 const pool = require("../db");
 const { createNotification } = require("./notificationsService");
+const { isUserOnline } = require("../realtime/presence");
 
 const router = express.Router();
-
-function isOnlineFromLastSeen(lastSeenAt) {
-  if (!lastSeenAt) return false;
-  return new Date(lastSeenAt).getTime() >= Date.now() - 30 * 1000;
-}
 
 function normalizeTag(tag) {
   if (typeof tag !== "string") return "";
@@ -415,7 +411,7 @@ router.get("/matches", async (req, res, next) => {
         ...u,
         liked,
         is_match: liked && likedBack,
-        is_online: isOnlineFromLastSeen(u.last_seen_at),
+        is_online: isUserOnline(u.id),
         last_seen_at: u.last_seen_at,
         age: u.age_value,
       };

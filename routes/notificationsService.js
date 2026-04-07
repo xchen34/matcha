@@ -1,4 +1,5 @@
 const pool = require("../db");
+const { getIO, REALTIME_EVENTS } = require("../realtime");
 
 async function createNotification({
   userId,
@@ -40,13 +41,35 @@ async function createNotification({
   }
 
   try {
-    await pool.query(
+    const insertResult = await pool.query(
       `
       INSERT INTO notifications (user_id, actor_user_id, type, message, metadata)
       VALUES ($1, $2, $3, $4, $5::jsonb)
+      RETURNING
+        id,
+        user_id,
+        actor_user_id,
+        type,
+        message,
+        metadata,
+        is_read,
+        created_at,
+        (
+          SELECT u.username
+          FROM users u
+          WHERE u.id = notifications.actor_user_id
+          LIMIT 1
+        ) AS actor_username
       `,
       [userId, actorUserId, type, message, JSON.stringify(metadata || {})],
     );
+
+    const io = getIO();
+    if (io && insertResult.rowCount > 0) {
+      io.to(`user:${userId}`).emit(REALTIME_EVENTS.NOTIFICATION_CREATED, {
+        notification: insertResult.rows[0],
+      });
+    }
   } catch (error) {
     // Keep social actions working even if notifications table has not been migrated yet.
     if (error && error.code === "42P01") {

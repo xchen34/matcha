@@ -1,6 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcrypt"); // bcrypt 是一个流行的密码哈希库，提供了安全的哈希算法和自动加盐功能，适合用于存储用户密码。相比于简单的哈希函数（如 SHA-256），bcrypt 设计上更慢，可以有效抵抗暴力破解攻击。
 const pool = require("../db");
+const { createRealtimeToken } = require("../realtime/authToken");
 
 const router = express.Router(); //router 是一个独立的 Express 应用实例，可以定义自己的路由和中间件。最后通过 module.exports 导出，供 app.js 挂载使用。
 
@@ -142,7 +143,38 @@ router.post("/auth/login", async (req, res, next) => {
         last_name: user.last_name,
         email_verified: user.email_verified,
         created_at: user.created_at,
+        realtime_token: createRealtimeToken(user.id),
       },
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/auth/realtime-token", async (req, res, next) => {
+  try {
+    const rawUserId = req.header("x-user-id");
+    const userId = Number(rawUserId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: "x-user-id header is required" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT id
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [userId],
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json({
+      realtime_token: createRealtimeToken(userId),
     });
   } catch (error) {
     return next(error);

@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import { FaFire } from "react-icons/fa";
 import UserCard from "../components/UserCard.jsx";
 import { buildApiHeaders } from "../utils.js";
+import { onRealtimeEvent } from "../realtime/socket.js";
 
 const PAGE_SIZE = 20;
 
@@ -113,14 +114,65 @@ function FindMatchPage({ currentUser }) {
   }, [fetchMatches]);
 
   useEffect(() => {
-    if (!currentUser) return undefined;
+    if (!currentUser?.id) return undefined;
 
-    const intervalId = setInterval(() => {
-      fetchMatches({ requestOffset: 0, silent: true });
-    }, 15000);
+    const offPresenceUpdate = onRealtimeEvent("presence:update", (payload) => {
+      const targetUserId = Number(payload?.user_id);
+      if (!Number.isInteger(targetUserId)) return;
 
-    return () => clearInterval(intervalId);
-  }, [currentUser, fetchMatches]);
+      setUsers((prev) =>
+        prev.map((entry) =>
+          Number(entry.id) === targetUserId
+            ? {
+                ...entry,
+                is_online: Boolean(payload.is_online),
+                last_seen_at: payload.last_seen_at || entry.last_seen_at,
+              }
+            : entry,
+        ),
+      );
+    });
+
+    const offNotificationCreated = onRealtimeEvent(
+      "notification:created",
+      (payload) => {
+        const incoming = payload?.notification;
+        if (!incoming) return;
+        if (Number(incoming.user_id) !== Number(currentUser.id)) return;
+
+        const actorUserId = Number(incoming.actor_user_id);
+        if (!Number.isInteger(actorUserId)) return;
+
+        setUsers((prev) =>
+          prev.map((entry) => {
+            if (Number(entry.id) !== actorUserId) return entry;
+
+            if (incoming.type === "match") {
+              return {
+                ...entry,
+                liked: true,
+                is_match: true,
+              };
+            }
+
+            if (incoming.type === "unlike") {
+              return {
+                ...entry,
+                is_match: false,
+              };
+            }
+
+            return entry;
+          }),
+        );
+      },
+    );
+
+    return () => {
+      offPresenceUpdate();
+      offNotificationCreated();
+    };
+  }, [currentUser?.id]);
 
   useEffect(() => {
     async function fetchFame() {
