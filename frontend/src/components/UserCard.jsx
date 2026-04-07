@@ -1,8 +1,10 @@
 import { FaHeart } from "react-icons/fa";
 
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function UserCard({ user, currentUser }) {
+  const navigate = useNavigate();
   const [liked, setLiked] = useState(Boolean(user?.liked));
   const [isMatch, setIsMatch] = useState(Boolean(user?.is_match));
   const [loading, setLoading] = useState(false);
@@ -89,6 +91,13 @@ function UserCard({ user, currentUser }) {
             <span className="font-semibold text-slate-800">-</span>
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => navigate(`/users/${user.id}`)}
+          className="mt-2 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:-translate-y-0.5 transition"
+        >
+          View profile
+        </button>
       </div>
 
       <div className="absolute right-4 bottom-4 flex flex-col items-center gap-1">

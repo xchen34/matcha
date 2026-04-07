@@ -24,6 +24,8 @@ async function initDb() {
 
     const likesSqlPath = path.join(__dirname, "sql", "create_likes_table.sql");
     const createLikesSql = fs.readFileSync(likesSqlPath, "utf8");
+    const viewsSqlPath = path.join(__dirname, "sql", "create_views_table.sql");
+    const createViewsSql = fs.readFileSync(viewsSqlPath, "utf8");
     const tagsSqlPath = path.join(__dirname, "sql", "create_tags_table.sql");
     const createTagsSql = fs.readFileSync(tagsSqlPath, "utf8");
     const seedDefaultTagsSqlPath = path.join(
@@ -65,6 +67,7 @@ async function initDb() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
 
       UPDATE users
       SET username = 'user_' || id
@@ -86,12 +89,18 @@ async function initDb() {
       SET email_verified = FALSE
       WHERE email_verified IS NULL;
 
+      UPDATE users
+      SET last_seen_at = COALESCE(last_seen_at, created_at, NOW())
+      WHERE last_seen_at IS NULL;
+
       ALTER TABLE users ALTER COLUMN username SET NOT NULL;
       ALTER TABLE users ALTER COLUMN first_name SET NOT NULL;
       ALTER TABLE users ALTER COLUMN last_name SET NOT NULL;
       ALTER TABLE users ALTER COLUMN password_hash SET NOT NULL;
       ALTER TABLE users ALTER COLUMN email_verified SET NOT NULL;
       ALTER TABLE users ALTER COLUMN email_verified SET DEFAULT FALSE;
+      ALTER TABLE users ALTER COLUMN last_seen_at SET DEFAULT NOW();
+      ALTER TABLE users ALTER COLUMN last_seen_at SET NOT NULL;
       ALTER TABLE users ALTER COLUMN created_at SET DEFAULT NOW();
 
       CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users (email);
@@ -106,6 +115,7 @@ async function initDb() {
     await pool.query(createUsersSql);
     await pool.query(createProfilesSql);
     await pool.query(createLikesSql);
+    await pool.query(createViewsSql);
     await pool.query(createTagsSql);
     await pool.query(seedDefaultTagsSql);
     await pool.query(createProfileTagsSql);
@@ -115,7 +125,7 @@ async function initDb() {
     await pool.query(seedFakeUsersSql);
 
     console.log(
-      "Database initialized: users, profiles, likes, tags, user_profile_tags, user_photos, and notifications tables are ready and fake users are seeded.",
+      "Database initialized: users, profiles, likes, tags, user_profile_tags, user_photos, notifications, and presence fields are ready and fake users are seeded.",
     );
   } catch (error) {
     console.error("Failed to initialize database:", error.message);
