@@ -171,6 +171,23 @@ function getAge(birthDate) {
   return age;
 }
 
+async function calculateFameScore(db, userId) {
+  const result = await db.query(
+    `
+    WITH stats AS (
+      SELECT
+        (SELECT COUNT(*)::int FROM likes WHERE liked_user_id = $1) AS likes_total,
+        (SELECT COUNT(*)::int FROM likes WHERE liked_user_id = $1 AND created_at >= NOW() - INTERVAL '7 days') AS likes_7d,
+        (SELECT COUNT(*)::int FROM profile_views WHERE viewed_user_id = $1 AND created_at >= NOW() - INTERVAL '7 days') AS views_7d
+    )
+    SELECT LEAST(999, (likes_total * 2) + (likes_7d * 3) + views_7d)::int AS fame_rating
+    FROM stats
+    `,
+    [userId],
+  );
+  return result.rows[0]?.fame_rating ?? 0;
+}
+
 async function reverseGeocode(latitude, longitude) {
   const cacheKey = `reverse:${latitude}:${longitude}`;
   const cached = getCachedValue(cacheKey);
@@ -878,6 +895,7 @@ router.get("/profile/me", async (req, res, next) => {
     }
 
     const row = profileResult.rows[0];
+    const fameRating = await calculateFameScore(pool, currentUserId);
     return res.json({
       user: {
         id: row.user_id,
@@ -900,7 +918,7 @@ router.get("/profile/me", async (req, res, next) => {
         latitude: row.latitude,
         longitude: row.longitude,
         tags: tagsResult.rows.map((entry) => entry.name),
-        fame_rating: row.fame_rating ?? 0,
+        fame_rating: fameRating,
         photos: photosResult.rows.map((item) => ({
           id: item.id,
           data_url: item.data_url,
@@ -969,6 +987,7 @@ router.get("/profile/:id", async (req, res, next) => {
     }
 
     const row = profileResult.rows[0];
+    const fameRating = await calculateFameScore(pool, requestedId);
     return res.json({
       user: {
         id: row.user_id,
@@ -984,7 +1003,7 @@ router.get("/profile/:id", async (req, res, next) => {
         age: getAge(row.birth_date),
         city: row.city || "",
         neighborhood: row.neighborhood || "",
-        fame_rating: row.fame_rating ?? 0,
+        fame_rating: fameRating,
         tags: tagsResult.rows.map((entry) => entry.name),
         photos: photosResult.rows.map((item) => ({
           id: item.id,
@@ -1298,6 +1317,7 @@ router.put("/profile/me", async (req, res, next) => {
 
     const profile = updated.rows[0];
     const updatedUser = updatedUserResult.rows[0];
+    const fameRating = await calculateFameScore(client, currentUserId);
     const photosResult = await client.query(
       `
       SELECT id, data_url, is_primary
@@ -1331,7 +1351,7 @@ router.put("/profile/me", async (req, res, next) => {
         latitude: profile.latitude,
         longitude: profile.longitude,
         tags: tagsResult.rows.map((entry) => entry.name),
-        fame_rating: profile.fame_rating,
+        fame_rating: fameRating,
         photos: photosResult.rows.map((item) => ({
           id: item.id,
           data_url: item.data_url,
@@ -1350,3 +1370,11 @@ router.put("/profile/me", async (req, res, next) => {
 });
 
 module.exports = router;
+
+
+/**
+ * 后端新公式在 routes/profile.js
+公式：
+fame = likes_total * 2 + likes_7d * 3 + views_7d * 1
+并且上限 999，避免数值无限变大
+ */

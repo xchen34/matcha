@@ -1,6 +1,7 @@
 // Moved to pages/FindMatchPage.jsx
 import { useCallback, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { FaFire } from "react-icons/fa";
 import UserCard from "../components/UserCard.jsx";
 import { buildApiHeaders } from "../utils.js";
 
@@ -14,6 +15,7 @@ function FindMatchPage({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
+  const [fameRating, setFameRating] = useState(0);
   const [draftFilters, setDraftFilters] = useState({
     username: "",
     min_age: "",
@@ -86,6 +88,25 @@ function FindMatchPage({ currentUser }) {
     fetchMatches();
   }, [fetchMatches]);
 
+  useEffect(() => {
+    async function fetchFame() {
+      try {
+        const response = await fetch("/api/profile/me", {
+          headers: buildApiHeaders(currentUser),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setFameRating(Number(data.profile?.fame_rating || 0));
+        }
+      } catch {
+        setFameRating(0);
+      }
+    }
+
+    if (!currentUser) return;
+    fetchFame();
+  }, [currentUser]);
+
   function handleFilterChange(e) {
     const { name, value } = e.target;
     setDraftFilters((prev) => ({ ...prev, [name]: value }));
@@ -122,9 +143,20 @@ function FindMatchPage({ currentUser }) {
         <h2 className="text-2xl font-semibold text-slate-900">Find your match</h2>
       </div>
 
-      <p className="text-sm text-slate-600">
-        Browse compatible profiles and apply filters. Your views/likes activity is now in a separate page.
-      </p>
+      <div className="space-y-3">
+        <div className="inline-flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-brand-deep text-white shadow-md shadow-orange-200/60">
+            <FaFire size={22} />
+          </div>
+          <div className="leading-tight">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Fame note
+            </p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{fameRating}</p>
+            <p className="text-xs text-slate-500">hot score (recent activity)</p>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-4">

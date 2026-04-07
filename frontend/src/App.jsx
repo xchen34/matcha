@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import UserCard from "./components/UserCard";
 import FindMatchPage from "./pages/FindMatchPage";
-import ActivityPage from "./pages/ActivityPage";
+import MyPopularityPage from "./pages/MyPopularityPage";
+import UserProfilePage from "./pages/UserProfilePage";
 import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
 import NotificationsBell from "./notifications/NotificationsBell.jsx";
 import { buildApiHeaders } from "./utils.js";
@@ -1356,10 +1357,10 @@ function App() {
           </NavLink>
         )}
         {currentUser && (
-          <NavLink to="/activity" className={({ isActive }) =>
+          <NavLink to="/popularity" className={({ isActive }) =>
             `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
-            Who viewed/liked me
+            My Popularity
           </NavLink>
         )}
         {currentUser && (
@@ -1369,33 +1370,38 @@ function App() {
         )}
         </nav>
 
-        <Routes>
-          <Route
-            path="/"
-            element={<Navigate to={currentUser ? "/profile" : "/login"} replace />}
-          />
-          <Route path="/login" element={<LoginPage onLogin={setCurrentUser} />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route
-            path="/profile"
-            element={
-              currentUser ? (
-                <ProfilePage currentUser={currentUser} onUnauthorized={() => {}} />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          <Route
-            path="/find-match"
-            element={<FindMatchPage currentUser={currentUser} />}
-          />
-          <Route
-            path="/activity"
-            element={<ActivityPage currentUser={currentUser} />}
-          />
-        </Routes>
-      </main>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<LoginPage onLogin={setCurrentUser} />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/profile"
+          element={
+            currentUser ? (
+              <ProfilePage
+                currentUser={currentUser}
+                onUnauthorized={() => {}}
+                onProfileUpdate={setCurrentUser}
+              />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/find-match"
+          element={<FindMatchPage currentUser={currentUser} />}
+        />
+        <Route
+          path="/popularity"
+          element={<MyPopularityPage currentUser={currentUser} />}
+        />
+        <Route
+          path="/users/:id"
+          element={<UserProfilePage currentUser={currentUser} />}
+        />
+      </Routes>
+    </main>
     </NotificationsProvider>
   );
 }
