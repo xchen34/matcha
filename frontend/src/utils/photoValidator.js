@@ -11,8 +11,9 @@ export const ALLOWED_PHOTO_MIMES = new Set([
 ]);
 
 export const MAX_PHOTO_SIZE_BYTES = 300 * 1024; // 300KB per photo
-export const MAX_TOTAL_PHOTOS_SIZE_BYTES = 400 * 1024; // 400KB total for all photos
 export const MAX_PHOTOS_COUNT = 5;
+export const MAX_TOTAL_PHOTOS_SIZE_BYTES =
+  MAX_PHOTO_SIZE_BYTES * MAX_PHOTOS_COUNT; // 1500KB total for 5 photos
 
 /**
  * Validate MIME type from a File object

@@ -13,8 +13,8 @@ const ALLOWED_PHOTO_MIMES = new Set([
 ]);
 
 const MAX_PHOTO_SIZE_BYTES = 300 * 1024; // 300KB per photo
-const MAX_TOTAL_PHOTOS_SIZE_BYTES = 400 * 1024; // 400KB total for all photos
 const MAX_PHOTOS_COUNT = 5;
+const MAX_TOTAL_PHOTOS_SIZE_BYTES = MAX_PHOTO_SIZE_BYTES * MAX_PHOTOS_COUNT; // 1500KB total for 5 photos
 
 /**
  * Validate MIME type from a data URL string
@@ -82,7 +82,7 @@ function normalizePhotosInput(photos) {
     totalSize += dataUrl.length;
     if (totalSize > MAX_TOTAL_PHOTOS_SIZE_BYTES) {
       return {
-        error: `Total photos size exceeds limit (max 400KB). Current: ${Math.round(totalSize / 1024)}KB.`,
+        error: `Total photos size exceeds limit (max ${Math.round(MAX_TOTAL_PHOTOS_SIZE_BYTES / 1024)}KB). Current: ${Math.round(totalSize / 1024)}KB.`,
       };
     }
 
