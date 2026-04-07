@@ -271,13 +271,22 @@ function ProfilePage({ currentUser }) {
   const hasBiography = (form.biography || "").trim().length > 0;
   const hasGender = (form.gender || "").trim().length > 0;
   const hasSexualPreference = (form.sexual_preference || "").trim().length > 0;
+  const hasProfilePhoto = form.photos.length > 0;
+  const hasPrimaryProfilePhoto = form.photos.some((photo) => photo.is_primary);
   const hasRequiredFields =
-    hasBiography && hasGender && hasSexualPreference && hasManualLocationInput;
+    hasBiography &&
+    hasGender &&
+    hasSexualPreference &&
+    hasManualLocationInput &&
+    hasProfilePhoto &&
+    hasPrimaryProfilePhoto;
   const missingRequiredFields = [
     !hasBiography ? "biography" : null,
     !hasGender ? "gender" : null,
     !hasSexualPreference ? "sexual preference" : null,
     !hasManualLocationInput ? "city or neighborhood" : null,
+    !hasProfilePhoto ? "profile photo" : null,
+    hasProfilePhoto && !hasPrimaryProfilePhoto ? "primary profile photo" : null,
   ].filter(Boolean);
   const isLocationAccepted =
     Boolean(locationValidation?.is_valid) ||

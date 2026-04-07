@@ -4,6 +4,59 @@ const { createNotification } = require("./notificationsService");
 
 const router = express.Router();
 
+function isOnlineFromLastSeen(lastSeenAt) {
+  if (!lastSeenAt) return false;
+  return new Date(lastSeenAt).getTime() >= Date.now() - 30 * 1000;
+}
+
+function normalizeTag(tag) {
+  if (typeof tag !== "string") return "";
+  let normalized = tag.trim().toLowerCase();
+  if (!normalized) return "";
+  if (!normalized.startsWith("#")) normalized = `#${normalized}`;
+  if (!/^#[a-z0-9_]{1,30}$/.test(normalized)) return "";
+  return normalized;
+}
+
+function parseTagsQueryParam(rawTags) {
+  if (rawTags === undefined || rawTags === null || rawTags === "") {
+    return null;
+  }
+
+  const values = Array.isArray(rawTags)
+    ? rawTags
+    : String(rawTags)
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+  const unique = [];
+  const seen = new Set();
+
+  for (const value of values) {
+    const normalized = normalizeTag(value);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    unique.push(normalized);
+  }
+
+  return unique.length > 0 ? unique : null;
+}
+
+async function userHasPrimaryPhoto(userId) {
+  const result = await pool.query(
+    `
+    SELECT 1
+    FROM user_photos
+    WHERE user_id = $1
+      AND is_primary = TRUE
+    LIMIT 1
+    `,
+    [userId],
+  );
+  return result.rowCount > 0;
+}
+
 // GET /api/profile/likes — users who liked the current user
 router.get("/profile/likes", async (req, res, next) => {
   try {
@@ -142,7 +195,17 @@ router.get("/users/:id/like", async (req, res, next) => {
 router.get("/matches", async (req, res, next) => {
   try {
     const userId = req.header("x-user-id");
-    const { min_age, max_age, min_fame, max_fame, username } = req.query;
+    const {
+      min_age,
+      max_age,
+      min_fame,
+      max_fame,
+      username,
+      city,
+      tags,
+      sort_by,
+      sort_dir,
+    } = req.query;
     const parsedLimit = Number(req.query.limit);
     const parsedOffset = Number(req.query.offset);
     const limit = Number.isFinite(parsedLimit)
@@ -169,10 +232,57 @@ router.get("/matches", async (req, res, next) => {
     const maxAge = parseOptionalNumber(max_age);
     const minFame = parseOptionalNumber(min_fame);
     const maxFame = parseOptionalNumber(max_fame);
+    const cityFilter =
+      typeof city === "string" && city.trim().length > 0 ? city.trim() : null;
+    const tagsFilter = parseTagsQueryParam(tags);
     const usernameFilter =
       typeof username === "string" && username.trim().length > 0
         ? username.trim()
         : null;
+
+    const normalizedSortBy =
+      typeof sort_by === "string" ? sort_by.trim().toLowerCase() : "";
+    const normalizedSortDir =
+      String(sort_dir || "desc")
+        .trim()
+        .toLowerCase() === "asc"
+        ? "ASC"
+        : "DESC";
+
+    const tagsSortExpr = tagsFilter ? "matched_tags_count" : "tags_count";
+
+    let orderBySql = `
+      (me.city IS NOT NULL AND p.city IS NOT NULL AND p.city = me.city) DESC,
+      p.fame_rating DESC NULLS LAST,
+      u.id ASC
+    `;
+
+    if (normalizedSortBy === "age") {
+      orderBySql = `
+        age_value ${normalizedSortDir} NULLS LAST,
+        u.id ASC
+      `;
+    } else if (normalizedSortBy === "location") {
+      orderBySql = `
+        p.city ${normalizedSortDir} NULLS LAST,
+        p.neighborhood ${normalizedSortDir} NULLS LAST,
+        u.id ASC
+      `;
+    } else if (
+      normalizedSortBy === "fame" ||
+      normalizedSortBy === "fame_rating"
+    ) {
+      orderBySql = `
+        p.fame_rating ${normalizedSortDir} NULLS LAST,
+        u.id ASC
+      `;
+    } else if (normalizedSortBy === "tags") {
+      orderBySql = `
+        ${tagsSortExpr} ${normalizedSortDir} NULLS LAST,
+        p.fame_rating DESC NULLS LAST,
+        u.id ASC
+      `;
+    }
 
     if (!userId) {
       return res.status(400).json({ error: "x-user-id header requis" });
@@ -204,20 +314,49 @@ router.get("/matches", async (req, res, next) => {
         u.id,
         u.username,
         u.email,
+        u.last_seen_at,
         p.city,
         p.neighborhood,
         p.fame_rating,
         p.birth_date,
+        ph.primary_photo_url,
+        EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.birth_date))::int AS age_value,
+        COUNT(DISTINCT t.id)::int AS tags_count,
+        COUNT(
+          DISTINCT CASE
+            WHEN $7::text[] IS NOT NULL AND t.name = ANY($7::text[]) THEN t.id
+            ELSE NULL
+          END
+        )::int AS matched_tags_count,
         COALESCE(
           ARRAY_REMOVE(ARRAY_AGG(DISTINCT t.name), NULL),
           ARRAY[]::varchar[]
         ) AS tags
       FROM users u
       LEFT JOIN profiles p ON p.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT up.data_url AS primary_photo_url
+        FROM user_photos up
+        WHERE up.user_id = u.id
+        ORDER BY up.is_primary DESC, up.id ASC
+        LIMIT 1
+      ) ph ON TRUE
       LEFT JOIN user_profile_tags upt ON upt.user_id = u.id
       LEFT JOIN tags t ON t.id = upt.tag_id
       LEFT JOIN me ON TRUE
       WHERE u.id <> $1
+        AND NOT EXISTS (
+          SELECT 1
+          FROM fake_account_reports far
+          WHERE far.reporter_user_id = $1
+            AND far.reported_user_id = u.id
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM user_blocks ub
+          WHERE (ub.blocker_user_id = $1 AND ub.blocked_user_id = u.id)
+             OR (ub.blocker_user_id = u.id AND ub.blocked_user_id = $1)
+        )
         AND (
           $2::int IS NULL
           OR (p.birth_date IS NOT NULL AND p.birth_date <= CURRENT_DATE - ($2::text || ' years')::interval)
@@ -235,13 +374,25 @@ router.get("/matches", async (req, res, next) => {
         AND (
           $6::text IS NULL OR u.username ILIKE ('%' || $6::text || '%')
         )
-      GROUP BY u.id, u.username, u.email, p.city, p.neighborhood, p.fame_rating, p.birth_date, me.city
+        AND (
+          $7::text[] IS NULL
+          OR EXISTS (
+            SELECT 1
+            FROM user_profile_tags uptf
+            JOIN tags tf ON tf.id = uptf.tag_id
+            WHERE uptf.user_id = u.id
+              AND tf.name = ANY($7::text[])
+          )
+        )
+        AND (
+          $8::text IS NULL
+          OR (p.city IS NOT NULL AND LOWER(p.city) = LOWER($8::text))
+        )
+      GROUP BY u.id, u.username, u.email, u.last_seen_at, p.city, p.neighborhood, p.fame_rating, p.birth_date, ph.primary_photo_url, me.city
       ORDER BY
-        (me.city IS NOT NULL AND p.city IS NOT NULL AND p.city = me.city) DESC,
-        p.fame_rating DESC NULLS LAST,
-        u.id ASC
-      LIMIT $7::int
-      OFFSET $8::int
+        ${orderBySql}
+      LIMIT $9::int
+      OFFSET $10::int
     `;
     const result = await pool.query(sql, [
       userId,
@@ -250,22 +401,11 @@ router.get("/matches", async (req, res, next) => {
       minFame,
       maxFame,
       usernameFilter,
+      tagsFilter,
+      cityFilter,
       limit,
       offset,
     ]);
-
-    // Calculate age from birth_date
-    function getAge(birthDate) {
-      if (!birthDate) return null;
-      const today = new Date();
-      const dob = new Date(birthDate);
-      let age = today.getFullYear() - dob.getFullYear();
-      const m = today.getMonth() - dob.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-        age--;
-      }
-      return age;
-    }
 
     // Add liked, is_match, and age to each user
     const users = result.rows.map((u) => {
@@ -275,7 +415,9 @@ router.get("/matches", async (req, res, next) => {
         ...u,
         liked,
         is_match: liked && likedBack,
-        age: getAge(u.birth_date),
+        is_online: isOnlineFromLastSeen(u.last_seen_at),
+        last_seen_at: u.last_seen_at,
+        age: u.age_value,
       };
     });
     res.json(users);
@@ -296,6 +438,13 @@ router.post("/users/:id/like", async (req, res, next) => {
     }
     if (liker_user_id === liked_user_id) {
       return res.status(400).json({ error: "Impossible to like myse" });
+    }
+
+    const hasProfilePhoto = await userHasPrimaryPhoto(liker_user_id);
+    if (!hasProfilePhoto) {
+      return res.status(403).json({
+        error: "You need a profile picture before liking another user.",
+      });
     }
 
     const sql = `INSERT INTO likes (liker_user_id, liked_user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING *`;

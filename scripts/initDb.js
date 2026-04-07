@@ -55,6 +55,18 @@ async function initDb() {
       notificationsSqlPath,
       "utf8",
     );
+    const fakeReportsSqlPath = path.join(
+      __dirname,
+      "sql",
+      "create_fake_account_reports_table.sql",
+    );
+    const createFakeReportsSql = fs.readFileSync(fakeReportsSqlPath, "utf8");
+    const userBlocksSqlPath = path.join(
+      __dirname,
+      "sql",
+      "create_user_blocks_table.sql",
+    );
+    const createUserBlocksSql = fs.readFileSync(userBlocksSqlPath, "utf8");
     const seedFakeUsersSqlPath = path.join(
       __dirname,
       "sql",
@@ -121,11 +133,13 @@ async function initDb() {
     await pool.query(createProfileTagsSql);
     await pool.query(createUserPhotosSql);
     await pool.query(createNotificationsSql);
+    await pool.query(createFakeReportsSql);
+    await pool.query(createUserBlocksSql);
     await pool.query(migrateLegacyUsersSql);
     await pool.query(seedFakeUsersSql);
 
     console.log(
-      "Database initialized: users, profiles, likes, tags, user_profile_tags, user_photos, notifications, and presence fields are ready and fake users are seeded.",
+      "Database initialized: users, profiles, likes, tags, user_profile_tags, user_photos, notifications, fake_account_reports, user_blocks, and presence fields are ready and fake users are seeded.",
     );
   } catch (error) {
     console.error("Failed to initialize database:", error.message);

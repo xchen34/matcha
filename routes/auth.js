@@ -10,7 +10,7 @@ function isValidEmail(email) {
 // @：匹配 @ 字符，分隔用户名和域名。
 // [^\s@]+：匹配一个或多个非空格和非 @ 字符，确保域名部分不包含空格和 @。
 // \.：匹配 . 字符，分隔域名和顶级域名。
-// [^\s@]+：匹配一个或多个非空格和非 @ 字符，确保顶级域名部分不包含空格和 @。  
+// [^\s@]+：匹配一个或多个非空格和非 @ 字符，确保顶级域名部分不包含空格和 @。
 
 router.post("/auth/register", async (req, res, next) => {
   try {
@@ -30,23 +30,21 @@ router.post("/auth/register", async (req, res, next) => {
       __dirname,
       "..",
       "common_passwords.txt",
-    ); 
+    );
     let commonPasswords = []; // commonPasswords 是一个数组，存储从 common_passwords.txt 文件中读取的常见密码列表。注册时会检查用户提供的密码是否在这个列表中，如果是，则拒绝注册并提示用户选择更强的密码。
     try {
       const fileContent = fs.readFileSync(commonPasswordsPath, "utf-8"); // 读取 common_passwords.txt 文件内容，得到一个包含所有常见密码的字符串。utf-8 参数确保正确解析文本文件。
-      commonPasswords = fileContent 
-        .split(/\r?\n/)  // 按行分割文件内容，得到一个密码数组。正则 /\r?\n/ 兼容 Windows (\r\n) 和 Unix (\n) 的换行符。? 表示 \r 是可选的，适应不同系统的换行格式。
+      commonPasswords = fileContent
+        .split(/\r?\n/) // 按行分割文件内容，得到一个密码数组。正则 /\r?\n/ 兼容 Windows (\r\n) 和 Unix (\n) 的换行符。? 表示 \r 是可选的，适应不同系统的换行格式。
         .map((w) => w.trim()) // 去除每个密码的前后空白字符，得到干净的密码列表。trim() 方法移除字符串两端的空格、制表符等空白字符，确保比较时不受额外空格影响。
         .filter(Boolean); // 过滤掉空字符串，得到最终的常见密码数组。filter(Boolean) 会移除数组中的所有 falsy 值（如空字符串、null、undefined、0 等），确保 commonPasswords 数组只包含有效的密码字符串。
     } catch (e) {
       commonPasswords = []; //
     }
     if (commonPasswords.includes(password.toLowerCase())) {
-      return res
-        .status(400)
-        .json({
-          error: "Password is too common. Please choose a stronger password.",
-        });
+      return res.status(400).json({
+        error: "Password is too common. Please choose a stronger password.",
+      });
     }
 
     if (!isValidEmail(email)) {
@@ -124,6 +122,15 @@ router.post("/auth/login", async (req, res, next) => {
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
+
+    await pool.query(
+      `
+      UPDATE users
+      SET last_seen_at = NOW()
+      WHERE id = $1
+      `,
+      [user.id],
+    );
 
     return res.json({
       message: "Login successful",

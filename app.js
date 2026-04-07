@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const pool = require("./db");
 const healthRouter = require("./routes/health");
 const dbHealthRouter = require("./routes/dbHealth");
 const usersRouter = require("./routes/users");
@@ -7,6 +8,7 @@ const authRouter = require("./routes/auth");
 const profileRouter = require("./routes/profile");
 const likesRouter = require("./routes/likes");
 const notificationsRouter = require("./routes/notifications");
+const moderationRouter = require("./routes/moderation");
 
 const app = express();
 
@@ -27,6 +29,28 @@ app.use(cors(corsOptions));
  */
 app.use(express.json({ limit: "6mb" }));
 app.use(express.urlencoded({ extended: true, limit: "6mb" }));
+
+app.use((req, res, next) => {
+  const rawUserId = req.header("x-user-id");
+  const userId = Number(rawUserId);
+
+  if (Number.isInteger(userId) && userId > 0) {
+    pool
+      .query(
+        `
+        UPDATE users
+        SET last_seen_at = NOW()
+        WHERE id = $1
+        `,
+        [userId],
+      )
+      .catch(() => {
+        // Keep requests flowing even if database schema isn't fully migrated yet.
+      });
+  }
+
+  next();
+});
 
 /**
  * curl 手动测：开发者临时验证功能是否通、数据是否落库。需要人操作、看结果，无法持续监控，失败了也没人自动处理。
@@ -49,6 +73,7 @@ app.use("/api", usersRouter);
 app.use("/api", authRouter);
 app.use("/api", likesRouter);
 app.use("/api", notificationsRouter);
+app.use("/api", moderationRouter);
 app.use("/api", profileRouter);
 
 // Fallback for unknown routesFallback for unknown routes：是兜底路由，只有当前面所有路由/方法都没匹配到时才执行，返回 404。

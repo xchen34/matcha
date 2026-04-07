@@ -10,8 +10,10 @@ function MyPopularityPage({ currentUser }) {
   const [fameRating, setFameRating] = useState(0);
   const [viewsList, setViewsList] = useState([]);
   const [likesList, setLikesList] = useState([]);
+  const [blockedUsers, setBlockedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -22,16 +24,18 @@ function MyPopularityPage({ currentUser }) {
       setError("");
 
       try {
-        const [viewsRes, likesRes, meRes] = await Promise.all([
+        const [viewsRes, likesRes, meRes, blockedRes] = await Promise.all([
           fetch("/api/profile/views", { headers: buildApiHeaders(currentUser) }),
           fetch("/api/profile/likes", { headers: buildApiHeaders(currentUser) }),
           fetch("/api/profile/me", { headers: buildApiHeaders(currentUser) }),
+          fetch("/api/moderation/blocked-users", { headers: buildApiHeaders(currentUser) }),
         ]);
 
-        const [viewsData, likesData, meData] = await Promise.all([
+        const [viewsData, likesData, meData, blockedData] = await Promise.all([
           viewsRes.json().catch(() => ({})),
           likesRes.json().catch(() => ({})),
           meRes.json().catch(() => ({})),
+          blockedRes.json().catch(() => ({})),
         ]);
 
         if (cancelled) return;
@@ -39,11 +43,13 @@ function MyPopularityPage({ currentUser }) {
         setViewsList(viewsRes.ok && Array.isArray(viewsData.users) ? viewsData.users : []);
         setLikesList(likesRes.ok && Array.isArray(likesData.users) ? likesData.users : []);
         setFameRating(Number(meData.profile?.fame_rating || 0));
+        setBlockedUsers(Array.isArray(blockedData.users) ? blockedData.users : []);
       } catch {
         if (!cancelled) {
           setError("Failed to load popularity data");
           setViewsList([]);
           setLikesList([]);
+          setBlockedUsers([]);
           setFameRating(0);
         }
       } finally {
@@ -56,6 +62,28 @@ function MyPopularityPage({ currentUser }) {
       cancelled = true;
     };
   }, [currentUser]);
+
+  async function handleUnblockUser(userId) {
+    if (!currentUser) return;
+    setActionMessage("");
+
+    try {
+      const response = await fetch(`/api/users/${userId}/block`, {
+        method: "DELETE",
+        headers: buildApiHeaders(currentUser),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setActionMessage(payload.error || "Failed to unblock user.");
+        return;
+      }
+
+      setBlockedUsers((prev) => prev.filter((user) => String(user.id) !== String(userId)));
+      setActionMessage("User unblocked successfully.");
+    } catch {
+      setActionMessage("Failed to unblock user.");
+    }
+  }
 
   if (!currentUser) return <Navigate to="/login" replace />;
   if (loading) return <p className="text-sm text-slate-600">Loading popularity...</p>;
@@ -167,6 +195,51 @@ function MyPopularityPage({ currentUser }) {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Blocked users
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              You can unblock someone here if you blocked them by mistake.
+            </p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+            {blockedUsers.length}
+          </span>
+        </div>
+
+        {actionMessage && <p className="mt-3 text-sm text-red-600">{actionMessage}</p>}
+
+        <div className="mt-4 space-y-2">
+          {blockedUsers.length === 0 && (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-slate-600">
+              No blocked users.
+            </div>
+          )}
+
+          {blockedUsers.map((user) => (
+            <div
+              key={user.id}
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
+            >
+              <div>
+                <p className="font-semibold text-slate-900">@{user.username}</p>
+                <p className="text-xs text-slate-500">{user.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleUnblockUser(user.id)}
+                className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+              >
+                Unblock
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </section>

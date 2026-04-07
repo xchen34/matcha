@@ -1,14 +1,18 @@
 import { FaHeart } from "react-icons/fa";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function UserCard({ user, currentUser }) {
+function UserCard({ user, currentUser, canLikeProfiles = true }) {
   const navigate = useNavigate();
   const [liked, setLiked] = useState(Boolean(user?.liked));
   const [isMatch, setIsMatch] = useState(Boolean(user?.is_match));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const profilePhotoUrl = useMemo(
+    () => user?.primary_photo_url || user?.photo_url || null,
+    [user?.primary_photo_url, user?.photo_url],
+  );
 
   useEffect(() => {
     setLiked(Boolean(user?.liked));
@@ -19,6 +23,10 @@ function UserCard({ user, currentUser }) {
     setLoading(true);
     setError("");
     try {
+      if (!liked && !canLikeProfiles) {
+        throw new Error("Add a profile picture first to like users.");
+      }
+
       if (!liked) {
         // Like
         const res = await fetch(`/api/users/${user.id}/like`, {
@@ -57,8 +65,30 @@ function UserCard({ user, currentUser }) {
 
   return (
     <div className="relative flex flex-col gap-3 rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-orange-100 transition hover:shadow-md">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+        {profilePhotoUrl ? (
+          <img
+            src={profilePhotoUrl}
+            alt={`@${user.username} profile`}
+            className="h-40 w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-40 w-full items-center justify-center text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+            No profile photo
+          </div>
+        )}
+      </div>
+
       <div className="space-y-1">
         <h3 className="text-lg font-semibold text-slate-900">@{user.username}</h3>
+        <p className="text-sm text-slate-600">
+          Status:{" "}
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${user.is_online ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"}`}
+          >
+            {user.is_online ? "Online" : "Offline"}
+          </span>
+        </p>
         <p className="text-sm text-slate-600">
           Email: <span className="font-semibold text-slate-800">{user.email}</span>
         </p>
@@ -110,9 +140,15 @@ function UserCard({ user, currentUser }) {
         <button
           className={`flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-gradient-to-br from-brand to-brand-deep shadow-md shadow-orange-200 transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${liked ? "ring-2 ring-brand/60" : ""}`}
           onClick={handleToggleLike}
-          disabled={loading || user.id === currentUser.id}
+          disabled={loading || user.id === currentUser.id || (!liked && !canLikeProfiles)}
           aria-label={liked ? "Remove like" : "Like this user"}
-          title={liked ? "Unlike" : "Like"}
+          title={
+            !liked && !canLikeProfiles
+              ? "Add a profile picture first"
+              : liked
+                ? "Unlike"
+                : "Like"
+          }
         >
           <FaHeart
             color={liked ? "#fff" : "#fff"}

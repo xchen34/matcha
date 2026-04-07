@@ -10,8 +10,18 @@ function UserProfilePage({ currentUser }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reporting, setReporting] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const [reportedFake, setReportedFake] = useState(false);
+  const [blockedUser, setBlockedUser] = useState(false);
+  const [moderationMessage, setModerationMessage] = useState("");
 
   useEffect(() => {
+    let intervalId = null;
+
     async function fetchProfile() {
       setLoading(true);
       setError("");
@@ -41,11 +51,108 @@ function UserProfilePage({ currentUser }) {
       }).catch(() => {});
     }
 
+    async function fetchModerationStatus() {
+      if (!currentUser?.id || !id || String(currentUser.id) === String(id)) return;
+      try {
+        const response = await fetch(`/api/users/${id}/moderation-status`, {
+          headers: buildApiHeaders(currentUser),
+        });
+        const payload = await response.json();
+        if (!response.ok) return;
+        setReportedFake(Boolean(payload.reported_fake));
+        setBlockedUser(Boolean(payload.blocked));
+      } catch {
+        setReportedFake(false);
+        setBlockedUser(false);
+      }
+    }
+
     if (id) {
       fetchProfile();
       recordView();
+      fetchModerationStatus();
+
+      intervalId = setInterval(() => {
+        fetch(`/api/profile/${id}`, {
+          headers: buildApiHeaders(currentUser),
+        })
+          .then((response) => response.json().then((payload) => ({ response, payload })))
+          .then(({ response, payload }) => {
+            if (response.ok) {
+              setData(payload);
+            }
+          })
+          .catch(() => {});
+      }, 15000);
     }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [id, currentUser]);
+
+  async function handleReportSubmit(event) {
+    event.preventDefault();
+
+    const reason = reportReason.trim();
+    if (reason.length < 5) {
+      setModerationMessage("Please provide a valid report reason (minimum 5 characters).");
+      return;
+    }
+
+    setReporting(true);
+    setModerationMessage("");
+    try {
+      const response = await fetch(`/api/users/${id}/report-fake`, {
+        method: "POST",
+        headers: {
+          ...buildApiHeaders(currentUser),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reason }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setModerationMessage(payload.error || "Failed to submit report.");
+        return;
+      }
+
+      setReportedFake(true);
+      setShowReportForm(false);
+      setMenuOpen(false);
+      setModerationMessage("This account has been reported successfully. Under review.");
+    } catch {
+      setModerationMessage("Failed to submit report.");
+    } finally {
+      setReporting(false);
+    }
+  }
+
+  async function handleBlockUser() {
+    setBlocking(true);
+    setModerationMessage("");
+    try {
+      const response = await fetch(`/api/users/${id}/block`, {
+        method: "POST",
+        headers: buildApiHeaders(currentUser),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setModerationMessage(payload.error || "Failed to block user.");
+        return;
+      }
+      setBlockedUser(true);
+      setMenuOpen(false);
+      setModerationMessage("This user has been blocked successfully. They will no longer appear in search results or trigger notifications.");
+    } catch {
+      setModerationMessage("Failed to block user.");
+    } finally {
+      setBlocking(false);
+    }
+  }
 
   if (!currentUser) return <Navigate to="/login" replace />;
   if (loading) return <p className="text-sm text-slate-600">Loading profile...</p>;
@@ -54,6 +161,20 @@ function UserProfilePage({ currentUser }) {
 
   const { user, profile } = data;
   const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
+  const isOwnProfile = String(currentUser?.id || "") === String(user.id);
+
+  function formatLastSeen(value) {
+    if (!value) return "Unknown";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Unknown";
+    return new Intl.DateTimeFormat("en-GB", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  }
 
   return (
     <section className={cardClass}>
@@ -61,11 +182,87 @@ function UserProfilePage({ currentUser }) {
         <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
           Profile
         </p>
-        <h2 className="text-2xl font-semibold text-slate-900">
-          {fullName || `@${user.username}`}
-        </h2>
-        <p className="text-sm text-slate-500">@{user.username}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-2xl font-semibold text-slate-900">
+              {fullName || `@${user.username}`}
+            </h2>
+            <p className="text-sm text-slate-500">@{user.username}</p>
+          </div>
+
+          {!isOwnProfile && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setMenuOpen((prev) => !prev)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                aria-label="Open actions menu"
+              >
+                ...
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowReportForm(true);
+                      setMenuOpen(false);
+                    }}
+                    disabled={reportedFake}
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {reportedFake ? "Fake account already reported" : "Report fake account"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBlockUser}
+                    disabled={blocking || blockedUser}
+                    className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {blockedUser ? "User already blocked" : blocking ? "Blocking..." : "Block user"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {showReportForm && !isOwnProfile && (
+        <form onSubmit={handleReportSubmit} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+            Reason for reporting
+          </label>
+          <textarea
+            value={reportReason}
+            onChange={(event) => setReportReason(event.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand"
+            rows={4}
+            placeholder="Explain why this profile looks fake"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={reporting}
+              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-4 py-2 text-xs font-semibold text-white shadow-sm disabled:opacity-60"
+            >
+              {reporting ? "Submitting..." : "Submit report"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowReportForm(false)}
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {moderationMessage && (
+        <p className="text-sm text-red-600">{moderationMessage}</p>
+      )}
 
       {Array.isArray(profile.photos) && profile.photos.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -111,6 +308,23 @@ function UserProfilePage({ currentUser }) {
             <p className="mt-1 text-slate-800">
               {profile.city || "-"} {profile.neighborhood ? `· ${profile.neighborhood}` : ""}
             </p>
+          </div>
+          <div>
+            <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              Status
+            </span>
+            <div className="mt-1 space-y-1">
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${user.is_online ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"}`}
+              >
+                {user.is_online ? "Online" : "Offline"}
+              </span>
+              {!user.is_online && (
+                <p className="text-sm text-slate-800">
+                  Last connection: {formatLastSeen(user.last_seen_at)}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -16,6 +16,29 @@ async function createNotification({
     return;
   }
 
+  if (actorUserId) {
+    try {
+      const blockedResult = await pool.query(
+        `
+        SELECT 1
+        FROM user_blocks
+        WHERE (blocker_user_id = $1 AND blocked_user_id = $2)
+           OR (blocker_user_id = $2 AND blocked_user_id = $1)
+        LIMIT 1
+        `,
+        [userId, actorUserId],
+      );
+
+      if (blockedResult.rowCount > 0) {
+        return;
+      }
+    } catch (error) {
+      if (!(error && error.code === "42P01")) {
+        throw error;
+      }
+    }
+  }
+
   try {
     await pool.query(
       `

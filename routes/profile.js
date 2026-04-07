@@ -1,5 +1,12 @@
 const express = require("express");
 const pool = require("../db");
+const {
+  validatePhotoMimeType,
+  normalizePhotosInput,
+  ALLOWED_PHOTO_MIMES,
+  MAX_PHOTO_SIZE_BYTES,
+  MAX_TOTAL_PHOTOS_SIZE_BYTES,
+} = require("../utils/photoValidator");
 
 const router = express.Router();
 const allowedGenders = ["male", "female", "non_binary", "other"];
@@ -123,44 +130,6 @@ function parseOptionalCoordinate(value) {
   return parsed;
 }
 
-function normalizePhotosInput(photos) {
-  if (photos === undefined) return null;
-  if (!Array.isArray(photos)) return null;
-  if (photos.length > 5) return { error: "A maximum of 5 photos is allowed" };
-  const normalized = [];
-  let hasPrimary = false;
-  for (const item of photos) {
-    if (!item || typeof item.data_url !== "string") {
-      return { error: "Each photo must include a data_url string" };
-    }
-    const dataUrl = item.data_url.trim();
-    if (!dataUrl.startsWith("data:image/")) {
-      return { error: "Only image data URLs are allowed" };
-    }
-    if (dataUrl.length > 400000) {
-      return { error: "Photo payload is too large (max ~400KB)" };
-    }
-    const isPrimary = Boolean(item.is_primary);
-    if (isPrimary) hasPrimary = true;
-    normalized.push({ data_url: dataUrl, is_primary: isPrimary });
-  }
-  if (!hasPrimary && normalized.length > 0) {
-    normalized[0].is_primary = true;
-  } else if (hasPrimary) {
-    let foundPrimary = false;
-    for (const photo of normalized) {
-      if (photo.is_primary) {
-        if (!foundPrimary) {
-          foundPrimary = true;
-        } else {
-          photo.is_primary = false;
-        }
-      }
-    }
-  }
-  return { photos: normalized };
-}
-
 function getAge(birthDate) {
   if (!birthDate) return null;
   const today = new Date();
@@ -171,21 +140,9 @@ function getAge(birthDate) {
   return age;
 }
 
-async function calculateFameScore(db, userId) {
-  const result = await db.query(
-    `
-    WITH stats AS (
-      SELECT
-        (SELECT COUNT(*)::int FROM likes WHERE liked_user_id = $1) AS likes_total,
-        (SELECT COUNT(*)::int FROM likes WHERE liked_user_id = $1 AND created_at >= NOW() - INTERVAL '7 days') AS likes_7d,
-        (SELECT COUNT(*)::int FROM profile_views WHERE viewed_user_id = $1 AND created_at >= NOW() - INTERVAL '7 days') AS views_7d
-    )
-    SELECT LEAST(999, (likes_total * 2) + (likes_7d * 3) + views_7d)::int AS fame_rating
-    FROM stats
-    `,
-    [userId],
-  );
-  return result.rows[0]?.fame_rating ?? 0;
+function isOnlineFromLastSeen(lastSeenAt) {
+  if (!lastSeenAt) return false;
+  return new Date(lastSeenAt).getTime() >= Date.now() - 30 * 1000;
 }
 
 async function reverseGeocode(latitude, longitude) {
@@ -895,7 +852,6 @@ router.get("/profile/me", async (req, res, next) => {
     }
 
     const row = profileResult.rows[0];
-    const fameRating = await calculateFameScore(pool, currentUserId);
     return res.json({
       user: {
         id: row.user_id,
@@ -918,7 +874,7 @@ router.get("/profile/me", async (req, res, next) => {
         latitude: row.latitude,
         longitude: row.longitude,
         tags: tagsResult.rows.map((entry) => entry.name),
-        fame_rating: fameRating,
+        fame_rating: row.fame_rating ?? 0,
         photos: photosResult.rows.map((item) => ({
           id: item.id,
           data_url: item.data_url,
@@ -939,6 +895,24 @@ router.get("/profile/:id", async (req, res, next) => {
       return res.status(400).json({ error: "Invalid user id" });
     }
 
+    const currentUserId = parseUserIdFromRequest(req);
+    if (currentUserId && currentUserId !== requestedId) {
+      const hiddenByReport = await pool.query(
+        `
+        SELECT 1
+        FROM fake_account_reports
+        WHERE reporter_user_id = $1
+          AND reported_user_id = $2
+        LIMIT 1
+        `,
+        [currentUserId, requestedId],
+      );
+
+      if (hiddenByReport.rowCount > 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+    }
+
     const [profileResult, tagsResult, photosResult] = await Promise.all([
       pool.query(
         `
@@ -947,6 +921,7 @@ router.get("/profile/:id", async (req, res, next) => {
           u.username,
           u.first_name,
           u.last_name,
+          u.last_seen_at,
           p.gender,
           p.sexual_preference,
           p.biography,
@@ -987,13 +962,14 @@ router.get("/profile/:id", async (req, res, next) => {
     }
 
     const row = profileResult.rows[0];
-    const fameRating = await calculateFameScore(pool, requestedId);
     return res.json({
       user: {
         id: row.user_id,
         username: row.username,
         first_name: row.first_name,
         last_name: row.last_name,
+        is_online: isOnlineFromLastSeen(row.last_seen_at),
+        last_seen_at: row.last_seen_at,
       },
       profile: {
         gender: row.gender || "",
@@ -1003,7 +979,7 @@ router.get("/profile/:id", async (req, res, next) => {
         age: getAge(row.birth_date),
         city: row.city || "",
         neighborhood: row.neighborhood || "",
-        fame_rating: fameRating,
+        fame_rating: row.fame_rating ?? 0,
         tags: tagsResult.rows.map((entry) => entry.name),
         photos: photosResult.rows.map((item) => ({
           id: item.id,
@@ -1317,7 +1293,6 @@ router.put("/profile/me", async (req, res, next) => {
 
     const profile = updated.rows[0];
     const updatedUser = updatedUserResult.rows[0];
-    const fameRating = await calculateFameScore(client, currentUserId);
     const photosResult = await client.query(
       `
       SELECT id, data_url, is_primary
@@ -1351,7 +1326,7 @@ router.put("/profile/me", async (req, res, next) => {
         latitude: profile.latitude,
         longitude: profile.longitude,
         tags: tagsResult.rows.map((entry) => entry.name),
-        fame_rating: fameRating,
+        fame_rating: profile.fame_rating,
         photos: photosResult.rows.map((item) => ({
           id: item.id,
           data_url: item.data_url,
@@ -1370,11 +1345,3 @@ router.put("/profile/me", async (req, res, next) => {
 });
 
 module.exports = router;
-
-
-/**
- * 后端新公式在 routes/profile.js
-公式：
-fame = likes_total * 2 + likes_7d * 3 + views_7d * 1
-并且上限 999，避免数值无限变大
- */
