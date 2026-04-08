@@ -125,6 +125,55 @@ router.get("/profile/views", async (req, res, next) => {
   }
 });
 
+// GET /api/profile/matches — users who are mutual matches with the current user
+router.get("/profile/matches", async (req, res, next) => {
+  try {
+    const currentUserId = req.header("x-user-id");
+    if (!currentUserId) {
+      return res.status(400).json({ error: "x-user-id header requis" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        u.id,
+        u.username,
+        u.email,
+        GREATEST(l_out.created_at, l_in.created_at) AS matched_at
+      FROM users u
+      JOIN likes l_out
+        ON l_out.liker_user_id = $1
+       AND l_out.liked_user_id = u.id
+      JOIN likes l_in
+        ON l_in.liker_user_id = u.id
+       AND l_in.liked_user_id = $1
+      WHERE EXISTS (
+        SELECT 1
+        FROM likes a
+        JOIN likes b
+          ON b.liker_user_id = a.liked_user_id
+         AND b.liked_user_id = a.liker_user_id
+        WHERE a.liker_user_id = $1
+          AND a.liked_user_id = u.id
+      )
+      ORDER BY matched_at DESC
+      `,
+      [currentUserId],
+    );
+
+    return res.json({
+      users: result.rows.map((row) => ({
+        id: row.id,
+        username: row.username,
+        email: row.email,
+        matched_at: row.matched_at,
+      })),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 // POST /api/users/:id/view — record that the current user viewed user :id
 router.post("/users/:id/view", async (req, res, next) => {
   try {
