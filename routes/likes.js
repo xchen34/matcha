@@ -236,7 +236,7 @@ router.get("/users/:id/like", async (req, res, next) => {
   }
 });
 
-// GET /api/matches — recommandations of users (same city first, then popularity)
+// GET /api/matches — intelligent suggestions based on preference, proximity, shared tags and fame
 router.get("/matches", async (req, res, next) => {
   try {
     const userId = req.header("x-user-id");
@@ -294,10 +294,9 @@ router.get("/matches", async (req, res, next) => {
         ? "ASC"
         : "DESC";
 
-    const tagsSortExpr = tagsFilter ? "matched_tags_count" : "tags_count";
-
     let orderBySql = `
       (me.city IS NOT NULL AND p.city IS NOT NULL AND p.city = me.city) DESC,
+      common_tags_count DESC,
       p.fame_rating DESC NULLS LAST,
       u.id ASC
     `;
@@ -323,7 +322,7 @@ router.get("/matches", async (req, res, next) => {
       `;
     } else if (normalizedSortBy === "tags") {
       orderBySql = `
-        ${tagsSortExpr} ${normalizedSortDir} NULLS LAST,
+        common_tags_count ${normalizedSortDir} NULLS LAST,
         p.fame_rating DESC NULLS LAST,
         u.id ASC
       `;
@@ -351,8 +350,16 @@ router.get("/matches", async (req, res, next) => {
 
     const sql = `
       WITH me AS (
-        SELECT city
+        SELECT
+          city,
+          gender,
+          COALESCE(NULLIF(sexual_preference, ''), 'both') AS sexual_preference
         FROM profiles
+        WHERE user_id = $1
+      ),
+      me_tags AS (
+        SELECT tag_id
+        FROM user_profile_tags
         WHERE user_id = $1
       )
       SELECT
@@ -367,12 +374,7 @@ router.get("/matches", async (req, res, next) => {
         ph.primary_photo_url,
         EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.birth_date))::int AS age_value,
         COUNT(DISTINCT t.id)::int AS tags_count,
-        COUNT(
-          DISTINCT CASE
-            WHEN $7::text[] IS NOT NULL AND t.name = ANY($7::text[]) THEN t.id
-            ELSE NULL
-          END
-        )::int AS matched_tags_count,
+        COUNT(DISTINCT mt.tag_id)::int AS common_tags_count,
         COALESCE(
           ARRAY_REMOVE(ARRAY_AGG(DISTINCT t.name), NULL),
           ARRAY[]::varchar[]
@@ -388,8 +390,10 @@ router.get("/matches", async (req, res, next) => {
       ) ph ON TRUE
       LEFT JOIN user_profile_tags upt ON upt.user_id = u.id
       LEFT JOIN tags t ON t.id = upt.tag_id
+      LEFT JOIN me_tags mt ON mt.tag_id = t.id
       LEFT JOIN me ON TRUE
       WHERE u.id <> $1
+        AND p.user_id IS NOT NULL
         AND NOT EXISTS (
           SELECT 1
           FROM fake_account_reports far
@@ -432,6 +436,19 @@ router.get("/matches", async (req, res, next) => {
         AND (
           $8::text IS NULL
           OR (p.city IS NOT NULL AND LOWER(p.city) = LOWER($8::text))
+        )
+        AND (
+          COALESCE(me.sexual_preference, 'both') = 'both'
+          OR (COALESCE(me.sexual_preference, 'both') = 'male' AND p.gender = 'male')
+          OR (COALESCE(me.sexual_preference, 'both') = 'female' AND p.gender = 'female')
+          OR (COALESCE(me.sexual_preference, 'both') = 'other' AND p.gender IN ('non_binary', 'other'))
+        )
+        AND (
+          me.gender IS NULL
+          OR COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'both'
+          OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'male' AND me.gender = 'male')
+          OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'female' AND me.gender = 'female')
+          OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'other' AND me.gender IN ('non_binary', 'other'))
         )
       GROUP BY u.id, u.username, u.email, u.last_seen_at, p.city, p.neighborhood, p.fame_rating, p.birth_date, ph.primary_photo_url, me.city
       ORDER BY
