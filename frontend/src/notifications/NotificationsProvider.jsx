@@ -3,8 +3,6 @@ import { buildApiHeaders } from "../utils.js";
 import { getRealtimeSocket, onRealtimeEvent } from "../realtime/socket.js";
 import { NotificationsContext } from "./useNotifications.js";
 
-const POLL_INTERVAL_MS = 10000;
-
 function sortByNewest(items) {
   return [...items].sort((a, b) => {
     const aTime = new Date(a?.created_at || 0).getTime();
@@ -124,11 +122,7 @@ export function NotificationsProvider({ currentUser, children }) {
     }
 
     fetchNotifications();
-    const intervalId = window.setInterval(fetchNotifications, POLL_INTERVAL_MS);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
+    return undefined;
   }, [currentUser, fetchNotifications]);
 
   useEffect(() => {
@@ -142,8 +136,14 @@ export function NotificationsProvider({ currentUser, children }) {
           return;
         }
 
-        setNotifications((prev) => sortByNewest([incoming, ...prev]));
-        setUnreadCount((prev) => prev + (incoming.is_read ? 0 : 1));
+        setNotifications((prev) => {
+          const deduped = prev.filter((item) => item.id !== incoming.id);
+          return sortByNewest([incoming, ...deduped]);
+        });
+        setUnreadCount((prev) => {
+          if (incoming.is_read) return prev;
+          return prev + 1;
+        });
       },
     );
 
@@ -161,20 +161,10 @@ export function NotificationsProvider({ currentUser, children }) {
       void fetchNotifications();
     }
 
-    function onVisibilityChange() {
-      if (document.visibilityState === "visible") {
-        syncNotifications();
-      }
-    }
-
     socket.on("connect", syncNotifications);
-    window.addEventListener("focus", syncNotifications);
-    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       socket.off("connect", syncNotifications);
-      window.removeEventListener("focus", syncNotifications);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [currentUser?.id, fetchNotifications]);
 
