@@ -53,13 +53,13 @@ function PopularityListPage({ currentUser, mode = "views" }) {
   const [counts, setCounts] = useState({ views: 0, likes: 0, matches: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const { unreadUsersByMode = {} } = useNotifications();
+  const { attentionUsersByMode = {}, clearAttentionDots } = useNotifications();
 
   const config = useMemo(() => MODE_CONFIG[mode] || MODE_CONFIG.views, [mode]);
   const unreadUserSet = useMemo(() => {
-    const set = unreadUsersByMode[mode];
+    const set = attentionUsersByMode[mode];
     return set instanceof Set ? set : new Set();
-  }, [mode, unreadUsersByMode]);
+  }, [mode, attentionUsersByMode]);
 
   const displayedUsers = useMemo(() => {
     return [...users].sort((a, b) => {
@@ -148,6 +148,12 @@ function PopularityListPage({ currentUser, mode = "views" }) {
       cancelled = true;
     };
   }, [currentUser, mode]);
+
+  useEffect(() => {
+    return () => {
+      clearAttentionDots();
+    };
+  }, [clearAttentionDots]);
 
   if (!currentUser) return <Navigate to="/login" replace />;
   if (loading) return <p className="text-sm text-slate-600">Loading...</p>;

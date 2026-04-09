@@ -3,6 +3,43 @@ import { buildApiHeaders } from "../utils.js";
 import { getRealtimeSocket, onRealtimeEvent } from "../realtime/socket.js";
 import { NotificationsContext } from "./useNotifications.js";
 
+function createEmptyModeSets() {
+  return {
+    views: new Set(),
+    likes: new Set(),
+    matches: new Set(),
+  };
+}
+
+function hasAnyModeAttention(modeSets) {
+  return (
+    modeSets.views.size > 0 ||
+    modeSets.likes.size > 0 ||
+    modeSets.matches.size > 0
+  );
+}
+
+function mapTypeToMode(type) {
+  if (type === "profile_view") return "views";
+  if (type === "like_received" || type === "unlike") return "likes";
+  if (type === "match") return "matches";
+  return null;
+}
+
+function deriveAttentionFromNotifications(items) {
+  const result = createEmptyModeSets();
+  for (const item of items) {
+    if (item.is_read) continue;
+    const mode = mapTypeToMode(item.type);
+    const parsedUserId = Number(item.actor_user_id);
+    if (!mode || !Number.isInteger(parsedUserId) || parsedUserId <= 0) {
+      continue;
+    }
+    result[mode].add(String(parsedUserId));
+  }
+  return result;
+}
+
 function sortByNewest(items) {
   return [...items].sort((a, b) => {
     const aTime = new Date(a?.created_at || 0).getTime();
@@ -23,12 +60,14 @@ export function NotificationsProvider({ currentUser, children }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [attentionUsersByMode, setAttentionUsersByMode] = useState(createEmptyModeSets);
 
   const fetchNotifications = useCallback(async () => {
     if (!currentUser) {
       setNotifications([]);
       setUnreadCount(0);
       setError("");
+      setAttentionUsersByMode(createEmptyModeSets());
       return;
     }
 
@@ -53,6 +92,14 @@ export function NotificationsProvider({ currentUser, children }) {
           ? data.unread_count
           : list.filter((item) => !item.is_read).length,
       );
+
+      const derivedAttention = deriveAttentionFromNotifications(list);
+      setAttentionUsersByMode((prev) => {
+        if (hasAnyModeAttention(prev)) {
+          return prev;
+        }
+        return derivedAttention;
+      });
     } catch {
       setError("Network error while loading notifications.");
     } finally {
@@ -144,6 +191,21 @@ export function NotificationsProvider({ currentUser, children }) {
           if (incoming.is_read) return prev;
           return prev + 1;
         });
+
+        const mode = mapTypeToMode(incoming.type);
+        const parsedActorUserId = Number(incoming.actor_user_id);
+        if (mode && Number.isInteger(parsedActorUserId) && parsedActorUserId > 0) {
+          const actorUserId = String(parsedActorUserId);
+          setAttentionUsersByMode((prev) => {
+            const next = {
+              views: new Set(prev.views),
+              likes: new Set(prev.likes),
+              matches: new Set(prev.matches),
+            };
+            next[mode].add(actorUserId);
+            return next;
+          });
+        }
       },
     );
 
@@ -209,17 +271,21 @@ export function NotificationsProvider({ currentUser, children }) {
     };
 
     for (const item of notifications) {
-      if (item.is_read) continue;
       const section = typeToSection[item.type];
       const mode = typeToMode[item.type];
-      if (!section) continue;
-      sectionCounts[section] += 1;
-      if (mode) {
+      if (!item.is_read && section) {
+        sectionCounts[section] += 1;
+      }
+
+      if (!item.is_read && mode) {
         modeCounts[mode] += 1;
       }
+
       const userId = getUserId(item.actor_user_id);
-      if (userId) {
-        sectionSets[section].add(userId);
+      if (!item.is_read && userId) {
+        if (section) {
+          sectionSets[section].add(userId);
+        }
         if (mode) {
           modeSets[mode].add(userId);
         }
@@ -275,9 +341,7 @@ export function NotificationsProvider({ currentUser, children }) {
 
     const groups = [];
     for (const [type, def] of Object.entries(definitions)) {
-      const items = notifications.filter(
-        (item) => !item.is_read && item.type === type,
-      );
+      const items = notifications.filter((item) => item.type === type);
       if (items.length === 0) continue;
 
       items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -302,6 +366,19 @@ export function NotificationsProvider({ currentUser, children }) {
     });
   }, [notifications]);
 
+  const attentionBadges = useMemo(
+    () => ({
+      views: attentionUsersByMode.views.size > 0,
+      likes: attentionUsersByMode.likes.size > 0,
+      matches: attentionUsersByMode.matches.size > 0,
+    }),
+    [attentionUsersByMode],
+  );
+
+  const clearAttentionDots = useCallback(() => {
+    setAttentionUsersByMode(createEmptyModeSets());
+  }, []);
+
   const value = useMemo(
     () => ({
       notifications,
@@ -316,6 +393,9 @@ export function NotificationsProvider({ currentUser, children }) {
       sectionBadges: notificationInsights.sectionBadges,
       unreadUsersByMode: notificationInsights.unreadUsersByMode,
       modeBadges: notificationInsights.modeBadges,
+      attentionUsersByMode,
+      attentionBadges,
+      clearAttentionDots,
       overflowSection: notificationInsights.overflowSection,
       notificationGroups,
     }),
@@ -329,6 +409,9 @@ export function NotificationsProvider({ currentUser, children }) {
       markAllAsRead,
       markNotificationAsRead,
       notificationInsights,
+      attentionUsersByMode,
+      attentionBadges,
+      clearAttentionDots,
       notificationGroups,
     ],
   );

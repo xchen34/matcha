@@ -9,6 +9,7 @@ import PopularityListPage from "./pages/PopularityListPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
 import NotificationsBell from "./notifications/NotificationsBell.jsx";
+import { useNotifications } from "./notifications/useNotifications.js";
 import { connectRealtime, disconnectRealtime, getRealtimeSocket } from "./realtime/socket.js";
 import {
   MAX_PHOTO_SIZE_BYTES,
@@ -31,6 +32,64 @@ const primaryButtonClass =
   "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-5 py-2.5 text-sm font-semibold shadow-md shadow-orange-200 hover:-translate-y-0.5 hover:shadow-lg transition disabled:opacity-60";
 const secondaryButtonClass =
   "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition";
+
+function TopNav({ currentUser }) {
+  const { attentionBadges = {} } = useNotifications();
+
+  const withDot = (label, active) => (
+    <span className="inline-flex items-center gap-1">
+      {label}
+      {active && <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New activity" />}
+    </span>
+  );
+
+  return (
+    <nav className="flex flex-wrap items-center gap-3">
+      {!currentUser && (
+        <NavLink to="/login" className={({ isActive }) =>
+          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+        }>
+          Login
+        </NavLink>
+      )}
+      {!currentUser && (
+        <NavLink to="/register" className={({ isActive }) =>
+          `${secondaryButtonClass} ${isActive ? "bg-slate-900  border-slate-900" : ""}`
+        }>
+          Create Account
+        </NavLink>
+      )}
+      {currentUser && (
+        <NavLink to="/find-match" className={({ isActive }) =>
+          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+        }>
+          Find your match
+        </NavLink>
+      )}
+      {currentUser && (
+        <NavLink to="/popularity/views" className={({ isActive }) =>
+          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+        }>
+          {withDot("Who viewed me", attentionBadges.views)}
+        </NavLink>
+      )}
+      {currentUser && (
+        <NavLink to="/popularity/likes" className={({ isActive }) =>
+          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+        }>
+          {withDot("Who liked me", attentionBadges.likes)}
+        </NavLink>
+      )}
+      {currentUser && (
+        <NavLink to="/popularity/matches" className={({ isActive }) =>
+          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+        }>
+          {withDot("Who matched with me", attentionBadges.matches)}
+        </NavLink>
+      )}
+    </nav>
+  );
+}
 
 function bytesToKB(value) {
   return Math.round(value / 1024);
@@ -1839,50 +1898,7 @@ function App() {
           </p>
         </header>
 
-        <nav className="flex flex-wrap items-center gap-3">
-        {!currentUser && (
-          <NavLink to="/login" className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
-          }>
-            Login
-          </NavLink>
-        )}
-        {!currentUser && (
-          <NavLink to="/register" className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900  border-slate-900" : ""}`
-          }>
-            Create Account
-          </NavLink>
-        )}
-        {currentUser && (
-          <NavLink to="/find-match" className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
-          }>
-            Find your match
-          </NavLink>
-        )}
-        {currentUser && (
-          <NavLink to="/popularity/views" className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
-          }>
-            Who viewed me
-          </NavLink>
-        )}
-        {currentUser && (
-          <NavLink to="/popularity/likes" className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
-          }>
-            Who liked me
-          </NavLink>
-        )}
-        {currentUser && (
-          <NavLink to="/popularity/matches" className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
-          }>
-            Who matched with me
-          </NavLink>
-        )}
-        </nav>
+        <TopNav currentUser={currentUser} />
 
       <Routes>
         <Route

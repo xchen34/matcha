@@ -30,7 +30,7 @@ export default function NotificationsBell() {
     isAuthenticated,
     refresh,
     markAllAsRead,
-    markNotificationAsRead,
+    overflowSection,
     notificationGroups,
   } = useNotifications();
   const [open, setOpen] = useState(false);
@@ -54,25 +54,28 @@ export default function NotificationsBell() {
     return () => document.removeEventListener("mousedown", onDocumentClick);
   }, []);
 
-  function handleGroupClick(group) {
-    const unreadIds = notifications
-      .filter((item) => !item.is_read && item.type === group.type)
-      .map((item) => item.id)
-      .filter(Boolean);
-
-    if (unreadIds.length > 0) {
-      void Promise.all(unreadIds.map((id) => markNotificationAsRead(id)));
-    }
-
+  function handleViewClick() {
+    const firstRelatedSection =
+      notificationGroups[0]?.section || overflowSection || "views";
     setOpen(false);
-    navigate(`/popularity/${group.section}`);
+    navigate(`/popularity/${firstRelatedSection}`);
+  }
+
+  function handleBellClick() {
+    setOpen((prev) => {
+      const nextOpen = !prev;
+      if (nextOpen && unreadCount > 0) {
+        void markAllAsRead();
+      }
+      return nextOpen;
+    });
   }
 
   return (
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={handleBellClick}
         disabled={!isAuthenticated}
         aria-label="Ouvrir les notifications"
         title="Notifications"
@@ -106,9 +109,9 @@ export default function NotificationsBell() {
               <button
                 type="button"
                 className="text-xs font-semibold text-slate-600 hover:text-slate-900"
-                onClick={markAllAsRead}
+                onClick={handleViewClick}
               >
-                标记为已读
+                查看
               </button>
             )}
           </div>
@@ -124,16 +127,13 @@ export default function NotificationsBell() {
           {!loading && notificationGroups.length > 0 && (
             <div className="space-y-2">
               {notificationGroups.map((group) => (
-                <button
+                <div
                   key={group.type}
-                  type="button"
-                  onClick={() => handleGroupClick(group)}
                   className="w-full text-left"
                 >
                   <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white">
-                    <div className="relative h-11 w-11 rounded-2xl bg-gradient-to-br from-orange-400 to-brand text-white flex items-center justify-center text-lg font-semibold">
+                    <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-orange-400 to-brand text-white flex items-center justify-center text-lg font-semibold">
                       {group.primaryActor.charAt(0) || "?"}
-                      <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-red-500" aria-label="New" />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-slate-900">{group.label}</p>
@@ -142,9 +142,8 @@ export default function NotificationsBell() {
                         <p className="mt-1 text-[11px] text-slate-400">{formatNotificationDateTime(group.latestAt)}</p>
                       )}
                     </div>
-                    <span className="text-[11px] font-semibold text-brand">查看</span>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
