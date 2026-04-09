@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
+import { useNotifications } from "../notifications/NotificationsProvider.jsx";
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
@@ -10,6 +11,26 @@ function ActivityPage({ currentUser }) {
   const [viewsList, setViewsList] = useState([]);
   const [likesList, setLikesList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const location = useLocation();
+  const scrollTargetRef = useRef(null);
+  const {
+    sectionBadges = { views: false, likes: false },
+    unreadUsersBySection = {},
+  } = useNotifications();
+
+  const normalizedUnreadSets = useMemo(
+    () => ({
+      views: unreadUsersBySection.views instanceof Set ? unreadUsersBySection.views : new Set(),
+      likes: unreadUsersBySection.likes instanceof Set ? unreadUsersBySection.likes : new Set(),
+    }),
+    [unreadUsersBySection],
+  );
+
+  const hasUserNewActivity = (section, userId) => {
+    const set = normalizedUnreadSets[section];
+    if (!set) return false;
+    return set.has(String(userId));
+  };
 
   useEffect(() => {
     if (!currentUser) return;
@@ -52,6 +73,32 @@ function ActivityPage({ currentUser }) {
     if (tab === "likes") fetchLikes();
   }, [currentUser, tab]);
 
+  useEffect(() => {
+    const hashTarget = location.hash.replace("#", "");
+    const stateTarget = location.state?.scrollTo;
+    const target = stateTarget || hashTarget;
+    if (target !== "views" && target !== "likes") return;
+
+    if (scrollTargetRef.current === target) return;
+    scrollTargetRef.current = target;
+    setTab(target);
+
+    const timeoutId = window.setTimeout(() => {
+      const element = document.getElementById(`activity-section-${target}`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      if (stateTarget) {
+        const cleanUrl = `${window.location.pathname}${window.location.search}#${target}`;
+        window.history.replaceState({}, "", cleanUrl);
+      }
+    }, 50);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [location.hash, location.state]);
+
   if (!currentUser) return <Navigate to="/login" replace />;
 
   return (
@@ -78,7 +125,12 @@ function ActivityPage({ currentUser }) {
                 : "bg-white text-slate-700 border-slate-200"
             }`}
           >
-            {item.label}
+            <span className="inline-flex items-center gap-1">
+              {item.label}
+              {sectionBadges[item.key] && (
+                <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
+              )}
+            </span>
           </button>
         ))}
       </div>
@@ -87,11 +139,30 @@ function ActivityPage({ currentUser }) {
         {loading && <p className="text-slate-500">Loading...</p>}
 
         {!loading && tab === "views" && (
-          <div className="space-y-2">
+          <div
+            id="activity-section-views"
+            className="space-y-2"
+          >
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Who viewed me
+              </p>
+              {sectionBadges.views && (
+                <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
+              )}
+            </div>
             {viewsList.length === 0 && <p className="text-slate-500">No views yet.</p>}
             {viewsList.map((user) => (
-              <div key={`${user.id}-${user.created_at ?? "view"}`} className="flex items-center justify-between">
-                <span>@{user.username}</span>
+              <div
+                key={`${user.id}-${user.created_at ?? "view"}`}
+                className="flex items-center justify-between"
+              >
+                <div className="flex items-center gap-1">
+                  <span>@{user.username}</span>
+                  {hasUserNewActivity("views", user.id) && (
+                    <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New viewer" />
+                  )}
+                </div>
                 <span className="text-xs text-slate-500">{user.email}</span>
               </div>
             ))}
@@ -99,11 +170,30 @@ function ActivityPage({ currentUser }) {
         )}
 
         {!loading && tab === "likes" && (
-          <div className="space-y-2">
+          <div
+            id="activity-section-likes"
+            className="space-y-2"
+          >
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Who liked me
+              </p>
+              {sectionBadges.likes && (
+                <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
+              )}
+            </div>
             {likesList.length === 0 && <p className="text-slate-500">No likes yet.</p>}
             {likesList.map((user) => (
-              <div key={`${user.id}-${user.created_at ?? "like"}`} className="flex items-center justify-between">
-                <span>@{user.username}</span>
+              <div
+                key={`${user.id}-${user.created_at ?? "like"}`}
+                className="flex items-center justify-between"
+              >
+                <div className="flex items-center gap-1">
+                  <span>@{user.username}</span>
+                  {hasUserNewActivity("likes", user.id) && (
+                    <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New liker" />
+                  )}
+                </div>
                 <span className="text-xs text-slate-500">{user.email}</span>
               </div>
             ))}

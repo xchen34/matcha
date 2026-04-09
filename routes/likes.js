@@ -194,7 +194,8 @@ router.post("/users/:id/view", async (req, res, next) => {
       `
       INSERT INTO profile_views (viewer_user_id, viewed_user_id)
       VALUES ($1, $2)
-      ON CONFLICT DO NOTHING
+      ON CONFLICT (viewer_user_id, viewed_user_id)
+      DO UPDATE SET created_at = NOW()
       RETURNING viewer_user_id, viewed_user_id, created_at
       `,
       [viewer_user_id, viewed_user_id],
@@ -210,8 +211,8 @@ router.post("/users/:id/view", async (req, res, next) => {
       });
     }
 
-    return res.status(result.rowCount > 0 ? 201 : 200).json({
-      message: result.rowCount > 0 ? "View recorded" : "View already recorded",
+    return res.status(201).json({
+      message: "View recorded",
     });
   } catch (error) {
     return next(error);
@@ -360,6 +361,7 @@ router.get("/matches", async (req, res, next) => {
         u.username,
         u.email,
         u.last_seen_at,
+        p.gender,
         p.city,
         p.neighborhood,
         p.fame_rating,
@@ -433,7 +435,7 @@ router.get("/matches", async (req, res, next) => {
           $8::text IS NULL
           OR (p.city IS NOT NULL AND LOWER(p.city) = LOWER($8::text))
         )
-      GROUP BY u.id, u.username, u.email, u.last_seen_at, p.city, p.neighborhood, p.fame_rating, p.birth_date, ph.primary_photo_url, me.city
+      GROUP BY u.id, u.username, u.email, u.last_seen_at, p.gender, p.city, p.neighborhood, p.fame_rating, p.birth_date, ph.primary_photo_url, me.city
       ORDER BY
         ${orderBySql}
       LIMIT $9::int

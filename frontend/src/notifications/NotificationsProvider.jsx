@@ -136,6 +136,105 @@ export function NotificationsProvider({ currentUser, children }) {
     };
   }, [currentUser?.id]);
 
+  const notificationInsights = useMemo(() => {
+    const sectionSets = {
+      views: new Set(),
+      likes: new Set(),
+    };
+    const sectionCounts = {
+      views: 0,
+      likes: 0,
+    };
+
+    const typeToSection = {
+      profile_view: "views",
+      like_received: "likes",
+      match: "likes",
+      unlike: "likes",
+    };
+
+    const getUserId = (value) => {
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed <= 0) return null;
+      return String(parsed);
+    };
+
+    for (const item of notifications) {
+      if (item.is_read) continue;
+      const section = typeToSection[item.type];
+      if (!section) continue;
+      sectionCounts[section] += 1;
+      const userId = getUserId(item.actor_user_id);
+      if (userId) {
+        sectionSets[section].add(userId);
+      }
+    }
+
+    const overflowSection =
+      sectionCounts.views === 0 && sectionCounts.likes === 0
+        ? "views"
+        : sectionCounts.views >= sectionCounts.likes
+        ? "views"
+        : "likes";
+
+    return {
+      unreadUsersBySection: sectionSets,
+      sectionBadges: {
+        views: sectionCounts.views > 0,
+        likes: sectionCounts.likes > 0,
+      },
+      overflowSection,
+    };
+  }, [notifications]);
+
+  const notificationGroups = useMemo(() => {
+    const definitions = {
+      profile_view: {
+        section: "views",
+        verb: "看过",
+        label: "谁看过我",
+      },
+      like_received: {
+        section: "likes",
+        verb: "点赞了",
+        label: "谁喜欢了我",
+      },
+      match: {
+        section: "likes",
+        verb: "和你互相喜欢",
+        label: "互相喜欢",
+      },
+      unlike: {
+        section: "likes",
+        verb: "取消了喜欢",
+        label: "喜欢动态",
+      },
+    };
+
+    const groups = [];
+    for (const [type, def] of Object.entries(definitions)) {
+      const items = notifications.filter(
+        (item) => !item.is_read && item.type === type,
+      );
+      if (items.length === 0) continue;
+
+      items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const primary = items[0];
+      const primaryActor = primary.actor_username || "某人";
+
+      groups.push({
+        type,
+        count: items.length,
+        section: def.section,
+        verb: def.verb,
+        label: def.label,
+        primaryActor,
+      });
+    }
+
+    return groups;
+  }, [notifications]);
+
   const value = useMemo(
     () => ({
       notifications,
@@ -146,6 +245,10 @@ export function NotificationsProvider({ currentUser, children }) {
       refresh: fetchNotifications,
       markAllAsRead,
       markNotificationAsRead,
+      unreadUsersBySection: notificationInsights.unreadUsersBySection,
+      sectionBadges: notificationInsights.sectionBadges,
+      overflowSection: notificationInsights.overflowSection,
+      notificationGroups,
     }),
     [
       notifications,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaHeart } from "react-icons/fa";
 import { Navigate, useParams } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
@@ -25,6 +25,7 @@ function UserProfilePage({ currentUser }) {
   const [loadingLike, setLoadingLike] = useState(false);
   const [likeError, setLikeError] = useState("");
   const [canLikeProfiles, setCanLikeProfiles] = useState(false);
+  const lastRecordedViewRef = useRef("");
 
   useEffect(() => {
     async function fetchProfile() {
@@ -50,6 +51,18 @@ function UserProfilePage({ currentUser }) {
 
     async function recordView() {
       if (!currentUser?.id || !id || String(currentUser.id) === String(id)) return;
+
+      const viewKey = `${currentUser.id}:${id}`;
+      const now = Date.now();
+      const storageKey = `matcha.lastProfileView.${viewKey}`;
+      const lastRecordedAt = Number(sessionStorage.getItem(storageKey) || 0);
+      if (lastRecordedViewRef.current === viewKey && now - lastRecordedAt < 3000) {
+        return;
+      }
+
+      lastRecordedViewRef.current = viewKey;
+      sessionStorage.setItem(storageKey, String(now));
+
       fetch(`/api/users/${id}/view`, {
         method: "POST",
         headers: buildApiHeaders(currentUser),

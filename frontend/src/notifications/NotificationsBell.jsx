@@ -2,41 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "./NotificationsProvider.jsx";
 
-function formatDateTime(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString();
-}
-
-function renderNotificationMessage(item) {
-  const actorName = item.actor_username ? `@${item.actor_username}` : "Someone";
-
-  if (item.type === "like_received") {
-    return (
-      <p className="text-sm text-slate-800">
-        <span className="font-semibold text-slate-950">{actorName}</span> liked you.
-      </p>
-    );
+function createCardMessage(primaryName, verb, count) {
+  const others = Math.max(0, count - 1);
+  if (others === 0) {
+    return `${primaryName} ${verb} 你`;
   }
-
-  if (item.type === "match") {
-    return (
-      <p className="text-sm text-slate-800">
-        <span className="font-semibold text-slate-950">{actorName}</span> matched with you.
-      </p>
-    );
-  }
-
-  if (item.type === "unlike") {
-    return (
-      <p className="text-sm text-slate-800">
-        <span className="font-semibold text-slate-950">{actorName}</span> unliked you.
-      </p>
-    );
-  }
-
-  return <p className="text-sm text-slate-800">{item.message}</p>;
+  return `${primaryName} 等 ${others} 人 ${verb} 你`;
 }
 
 export default function NotificationsBell() {
@@ -50,6 +21,7 @@ export default function NotificationsBell() {
     refresh,
     markAllAsRead,
     markNotificationAsRead,
+    notificationGroups,
   } = useNotifications();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -72,32 +44,18 @@ export default function NotificationsBell() {
     return () => document.removeEventListener("mousedown", onDocumentClick);
   }, []);
 
-  function getTargetUserId(item) {
-    if (!item) return null;
-    const target = Number(item.actor_user_id);
-    return Number.isInteger(target) && target > 0 ? target : null;
-  }
+  function handleGroupClick(group) {
+    const unreadIds = notifications
+      .filter((item) => !item.is_read && item.type === group.type)
+      .map((item) => item.id)
+      .filter(Boolean);
 
-  function handleNotificationClick(item) {
-    if (!item) return;
-
-    if (!item.is_read) {
-      void markNotificationAsRead(item.id);
-    }
-  }
-
-  function handleViewProfile(event, item) {
-    event.stopPropagation();
-
-    if (item && !item.is_read) {
-      void markNotificationAsRead(item.id);
+    if (unreadIds.length > 0) {
+      void Promise.all(unreadIds.map((id) => markNotificationAsRead(id)));
     }
 
-    const targetUserId = getTargetUserId(item);
-    if (targetUserId) {
-      setOpen(false);
-      navigate(`/users/${targetUserId}`);
-    }
+    setOpen(false);
+    navigate(`/popularity/${group.section}`);
   }
 
   return (
@@ -140,7 +98,7 @@ export default function NotificationsBell() {
                 className="text-xs font-semibold text-slate-600 hover:text-slate-900"
                 onClick={markAllAsRead}
               >
-                Mark all as read
+                标记为已读
               </button>
             )}
           </div>
@@ -149,40 +107,33 @@ export default function NotificationsBell() {
 
           {!loading && error && <p className="text-xs text-red-600">{error}</p>}
 
-          {!loading && notifications.length === 0 && (
+          {!loading && notificationGroups.length === 0 && (
             <p className="text-xs text-slate-500">No notifications yet.</p>
           )}
 
-          {!loading && notifications.length > 0 && (
-            <ul className="max-h-80 space-y-2 overflow-y-auto pr-1">
-              {notifications.map((item) => (
-                <li
-                  key={item.id}
-                  onClick={() => handleNotificationClick(item)}
-                  className={`group rounded-xl border px-3 py-2 transition ${
-                    item.is_read
-                      ? "border-slate-200 bg-slate-50"
-                      : "cursor-pointer border-orange-200 bg-orange-50 hover:bg-orange-100"
-                  }`}
+          {!loading && notificationGroups.length > 0 && (
+            <div className="space-y-2">
+              {notificationGroups.map((group) => (
+                <button
+                  key={group.type}
+                  type="button"
+                  onClick={() => handleGroupClick(group)}
+                  className="w-full text-left"
                 >
-                  {renderNotificationMessage(item)}
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <p className="text-[11px] text-slate-500 group-hover:text-slate-700">
-                      {formatDateTime(item.created_at)}
-                    </p>
-                    {getTargetUserId(item) && (
-                      <button
-                        type="button"
-                        onClick={(event) => handleViewProfile(event, item)}
-                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                      >
-                        View
-                      </button>
-                    )}
+                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white">
+                    <div className="relative h-11 w-11 rounded-2xl bg-gradient-to-br from-orange-400 to-brand text-white flex items-center justify-center text-lg font-semibold">
+                      {group.primaryActor.charAt(0) || "?"}
+                      <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-red-500" aria-label="New" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-900">{group.label}</p>
+                      <p className="text-xs text-slate-500">{createCardMessage(group.primaryActor, group.verb, group.count)}</p>
+                    </div>
+                    <span className="text-[11px] font-semibold text-brand">查看</span>
                   </div>
-                </li>
+                </button>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       )}
