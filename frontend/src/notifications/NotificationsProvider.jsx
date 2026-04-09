@@ -1,9 +1,24 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { buildApiHeaders } from "../utils.js";
-import { onRealtimeEvent } from "../realtime/socket.js";
+import { getRealtimeSocket, onRealtimeEvent } from "../realtime/socket.js";
+import { NotificationsContext } from "./useNotifications.js";
 
-const NotificationsContext = createContext(null);
 const POLL_INTERVAL_MS = 10000;
+
+function sortByNewest(items) {
+  return [...items].sort((a, b) => {
+    const aTime = new Date(a?.created_at || 0).getTime();
+    const bTime = new Date(b?.created_at || 0).getTime();
+    if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0;
+    if (Number.isNaN(aTime)) return 1;
+    if (Number.isNaN(bTime)) return -1;
+    if (bTime !== aTime) return bTime - aTime;
+
+    const aId = Number(a?.id || 0);
+    const bId = Number(b?.id || 0);
+    return bId - aId;
+  });
+}
 
 export function NotificationsProvider({ currentUser, children }) {
   const [notifications, setNotifications] = useState([]);
@@ -24,6 +39,7 @@ export function NotificationsProvider({ currentUser, children }) {
     try {
       const response = await fetch("/api/notifications", {
         headers: buildApiHeaders(currentUser),
+        cache: "no-store",
       });
 
       if (!response.ok) {
@@ -32,7 +48,7 @@ export function NotificationsProvider({ currentUser, children }) {
       }
 
       const data = await response.json();
-      const list = Array.isArray(data.notifications) ? data.notifications : [];
+      const list = Array.isArray(data.notifications) ? sortByNewest(data.notifications) : [];
       setNotifications(list);
       setUnreadCount(
         Number.isFinite(data.unread_count)
@@ -126,7 +142,7 @@ export function NotificationsProvider({ currentUser, children }) {
           return;
         }
 
-        setNotifications((prev) => [incoming, ...prev]);
+        setNotifications((prev) => sortByNewest([incoming, ...prev]));
         setUnreadCount((prev) => prev + (incoming.is_read ? 0 : 1));
       },
     );
@@ -136,20 +152,63 @@ export function NotificationsProvider({ currentUser, children }) {
     };
   }, [currentUser?.id]);
 
+  useEffect(() => {
+    if (!currentUser?.id) return undefined;
+
+    const socket = getRealtimeSocket();
+
+    function syncNotifications() {
+      void fetchNotifications();
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        syncNotifications();
+      }
+    }
+
+    socket.on("connect", syncNotifications);
+    window.addEventListener("focus", syncNotifications);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      socket.off("connect", syncNotifications);
+      window.removeEventListener("focus", syncNotifications);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [currentUser?.id, fetchNotifications]);
+
   const notificationInsights = useMemo(() => {
     const sectionSets = {
       views: new Set(),
       likes: new Set(),
     };
+    const modeSets = {
+      views: new Set(),
+      likes: new Set(),
+      matches: new Set(),
+    };
     const sectionCounts = {
       views: 0,
       likes: 0,
+    };
+    const modeCounts = {
+      views: 0,
+      likes: 0,
+      matches: 0,
     };
 
     const typeToSection = {
       profile_view: "views",
       like_received: "likes",
       match: "likes",
+      unlike: "likes",
+    };
+
+    const typeToMode = {
+      profile_view: "views",
+      like_received: "likes",
+      match: "matches",
       unlike: "likes",
     };
 
@@ -162,11 +221,18 @@ export function NotificationsProvider({ currentUser, children }) {
     for (const item of notifications) {
       if (item.is_read) continue;
       const section = typeToSection[item.type];
+      const mode = typeToMode[item.type];
       if (!section) continue;
       sectionCounts[section] += 1;
+      if (mode) {
+        modeCounts[mode] += 1;
+      }
       const userId = getUserId(item.actor_user_id);
       if (userId) {
         sectionSets[section].add(userId);
+        if (mode) {
+          modeSets[mode].add(userId);
+        }
       }
     }
 
@@ -182,6 +248,12 @@ export function NotificationsProvider({ currentUser, children }) {
       sectionBadges: {
         views: sectionCounts.views > 0,
         likes: sectionCounts.likes > 0,
+      },
+      unreadUsersByMode: modeSets,
+      modeBadges: {
+        views: modeCounts.views > 0,
+        likes: modeCounts.likes > 0,
+        matches: modeCounts.matches > 0,
       },
       overflowSection,
     };
@@ -199,15 +271,15 @@ export function NotificationsProvider({ currentUser, children }) {
         verb: "点赞了",
         label: "谁喜欢了我",
       },
-      match: {
-        section: "likes",
-        verb: "和你互相喜欢",
-        label: "互相喜欢",
-      },
       unlike: {
         section: "likes",
         verb: "取消了喜欢",
         label: "喜欢动态",
+      },
+      match: {
+        section: "matches",
+        verb: "和你互相喜欢",
+        label: "互相喜欢",
       },
     };
 
@@ -229,10 +301,15 @@ export function NotificationsProvider({ currentUser, children }) {
         verb: def.verb,
         label: def.label,
         primaryActor,
+        latestAt: primary.created_at,
       });
     }
 
-    return groups;
+    return groups.sort((a, b) => {
+      const aTime = new Date(a.latestAt || 0).getTime();
+      const bTime = new Date(b.latestAt || 0).getTime();
+      return bTime - aTime;
+    });
   }, [notifications]);
 
   const value = useMemo(
@@ -247,6 +324,8 @@ export function NotificationsProvider({ currentUser, children }) {
       markNotificationAsRead,
       unreadUsersBySection: notificationInsights.unreadUsersBySection,
       sectionBadges: notificationInsights.sectionBadges,
+      unreadUsersByMode: notificationInsights.unreadUsersByMode,
+      modeBadges: notificationInsights.modeBadges,
       overflowSection: notificationInsights.overflowSection,
       notificationGroups,
     }),
@@ -259,6 +338,8 @@ export function NotificationsProvider({ currentUser, children }) {
       fetchNotifications,
       markAllAsRead,
       markNotificationAsRead,
+      notificationInsights,
+      notificationGroups,
     ],
   );
 
@@ -269,10 +350,3 @@ export function NotificationsProvider({ currentUser, children }) {
   );
 }
 
-export function useNotifications() {
-  const ctx = useContext(NotificationsContext);
-  if (!ctx) {
-    throw new Error("useNotifications must be used inside NotificationsProvider");
-  }
-  return ctx;
-}

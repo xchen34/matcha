@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
-import { useNotifications } from "../notifications/NotificationsProvider.jsx";
+import { useNotifications } from "../notifications/useNotifications.js";
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";

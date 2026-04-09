@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
+import { useNotifications } from "../notifications/useNotifications.js";
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
@@ -29,6 +30,22 @@ const MODE_CONFIG = {
   },
 };
 
+function getInteractionTimeMs(user, mode) {
+  const rawValue = mode === "matches" ? user?.matched_at : user?.created_at;
+  const ts = new Date(rawValue || 0).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
+}
+
+function formatDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const pad = (num) => String(num).padStart(2, "0");
+  return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
 function PopularityListPage({ currentUser, mode = "views" }) {
   const ROLLING_THRESHOLD = 8;
   const navigate = useNavigate();
@@ -36,8 +53,21 @@ function PopularityListPage({ currentUser, mode = "views" }) {
   const [counts, setCounts] = useState({ views: 0, likes: 0, matches: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { unreadUsersByMode = {} } = useNotifications();
 
   const config = useMemo(() => MODE_CONFIG[mode] || MODE_CONFIG.views, [mode]);
+  const unreadUserSet = useMemo(() => {
+    const set = unreadUsersByMode[mode];
+    return set instanceof Set ? set : new Set();
+  }, [mode, unreadUsersByMode]);
+
+  const displayedUsers = useMemo(() => {
+    return [...users].sort((a, b) => {
+      const timeDiff = getInteractionTimeMs(b, mode) - getInteractionTimeMs(a, mode);
+      if (timeDiff !== 0) return timeDiff;
+      return Number(b?.id || 0) - Number(a?.id || 0);
+    });
+  }, [mode, users]);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,23 +177,31 @@ function PopularityListPage({ currentUser, mode = "views" }) {
       </div>
 
       <div className="space-y-2">
-        {users.length === 0 && (
+        {displayedUsers.length === 0 && (
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-slate-600">
             {config.emptyText}
           </div>
         )}
 
-        {mode === "views" && users.length > ROLLING_THRESHOLD ? (
+        {mode === "views" && displayedUsers.length > ROLLING_THRESHOLD ? (
           <div className="popularity-rolling-shell">
             <div className="popularity-rolling-track">
-              {[...users, ...users].map((user, index) => (
+              {[...displayedUsers, ...displayedUsers].map((user, index) => (
                 <div
                   key={`${user.id}-${index}`}
                   className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
                 >
                   <div>
-                    <p className="font-semibold text-slate-900">@{user.username}</p>
+                    <p className="inline-flex items-center gap-1 font-semibold text-slate-900">
+                      @{user.username}
+                      {unreadUserSet.has(String(user.id)) && (
+                        <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New notification" />
+                      )}
+                    </p>
                     <p className="text-xs text-slate-500">{config.helperText}</p>
+                    <p className="text-[11px] text-slate-400">
+                      {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -177,14 +215,22 @@ function PopularityListPage({ currentUser, mode = "views" }) {
             </div>
           </div>
         ) : (
-          users.map((user) => (
+          displayedUsers.map((user) => (
             <div
               key={`${user.id}-${user.created_at ?? user.matched_at ?? mode}`}
               className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
             >
               <div>
-                <p className="font-semibold text-slate-900">@{user.username}</p>
+                <p className="inline-flex items-center gap-1 font-semibold text-slate-900">
+                  @{user.username}
+                  {unreadUserSet.has(String(user.id)) && (
+                    <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New notification" />
+                  )}
+                </p>
                 <p className="text-xs text-slate-500">{config.helperText}</p>
+                <p className="text-[11px] text-slate-400">
+                  {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
+                </p>
               </div>
               <button
                 type="button"

@@ -63,15 +63,19 @@ router.get("/profile/likes", async (req, res, next) => {
 
     const result = await pool.query(
       `
-      SELECT DISTINCT ON (u.id)
-        u.id,
-        u.username,
-        u.email,
-        l.created_at
-      FROM likes l
-      JOIN users u ON u.id = l.liker_user_id
-      WHERE l.liked_user_id = $1
-      ORDER BY u.id, l.created_at DESC
+      SELECT id, username, email, created_at
+      FROM (
+        SELECT DISTINCT ON (u.id)
+          u.id,
+          u.username,
+          u.email,
+          l.created_at
+        FROM likes l
+        JOIN users u ON u.id = l.liker_user_id
+        WHERE l.liked_user_id = $1
+        ORDER BY u.id, l.created_at DESC
+      ) latest_likes_per_user
+      ORDER BY created_at DESC, id DESC
       `,
       [currentUserId],
     );
@@ -99,15 +103,19 @@ router.get("/profile/views", async (req, res, next) => {
 
     const result = await pool.query(
       `
-      SELECT DISTINCT ON (u.id)
-        u.id,
-        u.username,
-        u.email,
-        v.created_at
-      FROM profile_views v
-      JOIN users u ON u.id = v.viewer_user_id
-      WHERE v.viewed_user_id = $1
-      ORDER BY u.id, v.created_at DESC
+      SELECT id, username, email, created_at
+      FROM (
+        SELECT DISTINCT ON (u.id)
+          u.id,
+          u.username,
+          u.email,
+          v.created_at
+        FROM profile_views v
+        JOIN users u ON u.id = v.viewer_user_id
+        WHERE v.viewed_user_id = $1
+        ORDER BY u.id, v.created_at DESC
+      ) latest_views_per_user
+      ORDER BY created_at DESC, id DESC
       `,
       [currentUserId],
     );
@@ -551,11 +559,6 @@ router.delete("/users/:id/like", async (req, res, next) => {
       return res.status(400).json({ error: "Impossible to unlike myself" });
     }
 
-    const wasMatch = await pool.query(
-      `SELECT 1 FROM likes WHERE liker_user_id = $1 AND liked_user_id = $2`,
-      [liked_user_id, liker_user_id],
-    );
-
     const sql = `DELETE FROM likes WHERE liker_user_id = $1 AND liked_user_id = $2`;
     const result = await pool.query(sql, [liker_user_id, liked_user_id]);
     if (result.rowCount === 0) {
@@ -564,15 +567,13 @@ router.delete("/users/:id/like", async (req, res, next) => {
         .json({ message: "Like déjà retiré ou inexistant" });
     }
 
-    if (wasMatch.rowCount > 0) {
-      await createNotification({
-        userId: liked_user_id,
-        actorUserId: liker_user_id,
-        type: "unlike",
-        message: "A connected user unliked you.",
-        metadata: { unliked_by_user_id: liker_user_id },
-      });
-    }
+    await createNotification({
+      userId: liked_user_id,
+      actorUserId: liker_user_id,
+      type: "unlike",
+      message: "A connected user unliked you.",
+      metadata: { unliked_by_user_id: liker_user_id },
+    });
 
     res.status(200).json({ message: "Like retiré" });
   } catch (error) {

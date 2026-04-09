@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useNotifications } from "./NotificationsProvider.jsx";
+import { useNotifications } from "./useNotifications.js";
 
 function createCardMessage(primaryName, verb, count) {
   const others = Math.max(0, count - 1);
@@ -8,6 +8,16 @@ function createCardMessage(primaryName, verb, count) {
     return `${primaryName} ${verb} 你`;
   }
   return `${primaryName} 等 ${others} 人 ${verb} 你`;
+}
+
+function formatNotificationDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const pad = (num) => String(num).padStart(2, "0");
+  return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 export default function NotificationsBell() {
@@ -128,6 +138,9 @@ export default function NotificationsBell() {
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-slate-900">{group.label}</p>
                       <p className="text-xs text-slate-500">{createCardMessage(group.primaryActor, group.verb, group.count)}</p>
+                      {group.latestAt && (
+                        <p className="mt-1 text-[11px] text-slate-400">{formatNotificationDateTime(group.latestAt)}</p>
+                      )}
                     </div>
                     <span className="text-[11px] font-semibold text-brand">查看</span>
                   </div>

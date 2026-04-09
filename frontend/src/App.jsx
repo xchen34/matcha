@@ -9,7 +9,7 @@ import PopularityListPage from "./pages/PopularityListPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
 import NotificationsBell from "./notifications/NotificationsBell.jsx";
-import { connectRealtime, disconnectRealtime } from "./realtime/socket.js";
+import { connectRealtime, disconnectRealtime, getRealtimeSocket } from "./realtime/socket.js";
 import {
   MAX_PHOTO_SIZE_BYTES,
   MAX_TOTAL_PHOTOS_SIZE_BYTES,
@@ -1622,6 +1622,59 @@ function App() {
     disconnectRealtime();
     return undefined;
   }, [currentUser?.id, currentUser?.realtime_token]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return undefined;
+
+    const socket = getRealtimeSocket();
+    let cancelled = false;
+    let refreshing = false;
+
+    async function refreshRealtimeToken() {
+      if (refreshing || cancelled) return;
+      refreshing = true;
+
+      try {
+        const response = await fetch("/api/auth/realtime-token", {
+          headers: buildApiHeaders({ id: currentUser.id }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.realtime_token || cancelled) {
+          return;
+        }
+
+        setCurrentUser((prev) => {
+          if (!prev) return prev;
+          const next = {
+            ...prev,
+            realtime_token: payload.realtime_token,
+          };
+          writeStoredUser(next);
+          return next;
+        });
+
+        connectRealtime(currentUser.id, payload.realtime_token);
+      } catch {
+        // Keep app usable and let polling continue if token refresh fails.
+      } finally {
+        refreshing = false;
+      }
+    }
+
+    function onConnectError(error) {
+      const message = String(error?.message || "");
+      if (message.includes("Unauthorized")) {
+        void refreshRealtimeToken();
+      }
+    }
+
+    socket.on("connect_error", onConnectError);
+
+    return () => {
+      cancelled = true;
+      socket.off("connect_error", onConnectError);
+    };
+  }, [currentUser?.id]);
 
   function logout() {
     setIsSettingsOpen(false);
