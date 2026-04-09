@@ -21,3 +21,29 @@
     @apply min-h-screen;
   }
 }
+
+.popularity-rolling-shell {
+  max-height: 340px;
+  overflow: hidden;
+  position: relative;
+}
+
+.popularity-rolling-track {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  animation: popularity-scroll 18s linear infinite;
+}
+
+.popularity-rolling-shell:hover .popularity-rolling-track {
+  animation-play-state: paused;
+}
+
+@keyframes popularity-scroll {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}

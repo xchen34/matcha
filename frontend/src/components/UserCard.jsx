@@ -90,7 +90,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           </span>
         </p>
         <p className="text-sm text-slate-600">
-          Email: <span className="font-semibold text-slate-800">{user.email}</span>
+          Gender: <span className="font-semibold text-slate-800">{user.gender || "-"}</span>
         </p>
         <p className="text-sm text-slate-600">
           Age:{" "}

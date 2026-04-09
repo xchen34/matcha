@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { FaLocationArrow } from "react-icons/fa";
+import { FiSettings } from "react-icons/fi";
 import UserCard from "./components/UserCard";
 import FindMatchPage from "./pages/FindMatchPage";
-import MyPopularityPage from "./pages/MyPopularityPage";
+import BlockedUsersPage from "./pages/BlockedUsersPage";
+import PopularityListPage from "./pages/PopularityListPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
 import NotificationsBell from "./notifications/NotificationsBell.jsx";
-import { connectRealtime, disconnectRealtime } from "./realtime/socket.js";
+import { connectRealtime, disconnectRealtime, getRealtimeSocket } from "./realtime/socket.js";
 import {
   MAX_PHOTO_SIZE_BYTES,
   MAX_TOTAL_PHOTOS_SIZE_BYTES,
@@ -32,6 +34,23 @@ const secondaryButtonClass =
 
 function bytesToKB(value) {
   return Math.round(value / 1024);
+}
+
+function normalizeLocationPrefix(value) {
+  return (value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function getValidationCacheKey(city, neighborhood, latitude, longitude) {
+  return [
+    normalizeLocationPrefix(city),
+    normalizeLocationPrefix(neighborhood),
+    latitude || "",
+    longitude || "",
+  ].join("|");
 }
 
 function readStoredUser() {
@@ -193,7 +212,7 @@ function LoginPage({ onLogin }) {
       persistUser(data.user);
       onLogin(data.user);
       setMessage(`Success: welcome ${data.user.username}`);
-      setTimeout(() => navigate("/profile"), 400);
+      setTimeout(() => navigate("/find-match"), 400);
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     }
@@ -263,7 +282,6 @@ function ProfilePage({ currentUser }) {
   const [isCitySuggestionsOpen, setIsCitySuggestionsOpen] = useState(false);
   const [isNeighborhoodSelected, setIsNeighborhoodSelected] = useState(false);
   const [isCityConfirmed, setIsCityConfirmed] = useState(false);
-  const [cityTouched, setCityTouched] = useState(false);
   const userId = currentUser?.id ?? null;
   const validationCacheRef = useRef(new Map());
   const cityNeighborhoodCacheRef = useRef(new Map());
@@ -309,23 +327,6 @@ function ProfilePage({ currentUser }) {
 
   function buildSuggestionKey(suggestion) {
     return `${suggestion.city || ""}-${suggestion.display_name || ""}-${suggestion.latitude ?? ""}-${suggestion.longitude ?? ""}`;
-  }
-
-  function normalizeLocationPrefix(value) {
-    return (value || "")
-      .trim()
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
-  }
-
-  function getValidationCacheKey(city, neighborhood, latitude, longitude) {
-    return [
-      normalizeLocationPrefix(city),
-      normalizeLocationPrefix(neighborhood),
-      latitude || "",
-      longitude || "",
-    ].join("|");
   }
 
   const citySuggestionOptions = useMemo(() => {
@@ -511,7 +512,6 @@ function ProfilePage({ currentUser }) {
         tags: Array.isArray(data.profile.tags) ? data.profile.tags : [],
         photos: Array.isArray(data.profile.photos) ? data.profile.photos : [],
       });
-      setCityTouched(Boolean((data.profile.city || "").trim()));
       setIsCityConfirmed(Boolean((data.profile.city || "").trim()));
     } catch (error) {
       setMessage(`Error: ${error.message}`);
@@ -755,7 +755,6 @@ function ProfilePage({ currentUser }) {
               neighborhood: data.neighborhood || prev.neighborhood,
             }));
             setIsCityConfirmed(Boolean((data.city || "").trim()));
-            setCityTouched(Boolean((data.city || "").trim()));
             setLocationValidation(null);
             setLocationSuggestions([]);
             setMessage(
@@ -778,59 +777,68 @@ function ProfilePage({ currentUser }) {
     );
   }
 
-  async function validateLocationInput(options = {}) {
-    const { silent = false } = options;
-    if (!userId) {
-      if (!silent) {
-        setMessage("Please login first.");
-      }
-      return;
-    }
-
-    const city = (form.city || "").trim();
-    const neighborhood = (form.neighborhood || "").trim();
-    const latitude = (form.latitude || "").trim();
-    const longitude = (form.longitude || "").trim();
-    const cacheKey = getValidationCacheKey(city, neighborhood, latitude, longitude);
-    const cached = validationCacheRef.current.get(cacheKey);
-    if (cached) {
-      setLocationValidation(cached.validation || null);
-      setLocationSuggestions(cached.suggestions || []);
-      return;
-    }
-
-    if (!city && !neighborhood && (!latitude || !longitude)) {
-      if (!silent) {
-        setMessage("Enter city/neighborhood or coordinates before verification.");
-      }
-      return;
-    }
-
-    setValidatingLocation(true);
-    if (!silent) {
-      setMessage("Checking location...");
-    }
-
-    const requestId = latestValidationRequestRef.current + 1;
-    latestValidationRequestRef.current = requestId;
-
-    const params = new URLSearchParams();
-    if (city) params.set("city", city);
-    if (neighborhood) params.set("neighborhood", neighborhood);
-    if (latitude) params.set("latitude", latitude);
-    if (longitude) params.set("longitude", longitude);
-    params.set("limit", "5");
-
-    try {
-      const response = await fetch(`/api/profile/validate-location?${params.toString()}`, {
-        headers: buildApiHeaders({ id: userId }),
-      });
-      const data = await response.json();
-
-      // Ignore stale responses from older requests (e.g. "Pari") arriving after newer ones (e.g. "Paris").
-      if (requestId !== latestValidationRequestRef.current) {
+  const validateLocationInput = useCallback(
+    async (options = {}) => {
+      const { silent = false } = options;
+      if (!userId) {
+        if (!silent) {
+          setMessage("Please login first.");
+        }
         return;
       }
+
+      const city = (form.city || "").trim();
+      const neighborhood = (form.neighborhood || "").trim();
+      const latitude = (form.latitude || "").trim();
+      const longitude = (form.longitude || "").trim();
+      const cacheKey = getValidationCacheKey(
+        city,
+        neighborhood,
+        latitude,
+        longitude,
+      );
+      const cached = validationCacheRef.current.get(cacheKey);
+      if (cached) {
+        setLocationValidation(cached.validation || null);
+        setLocationSuggestions(cached.suggestions || []);
+        return;
+      }
+
+      if (!city && !neighborhood && (!latitude || !longitude)) {
+        if (!silent) {
+          setMessage("Enter city/neighborhood or coordinates before verification.");
+        }
+        return;
+      }
+
+      setValidatingLocation(true);
+      if (!silent) {
+        setMessage("Checking location...");
+      }
+
+      const requestId = latestValidationRequestRef.current + 1;
+      latestValidationRequestRef.current = requestId;
+
+      const params = new URLSearchParams();
+      if (city) params.set("city", city);
+      if (neighborhood) params.set("neighborhood", neighborhood);
+      if (latitude) params.set("latitude", latitude);
+      if (longitude) params.set("longitude", longitude);
+      params.set("limit", "5");
+
+      try {
+        const response = await fetch(
+          `/api/profile/validate-location?${params.toString()}`,
+          {
+            headers: buildApiHeaders({ id: userId }),
+          },
+        );
+        const data = await response.json();
+
+      // Ignore stale responses from older requests (e.g. "Pari") arriving after newer ones (e.g. "Paris").
+        if (requestId !== latestValidationRequestRef.current) {
+          return;
+        }
 
       console.log("[validate-location] response", {
         city,
@@ -841,49 +849,54 @@ function ProfilePage({ currentUser }) {
         suggestionsCount: Array.isArray(data?.suggestions) ? data.suggestions.length : 0,
       });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          setLocationValidation(null);
+          setLocationSuggestions([]);
+          if (!silent) {
+            setMessage(`Error: ${data.error || "Location verification failed"}`);
+          }
+          return;
+        }
+
+        setLocationValidation(data.validation || null);
+        setLocationSuggestions(
+          Array.isArray(data.suggestions) ? data.suggestions : [],
+        );
+        validationCacheRef.current.set(cacheKey, {
+          validation: data.validation || null,
+          suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+        });
+
+        if (data.validation?.is_valid) {
+          if (!silent) {
+            setMessage("Location verified. You can save safely.");
+          }
+        } else {
+          if (!silent) {
+            setMessage(
+              "Location needs confirmation. Choose a suggestion or adjust your input.",
+            );
+          }
+        }
+      } catch (error) {
+        if (requestId !== latestValidationRequestRef.current) {
+          return;
+        }
         setLocationValidation(null);
         setLocationSuggestions([]);
         if (!silent) {
-          setMessage(`Error: ${data.error || "Location verification failed"}`);
+          setMessage(`Error: ${error.message}`);
         }
-        return;
-      }
-
-      setLocationValidation(data.validation || null);
-      setLocationSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
-      validationCacheRef.current.set(cacheKey, {
-        validation: data.validation || null,
-        suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
-      });
-
-      if (data.validation?.is_valid) {
-        if (!silent) {
-          setMessage("Location verified. You can save safely.");
-        }
-      } else {
-        if (!silent) {
-          setMessage("Location needs confirmation. Choose a suggestion or adjust your input.");
+      } finally {
+        if (requestId === latestValidationRequestRef.current) {
+          setValidatingLocation(false);
         }
       }
-    } catch (error) {
-      if (requestId !== latestValidationRequestRef.current) {
-        return;
-      }
-      setLocationValidation(null);
-      setLocationSuggestions([]);
-      if (!silent) {
-        setMessage(`Error: ${error.message}`);
-      }
-    } finally {
-      if (requestId === latestValidationRequestRef.current) {
-        setValidatingLocation(false);
-      }
-    }
-  }
+    },
+    [form.city, form.latitude, form.neighborhood, form.longitude, userId],
+  );
 
   function applyCitySuggestion(option) {
-    setCityTouched(true);
     setForm((prev) => ({
       ...prev,
       city: option.city,
@@ -905,7 +918,6 @@ function ProfilePage({ currentUser }) {
   }
 
   function handleEditLocation() {
-    setCityTouched(true);
     setForm((prev) => ({
       ...prev,
       neighborhood: "",
@@ -950,6 +962,8 @@ function ProfilePage({ currentUser }) {
     form.latitude,
     form.longitude,
     form.gps_consent,
+    isCityConfirmed,
+    validateLocationInput,
   ]);
 
   useEffect(() => {
@@ -1016,7 +1030,6 @@ function ProfilePage({ currentUser }) {
   }, [userId, hasCityInput, isCitySelected, form.city]);
 
   function handleCityInputChange(event) {
-    setCityTouched(true);
     handleChange(event);
     if (!isNeighborhoodSelected) {
       setIsCitySuggestionsOpen(true);
@@ -1518,12 +1531,40 @@ function App() {
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
   const [currentUser, setCurrentUser] = useState(readStoredUser());
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const settingsMenuRef = useRef(null);
 
   useEffect(() => {
     if (currentUser && location.pathname === "/login") {
-      navigate("/profile", { replace: true });
+      navigate("/find-match", { replace: true });
     }
   }, [currentUser, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      return undefined;
+    }
+
+    function handleDocumentMouseDown(event) {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
+        setIsSettingsOpen(false);
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key === "Escape") {
+        setIsSettingsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleDocumentMouseDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentMouseDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isSettingsOpen]);
 
   useEffect(() => {
     const onStorage = () => setCurrentUser(readStoredUser());
@@ -1568,7 +1609,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.id, currentUser?.realtime_token]);
+  }, [currentUser, currentUser?.id, currentUser?.realtime_token]);
 
   useEffect(() => {
     if (currentUser?.id && currentUser?.realtime_token) {
@@ -1582,7 +1623,61 @@ function App() {
     return undefined;
   }, [currentUser?.id, currentUser?.realtime_token]);
 
+  useEffect(() => {
+    if (!currentUser?.id) return undefined;
+
+    const socket = getRealtimeSocket();
+    let cancelled = false;
+    let refreshing = false;
+
+    async function refreshRealtimeToken() {
+      if (refreshing || cancelled) return;
+      refreshing = true;
+
+      try {
+        const response = await fetch("/api/auth/realtime-token", {
+          headers: buildApiHeaders({ id: currentUser.id }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.realtime_token || cancelled) {
+          return;
+        }
+
+        setCurrentUser((prev) => {
+          if (!prev) return prev;
+          const next = {
+            ...prev,
+            realtime_token: payload.realtime_token,
+          };
+          writeStoredUser(next);
+          return next;
+        });
+
+        connectRealtime(currentUser.id, payload.realtime_token);
+      } catch {
+        // Keep app usable and let polling continue if token refresh fails.
+      } finally {
+        refreshing = false;
+      }
+    }
+
+    function onConnectError(error) {
+      const message = String(error?.message || "");
+      if (message.includes("Unauthorized")) {
+        void refreshRealtimeToken();
+      }
+    }
+
+    socket.on("connect_error", onConnectError);
+
+    return () => {
+      cancelled = true;
+      socket.off("connect_error", onConnectError);
+    };
+  }, [currentUser?.id]);
+
   function logout() {
+    setIsSettingsOpen(false);
     disconnectRealtime();
     localStorage.removeItem(STORAGE_KEY);
     setCurrentUser(null);
@@ -1594,8 +1689,51 @@ function App() {
       {currentUser && !isLoginPage && (
         <div className="fixed inset-x-0 top-4 z-[9999] pointer-events-none">
           <div className="mx-auto flex max-w-5xl justify-end px-5 sm:px-6 lg:px-8">
-            <div className="pointer-events-auto rounded-full border border-orange-300 bg-orange-50/95 p-2 shadow-lg shadow-orange-200/60 backdrop-blur">
+            <div className="pointer-events-auto relative flex items-center gap-2 rounded-full border border-orange-300 bg-orange-50/95 p-2 shadow-lg shadow-orange-200/60 backdrop-blur">
               <NotificationsBell />
+              <div ref={settingsMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen((prev) => !prev)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-orange-200 bg-white/80 text-slate-700 hover:bg-white"
+                  aria-label="Open settings menu"
+                  title="Settings"
+                >
+                  <FiSettings size={18} />
+                </button>
+
+                {isSettingsOpen && (
+                  <div className="absolute right-0 top-12 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSettingsOpen(false);
+                        navigate("/profile");
+                      }}
+                      className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
+                    >
+                      My profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSettingsOpen(false);
+                        navigate("/blocked-users");
+                      }}
+                      className="block w-full border-t border-slate-100 px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
+                    >
+                      Blocked users
+                    </button>
+                    <button
+                      type="button"
+                      onClick={logout}
+                      className="block w-full border-t border-slate-100 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+                    >
+                      Log out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1629,13 +1767,6 @@ function App() {
           </NavLink>
         )}
         {currentUser && (
-          <NavLink to="/profile" className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
-          }>
-            My Profile
-          </NavLink>
-        )}
-        {currentUser && (
           <NavLink to="/find-match" className={({ isActive }) =>
             `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
@@ -1643,21 +1774,33 @@ function App() {
           </NavLink>
         )}
         {currentUser && (
-          <NavLink to="/popularity" className={({ isActive }) =>
+          <NavLink to="/popularity/views" className={({ isActive }) =>
             `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
-            My Popularity
+            Who viewed me
           </NavLink>
         )}
         {currentUser && (
-          <button type="button" className={secondaryButtonClass} onClick={logout}>
-            Logout
-          </button>
+          <NavLink to="/popularity/likes" className={({ isActive }) =>
+            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          }>
+            Who liked me
+          </NavLink>
+        )}
+        {currentUser && (
+          <NavLink to="/popularity/matches" className={({ isActive }) =>
+            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          }>
+            Who matched with me
+          </NavLink>
         )}
         </nav>
 
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route
+          path="/"
+          element={<Navigate to={currentUser ? "/find-match" : "/login"} replace />}
+        />
         <Route path="/login" element={<LoginPage onLogin={setCurrentUser} />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route
@@ -1680,7 +1823,23 @@ function App() {
         />
         <Route
           path="/popularity"
-          element={<MyPopularityPage currentUser={currentUser} />}
+          element={<Navigate to="/popularity/views" replace />}
+        />
+        <Route
+          path="/popularity/views"
+          element={<PopularityListPage currentUser={currentUser} mode="views" />}
+        />
+        <Route
+          path="/popularity/likes"
+          element={<PopularityListPage currentUser={currentUser} mode="likes" />}
+        />
+        <Route
+          path="/popularity/matches"
+          element={<PopularityListPage currentUser={currentUser} mode="matches" />}
+        />
+        <Route
+          path="/blocked-users"
+          element={<BlockedUsersPage currentUser={currentUser} />}
         />
         <Route
           path="/users/:id"
