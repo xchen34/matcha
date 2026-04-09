@@ -168,9 +168,41 @@ function FindMatchPage({ currentUser }) {
       },
     );
 
+    const offProfileUpdated = onRealtimeEvent("profile:updated", (payload) => {
+      const targetUserId = Number(payload?.user_id);
+      if (!Number.isInteger(targetUserId)) return;
+
+      const profile = payload?.profile || {};
+
+      setUsers((prev) =>
+        prev.map((entry) => {
+          if (Number(entry.id) !== targetUserId) return entry;
+
+          return {
+            ...entry,
+            username:
+              typeof profile.username === "string" && profile.username.trim().length > 0
+                ? profile.username
+                : entry.username,
+            gender: profile.gender ?? entry.gender,
+            city: profile.city ?? entry.city,
+            neighborhood: profile.neighborhood ?? entry.neighborhood,
+            age: profile.age ?? entry.age,
+            fame_rating: profile.fame_rating ?? entry.fame_rating,
+            tags: Array.isArray(profile.tags) ? profile.tags : entry.tags,
+            primary_photo_url:
+              profile.primary_photo_url !== undefined
+                ? profile.primary_photo_url
+                : entry.primary_photo_url,
+          };
+        }),
+      );
+    });
+
     return () => {
       offPresenceUpdate();
       offNotificationCreated();
+      offProfileUpdated();
     };
   }, [currentUser?.id]);
 
@@ -285,9 +317,36 @@ function FindMatchPage({ currentUser }) {
   function handleFilterChange(e) {
     const { name, value } = e.target;
 
+    function clampNumberInput(rawValue, min, max) {
+      if (rawValue === "") return "";
+      const parsed = Number(rawValue);
+      if (!Number.isFinite(parsed)) return "";
+      return String(Math.min(Math.max(parsed, min), max));
+    }
+
+    function clampIntegerInput(rawValue, min, max) {
+      if (rawValue === "") return "";
+      const parsed = Number(rawValue);
+      if (!Number.isFinite(parsed)) return "";
+      const normalized = Math.trunc(parsed);
+      return String(Math.min(Math.max(normalized, min), max));
+    }
+
     if (name === "city") {
       setDraftFilters((prev) => ({ ...prev, city: value }));
       setCityConfirmed(false);
+      return;
+    }
+
+    if (name === "min_age" || name === "max_age") {
+      const normalized = clampIntegerInput(value, 18, 150);
+      setDraftFilters((prev) => ({ ...prev, [name]: normalized }));
+      return;
+    }
+
+    if (name === "min_fame" || name === "max_fame") {
+      const normalized = clampNumberInput(value, 0, 100);
+      setDraftFilters((prev) => ({ ...prev, [name]: normalized }));
       return;
     }
 
@@ -313,6 +372,10 @@ function FindMatchPage({ currentUser }) {
   }
 
   async function applyFilters() {
+    const nextFilters = {
+      ...draftFilters,
+    };
+
     const city = draftFilters.city.trim();
     if (city) {
       if (!currentUser) return;
@@ -340,7 +403,7 @@ function FindMatchPage({ currentUser }) {
           setDraftFilters((prev) => ({ ...prev, city: normalizedCity }));
           setAppliedFilters((prev) => ({
             ...prev,
-            ...draftFilters,
+            ...nextFilters,
             city: normalizedCity,
           }));
           setCityConfirmed(true);
@@ -354,7 +417,7 @@ function FindMatchPage({ currentUser }) {
       }
     }
 
-    setAppliedFilters(draftFilters);
+    setAppliedFilters(nextFilters);
     setOffset(0);
   }
 
@@ -388,6 +451,10 @@ function FindMatchPage({ currentUser }) {
           Discover
         </p>
         <h2 className="text-2xl font-semibold text-slate-900">Find your match</h2>
+        <p className="text-sm text-slate-500">
+          Suggested results are ranked intelligently by compatibility,
+          proximity, shared tags, and fame rating.
+        </p>
       </div>
 
       <div className="space-y-3">
@@ -459,7 +526,9 @@ function FindMatchPage({ currentUser }) {
             onChange={handleFilterChange}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
             placeholder="e.g. 18"
-            min="0"
+            min="18"
+            max="150"
+            step="1"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -471,7 +540,9 @@ function FindMatchPage({ currentUser }) {
             onChange={handleFilterChange}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
             placeholder="e.g. 40"
-            min="0"
+            min="18"
+            max="150"
+            step="1"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -510,7 +581,7 @@ function FindMatchPage({ currentUser }) {
             onChange={handleFilterChange}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
           >
-            <option value="">Suggested</option>
+              <option value="">Suggested smart ranking</option>
             <option value="age">Age</option>
             <option value="location">Location</option>
             <option value="fame_rating">Fame rating</option>

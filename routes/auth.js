@@ -13,15 +13,53 @@ function isValidEmail(email) {
 // \.：匹配 . 字符，分隔域名和顶级域名。
 // [^\s@]+：匹配一个或多个非空格和非 @ 字符，确保顶级域名部分不包含空格和 @。
 
+function parseBirthDate(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+
+  const date = new Date(`${trimmed}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
+function isAtLeast18YearsOld(birthDate) {
+  const today = new Date();
+  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+  const monthDelta = today.getUTCMonth() - birthDate.getUTCMonth();
+  if (
+    monthDelta < 0 ||
+    (monthDelta === 0 && today.getUTCDate() < birthDate.getUTCDate())
+  ) {
+    age -= 1;
+  }
+  return age >= 18;
+}
+
 router.post("/auth/register", async (req, res, next) => {
   try {
-    const { email, username, first_name, last_name, password } = req.body;
+    const { email, username, birth_date, password } = req.body;
+    const normalizedEmail = typeof email === "string" ? email.trim() : "";
+    const normalizedUsername =
+      typeof username === "string" ? username.trim() : "";
 
-    if (!email || !username || !first_name || !last_name || !password) {
+    if (!normalizedEmail || !normalizedUsername || !birth_date || !password) {
       return res.status(400).json({
-        error:
-          "email, username, first_name, last_name and password are required",
+        error: "email, username, birth_date and password are required",
       });
+    }
+
+    const parsedBirthDate = parseBirthDate(birth_date);
+    if (!parsedBirthDate) {
+      return res
+        .status(400)
+        .json({ error: "birth_date must be a valid date (YYYY-MM-DD)" });
+    }
+
+    if (!isAtLeast18YearsOld(parsedBirthDate)) {
+      return res
+        .status(400)
+        .json({ error: "You must be at least 18 years old to register" });
     }
 
     // Load common passwords from file and check if the provided password is too common
@@ -48,7 +86,7 @@ router.post("/auth/register", async (req, res, next) => {
       });
     }
 
-    if (!isValidEmail(email)) {
+    if (!isValidEmail(normalizedEmail)) {
       return res.status(400).json({ error: "Invalid email format" });
     }
 
@@ -68,7 +106,7 @@ router.post("/auth/register", async (req, res, next) => {
 驱动负责类型转换、转义，避免把用户输入当成 SQL 语句片段执行，从而防止注入。
 如果不传 values，占位符里就没有实际数据，查询无法执行。
      */
-    const values = [email, username, first_name, last_name, passwordHash]; // values 数组包含了 SQL 查询中对应参数的位置的实际值。这个数组会被传递给 pool.query() 方法，与 SQL 语句中的 $1、$2 等占位符一一对应，确保查询的安全性和正确性。]
+    const values = [normalizedEmail, normalizedUsername, "", "", passwordHash]; // values 数组包含了 SQL 查询中对应参数的位置的实际值。这个数组会被传递给 pool.query() 方法，与 SQL 语句中的 $1、$2 等占位符一一对应，确保查询的安全性和正确性。]
     const result = await pool.query(sql, values); // 执行 SQL 查询，将用户数据插入数据库。pool.query() 方法接受 SQL 语句和参数数组，返回一个 Promise，解析后包含查询结果。这里使用 await 等待查询完成，并将结果存储在 result 变量中。result.rows[0] 将包含新创建的用户记录。values参数是一个数组，包含了 SQL 查询中对应参数的位置的实际值。这个数组会被传递给 pool.query() 方法，与 SQL 语句中的 $1、$2 等占位符一一对应，确保查询的安全性和正确性。
 
     return res.status(201).json({

@@ -471,6 +471,14 @@ function UserProfilePage({ currentUser }) {
           </div>
           <div>
             <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              Age
+            </span>
+            <p className="mt-1 text-slate-800">
+              {profile.age !== undefined && profile.age !== null ? profile.age : "-"}
+            </p>
+          </div>
+          <div>
+            <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
               Location
             </span>
             <p className="mt-1 text-slate-800">
@@ -498,15 +506,20 @@ function UserProfilePage({ currentUser }) {
       </div>
 
       {Array.isArray(profile.tags) && profile.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {profile.tags.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center rounded-full bg-slate-900 text-white text-xs px-2.5 py-1"
-            >
-              {tag}
-            </span>
-          ))}
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Tags
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {profile.tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center rounded-full bg-slate-900 text-white text-xs px-2.5 py-1"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 

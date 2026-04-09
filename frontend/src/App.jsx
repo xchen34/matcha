@@ -85,11 +85,11 @@ function RegisterPage() {
   const [form, setForm] = useState({
     email: "",
     username: "",
-    first_name: "",
-    last_name: "",
+    birth_date: "",
     password: "",
   });
   const [message, setMessage] = useState("");
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -128,46 +128,65 @@ function RegisterPage() {
         <h2 className="text-2xl font-semibold text-slate-900">Register</h2>
       </div>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          className={inputClass}
-        />
-        <input
-          name="username"
-          placeholder="Username"
-          value={form.username}
-          onChange={handleChange}
-          className={inputClass}
-        />
-        <input
-          name="first_name"
-          placeholder="First name"
-          value={form.first_name}
-          onChange={handleChange}
-          className={inputClass}
-        />
-        <input
-          name="last_name"
-          placeholder="Last name"
-          value={form.last_name}
-          onChange={handleChange}
-          className={inputClass}
-        />
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          className={inputClass}
-        />
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Email address
+          </label>
+          <input
+            name="email"
+            type="email"
+            placeholder="you@example.com"
+            value={form.email}
+            onChange={handleChange}
+            className={inputClass}
+          />
+          <p className="text-xs text-slate-500">Used for account recovery and notifications.</p>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Username
+          </label>
+          <input
+            name="username"
+            placeholder="Choose a unique username"
+            value={form.username}
+            onChange={handleChange}
+            className={inputClass}
+          />
+          <p className="text-xs text-slate-500">This is the public name visible to other users.</p>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Birth date
+          </label>
+          <input
+            name="birth_date"
+            type="date"
+            value={form.birth_date}
+            onChange={handleChange}
+            className={inputClass}
+            max={todayIso}
+          />
+          <p className="text-xs text-slate-500">Required to verify you are at least 18 years old.</p>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Password
+          </label>
+          <input
+            name="password"
+            type="password"
+            placeholder="Create a strong password"
+            value={form.password}
+            onChange={handleChange}
+            className={inputClass}
+          />
+          <p className="text-xs text-slate-500">Avoid common passwords and use a secure one.</p>
+        </div>
         <button type="submit" className={primaryButtonClass}>
           Register
         </button>
+        <p className="text-xs text-slate-500">You must be at least 18 years old.</p>
       </form>
       {message && <p className="text-sm text-slate-600">{message}</p>}
     </section>
@@ -227,21 +246,31 @@ function LoginPage({ onLogin }) {
         <h2 className="text-2xl font-semibold text-slate-900">Login</h2>
       </div>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <input
-          name="username"
-          placeholder="Username"
-          value={form.username}
-          onChange={handleChange}
-          className={inputClass}
-        />
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          className={inputClass}
-        />
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Username
+          </label>
+          <input
+            name="username"
+            placeholder="Enter your username"
+            value={form.username}
+            onChange={handleChange}
+            className={inputClass}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Password
+          </label>
+          <input
+            name="password"
+            type="password"
+            placeholder="Enter your password"
+            value={form.password}
+            onChange={handleChange}
+            className={inputClass}
+          />
+        </div>
         <button type="submit" className={primaryButtonClass}>
           Login
         </button>
@@ -251,14 +280,16 @@ function LoginPage({ onLogin }) {
   );
 }
 
-function ProfilePage({ currentUser }) {
+function ProfilePage({ currentUser, onProfileUpdate }) {
   const [form, setForm] = useState({
+    username: "",
     first_name: "",
     last_name: "",
     email: "",
     biography: "",
     gender: "",
     sexual_preference: "",
+    birth_date: "",
     city: "",
     neighborhood: "",
     gps_consent: false,
@@ -324,6 +355,7 @@ function ProfilePage({ currentUser }) {
     (form.city || "").trim().length > 0 &&
     (isCityConfirmed ||
       (!validatingLocation && Boolean(locationValidation?.city_exists)));
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   function buildSuggestionKey(suggestion) {
     return `${suggestion.city || ""}-${suggestion.display_name || ""}-${suggestion.latitude ?? ""}-${suggestion.longitude ?? ""}`;
@@ -492,12 +524,16 @@ function ProfilePage({ currentUser }) {
       }
 
       setForm({
+        username: data.user?.username || currentUser?.username || "",
         first_name: data.user?.first_name || "",
         last_name: data.user?.last_name || "",
         email: data.user?.email || "",
         biography: data.profile.biography || "",
         gender: data.profile.gender || "",
         sexual_preference: data.profile.sexual_preference || "",
+        birth_date: data.profile.birth_date
+          ? String(data.profile.birth_date).slice(0, 10)
+          : "",
         city: data.profile.city || "",
         neighborhood: data.profile.neighborhood || "",
         gps_consent: Boolean(data.profile.gps_consent),
@@ -518,7 +554,7 @@ function ProfilePage({ currentUser }) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [currentUser?.username, userId]);
 
   useEffect(() => {
     loadProfile();
@@ -1064,12 +1100,14 @@ function ProfilePage({ currentUser }) {
     );
 
     const payload = {
+      username: form.username,
       first_name: form.first_name,
       last_name: form.last_name,
       email: form.email,
       biography: form.biography,
       gender: form.gender,
       sexual_preference: form.sexual_preference,
+      birth_date: form.birth_date || null,
       city: form.city,
       neighborhood: form.neighborhood,
       gps_consent: form.gps_consent,
@@ -1100,12 +1138,16 @@ function ProfilePage({ currentUser }) {
 
       setForm((prev) => ({
         ...prev,
+        username: data.user?.username || prev.username,
         first_name: data.user?.first_name || prev.first_name,
         last_name: data.user?.last_name || prev.last_name,
         email: data.user?.email || prev.email,
         biography: data.profile.biography || "",
         gender: data.profile.gender || "",
         sexual_preference: data.profile.sexual_preference || "",
+        birth_date: data.profile.birth_date
+          ? String(data.profile.birth_date).slice(0, 10)
+          : "",
         city: data.profile.city || "",
         neighborhood: data.profile.neighborhood || "",
         gps_consent: Boolean(data.profile.gps_consent),
@@ -1120,6 +1162,18 @@ function ProfilePage({ currentUser }) {
         tags: Array.isArray(data.profile.tags) ? data.profile.tags : prev.tags,
         photos: Array.isArray(data.profile.photos) ? data.profile.photos : prev.photos,
       }));
+
+      if (data.user) {
+        const nextUser = {
+          ...(currentUser || {}),
+          ...data.user,
+        };
+        writeStoredUser(nextUser);
+        if (typeof onProfileUpdate === "function") {
+          onProfileUpdate(nextUser);
+        }
+      }
+
       setMessage("Success: profile updated");
     } catch (error) {
       setMessage(`Error: ${error.message}`);
@@ -1145,6 +1199,40 @@ function ProfilePage({ currentUser }) {
         <p className="text-sm text-slate-500">Loading...</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              Account
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+                Username
+              </label>
+              <input
+                name="username"
+                placeholder="Username"
+                value={form.username}
+                onChange={handleChange}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+                Birth date
+              </label>
+              <input
+                name="birth_date"
+                type="date"
+                value={form.birth_date}
+                onChange={handleChange}
+                className={inputClass}
+                max={todayIso}
+              />
+            </div>
+          </div>
+
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">

@@ -282,10 +282,18 @@ router.get("/matches", async (req, res, next) => {
       return parsed;
     }
 
-    const minAge = parseOptionalNumber(min_age);
-    const maxAge = parseOptionalNumber(max_age);
-    const minFame = parseOptionalNumber(min_fame);
-    const maxFame = parseOptionalNumber(max_fame);
+    const parsedMinAge = parseOptionalNumber(min_age);
+    const parsedMaxAge = parseOptionalNumber(max_age);
+    const minAge =
+      parsedMinAge === null ? null : Math.min(Math.max(parsedMinAge, 18), 150);
+    const maxAge =
+      parsedMaxAge === null ? null : Math.min(Math.max(parsedMaxAge, 18), 150);
+    const parsedMinFame = parseOptionalNumber(min_fame);
+    const parsedMaxFame = parseOptionalNumber(max_fame);
+    const minFame =
+      parsedMinFame === null ? null : Math.min(Math.max(parsedMinFame, 0), 100);
+    const maxFame =
+      parsedMaxFame === null ? null : Math.min(Math.max(parsedMaxFame, 0), 100);
     const cityFilter =
       typeof city === "string" && city.trim().length > 0 ? city.trim() : null;
     const tagsFilter = parseTagsQueryParam(tags);

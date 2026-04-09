@@ -1,5 +1,6 @@
 const express = require("express");
 const pool = require("../db");
+const { getIO, REALTIME_EVENTS } = require("../realtime");
 const { isUserOnline } = require("../realtime/presence");
 const {
   validatePhotoMimeType,
@@ -1002,6 +1003,7 @@ router.put("/profile/me", async (req, res, next) => {
     }
 
     const {
+      username,
       first_name,
       last_name,
       email,
@@ -1129,28 +1131,68 @@ router.put("/profile/me", async (req, res, next) => {
       ? last_name.trim()
       : null;
     const normalizedEmail = isNonEmptyString(email) ? email.trim() : null;
+    const normalizedUsername = isNonEmptyString(username)
+      ? username.trim()
+      : null;
+    const normalizedBirthDate = isNonEmptyString(birth_date)
+      ? birth_date.trim()
+      : null;
 
     if (normalizedEmail && !isValidEmail(normalizedEmail)) {
       return res.status(400).json({ error: "Invalid email format" });
     }
 
+    if (
+      normalizedUsername &&
+      !/^[a-zA-Z0-9_]{3,50}$/.test(normalizedUsername)
+    ) {
+      return res.status(400).json({
+        error:
+          "username is invalid (use 3-50 characters: letters, numbers, underscore)",
+      });
+    }
+
+    if (normalizedBirthDate) {
+      const parsedBirthDate = new Date(`${normalizedBirthDate}T00:00:00Z`);
+      if (Number.isNaN(parsedBirthDate.getTime())) {
+        return res
+          .status(400)
+          .json({ error: "birth_date must be a valid date" });
+      }
+
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      if (parsedBirthDate > today) {
+        return res
+          .status(400)
+          .json({ error: "birth_date cannot be in the future" });
+      }
+    }
+
     await client.query("BEGIN");
     inTransaction = true;
 
-    if (normalizedFirstName || normalizedLastName || normalizedEmail) {
+    if (
+      normalizedFirstName ||
+      normalizedLastName ||
+      normalizedEmail ||
+      normalizedUsername
+    ) {
       await client.query(
         `
         UPDATE users
         SET
           first_name = COALESCE($1, first_name),
           last_name = COALESCE($2, last_name),
-          email = COALESCE($3, email)
-        WHERE id = $4
+          email = COALESCE($3, email),
+          username = COALESCE($4, username)
+        WHERE id = $5
         `,
         [
           normalizedFirstName,
           normalizedLastName,
           normalizedEmail,
+          normalizedUsername,
           currentUserId,
         ],
       );
@@ -1213,7 +1255,7 @@ router.put("/profile/me", async (req, res, next) => {
         gender,
         sexual_preference,
         biography.trim(),
-        birth_date || null,
+        normalizedBirthDate,
         safeCity,
         safeNeighborhood,
         gpsConsent,
@@ -1298,6 +1340,24 @@ router.put("/profile/me", async (req, res, next) => {
       `,
       [currentUserId],
     );
+    const io = getIO();
+    if (io && updatedUser) {
+      const primaryPhoto = photosResult.rows.find((item) => item.is_primary);
+      io.emit(REALTIME_EVENTS.PROFILE_UPDATED, {
+        user_id: Number(updatedUser.id),
+        profile: {
+          username: updatedUser.username,
+          gender: profile.gender || "",
+          city: profile.city || "",
+          neighborhood: profile.neighborhood || "",
+          age: getAge(profile.birth_date),
+          fame_rating: profile.fame_rating ?? 0,
+          tags: tagsResult.rows.map((entry) => entry.name),
+          primary_photo_url: primaryPhoto ? primaryPhoto.data_url : null,
+        },
+      });
+    }
+
     return res.json({
       message: "Profile updated successfully",
       user: updatedUser
@@ -1334,6 +1394,19 @@ router.put("/profile/me", async (req, res, next) => {
     if (inTransaction) {
       await client.query("ROLLBACK");
     }
+
+    if (error.code === "23505") {
+      if (error.constraint === "users_email_key") {
+        return res.status(409).json({ error: "Email already exists" });
+      }
+      if (error.constraint === "users_username_key") {
+        return res.status(409).json({ error: "Username already exists" });
+      }
+      return res
+        .status(409)
+        .json({ error: "Email or username already exists" });
+    }
+
     return next(error);
   } finally {
     client.release();
