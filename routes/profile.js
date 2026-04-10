@@ -816,7 +816,12 @@ router.get("/profile/me", async (req, res, next) => {
           p.gps_consent,
           p.latitude,
           p.longitude,
-          p.fame_rating
+          LEAST(
+            COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric * 2 +
+            COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric * 3 +
+            COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric,
+            100
+          )::numeric(5,2) AS fame_rating
         FROM users AS u
         LEFT JOIN profiles AS p ON p.user_id = u.id
         WHERE u.id = $1
@@ -911,7 +916,7 @@ router.get("/profile/:id", async (req, res, next) => {
       }
     }
 
-    const [profileResult, tagsResult, photosResult] = await Promise.all([
+    const [profileResult, tagsResult, photosResult, relationResult] = await Promise.all([
       pool.query(
         `
         SELECT
@@ -926,7 +931,12 @@ router.get("/profile/:id", async (req, res, next) => {
           p.birth_date,
           p.city,
           p.neighborhood,
-          p.fame_rating
+          LEAST(
+            COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric * 2 +
+            COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric * 3 +
+            COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric,
+            100
+          )::numeric(5,2) AS fame_rating
         FROM users AS u
         LEFT JOIN profiles AS p ON p.user_id = u.id
         WHERE u.id = $1
