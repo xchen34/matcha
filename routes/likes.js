@@ -392,7 +392,7 @@ router.get("/matches", async (req, res, next) => {
           COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric * 3 +
           COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric,
           100
-        )::numeric(5,2) AS fame_rating,
+        )::int AS fame_rating,
         p.birth_date,
         ph.primary_photo_url,
         EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.birth_date))::int AS age_value,

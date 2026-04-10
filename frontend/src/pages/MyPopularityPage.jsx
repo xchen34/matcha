@@ -43,7 +43,7 @@ function MyPopularityPage({ currentUser }) {
       setViewsList(viewsRes.ok && Array.isArray(viewsData.users) ? viewsData.users : []);
       setLikesList(likesRes.ok && Array.isArray(likesData.users) ? likesData.users : []);
       setMatchesList(matchesRes.ok && Array.isArray(matchesData.users) ? matchesData.users : []);
-      setFameRating(Number(meData.profile?.fame_rating || 0));
+      setFameRating(Math.floor(Number(meData.profile?.fame_rating || 0)));
       setBlockedUsers(Array.isArray(blockedData.users) ? blockedData.users : []);
     } catch {
       setError("Failed to load popularity data");

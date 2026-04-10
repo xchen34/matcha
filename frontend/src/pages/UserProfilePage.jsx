@@ -558,18 +558,14 @@ function UserProfilePage({ currentUser }) {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
               Fame rating
             </p>
-            <p className="mt-2 text-sm text-white/85">Total likes received</p>
           </div>
-          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
-            Profile score
-          </span>
         </div>
         <div className="mt-5 flex items-end gap-2">
-          <span className="text-5xl font-bold leading-none">{profile.fame_rating ?? 0}</span>
-          <span className="pb-1 text-sm font-medium text-white/80">likes</span>
+          <span className="text-5xl font-bold leading-none">{Math.floor(profile.fame_rating ?? 0)}</span>
+          <span className="pb-1 text-sm font-medium text-white/80"></span>
         </div>
         <p className="mt-3 text-xs text-white/70">
-          This reflects how many users have liked this profile.
+          This reflects how many users have liked and viewed this profile.
         </p>
       </div>
     </section>

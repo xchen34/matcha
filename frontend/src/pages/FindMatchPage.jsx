@@ -214,7 +214,7 @@ function FindMatchPage({ currentUser }) {
         });
         const data = await response.json();
         if (response.ok) {
-          setFameRating(Number(data.profile?.fame_rating || 0));
+          setFameRating(Math.floor(Number(data.profile?.fame_rating || 0)));
           const photos = Array.isArray(data.profile?.photos)
             ? data.profile.photos
             : [];

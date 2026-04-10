@@ -821,7 +821,7 @@ router.get("/profile/me", async (req, res, next) => {
             COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric * 3 +
             COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric,
             100
-          )::numeric(5,2) AS fame_rating
+          )::int AS fame_rating
         FROM users AS u
         LEFT JOIN profiles AS p ON p.user_id = u.id
         WHERE u.id = $1
@@ -936,7 +936,7 @@ router.get("/profile/:id", async (req, res, next) => {
             COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric * 3 +
             COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric,
             100
-          )::numeric(5,2) AS fame_rating
+          )::int AS fame_rating
         FROM users AS u
         LEFT JOIN profiles AS p ON p.user_id = u.id
         WHERE u.id = $1
