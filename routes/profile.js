@@ -795,9 +795,10 @@ router.get("/profile/me", async (req, res, next) => {
       });
     }
 
-    const [profileResult, tagsResult, photosResult] = await Promise.all([
-      pool.query(
-        `
+    const [profileResult, tagsResult, photosResult, relationResult] =
+      await Promise.all([
+        pool.query(
+          `
         SELECT
           u.id AS user_id,
           u.email,
@@ -821,28 +822,28 @@ router.get("/profile/me", async (req, res, next) => {
         WHERE u.id = $1
         LIMIT 1
         `,
-        [currentUserId],
-      ),
-      pool.query(
-        `
+          [currentUserId],
+        ),
+        pool.query(
+          `
         SELECT t.name
         FROM user_profile_tags upt
         JOIN tags t ON t.id = upt.tag_id
         WHERE upt.user_id = $1
         ORDER BY t.name ASC
         `,
-        [currentUserId],
-      ),
-      pool.query(
-        `
+          [currentUserId],
+        ),
+        pool.query(
+          `
         SELECT id, data_url, is_primary
         FROM user_photos
         WHERE user_id = $1
         ORDER BY is_primary DESC, id ASC
         `,
-        [currentUserId],
-      ),
-    ]);
+          [currentUserId],
+        ),
+      ]);
 
     if (profileResult.rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -952,6 +953,24 @@ router.get("/profile/:id", async (req, res, next) => {
         `,
         [requestedId],
       ),
+      currentUserId
+        ? pool.query(
+            `
+            SELECT
+              EXISTS(
+                SELECT 1
+                FROM likes
+                WHERE liker_user_id = $1 AND liked_user_id = $2
+              ) AS i_liked,
+              EXISTS(
+                SELECT 1
+                FROM likes
+                WHERE liker_user_id = $2 AND liked_user_id = $1
+              ) AS liked_me
+            `,
+            [currentUserId, requestedId],
+          )
+        : Promise.resolve({ rows: [{ i_liked: false, liked_me: false }] }),
     ]);
 
     if (profileResult.rows.length === 0) {
@@ -959,6 +978,12 @@ router.get("/profile/:id", async (req, res, next) => {
     }
 
     const row = profileResult.rows[0];
+    const relation = relationResult.rows[0] || {
+      i_liked: false,
+      liked_me: false,
+    };
+    const iLiked = Boolean(relation.i_liked);
+    const likedMe = Boolean(relation.liked_me);
     return res.json({
       user: {
         id: row.user_id,
@@ -983,6 +1008,11 @@ router.get("/profile/:id", async (req, res, next) => {
           data_url: item.data_url,
           is_primary: item.is_primary,
         })),
+      },
+      relation: {
+        i_liked: iLiked,
+        liked_me: likedMe,
+        is_match: iLiked && likedMe,
       },
     });
   } catch (error) {

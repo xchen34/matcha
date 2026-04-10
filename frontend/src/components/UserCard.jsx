@@ -132,12 +132,12 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
 
       <div className="absolute right-4 bottom-4 flex flex-col items-center gap-1">
         <div className="flex flex-col items-center text-xs font-semibold text-slate-700">
-          <span className={isMatch ? "text-brand" : "text-slate-700"}>
-            {isMatch ? "Match" : liked ? "Liked" : "Like"}
+          <span className={isMatch ? "text-red-600" : liked ? "text-orange-600" : "text-slate-700"}>
+            {isMatch ? "Match" : liked ? "Liked" : "Not liked"}
           </span>
         </div>
         <button
-          className={`flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-gradient-to-br from-brand to-brand-deep shadow-md shadow-orange-200 transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${liked ? "ring-2 ring-brand/60" : ""}`}
+          className={`flex h-12 w-12 items-center justify-center rounded-full border transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${isMatch ? "border-red-700 bg-red-600 shadow-md shadow-red-200" : liked ? "border-orange-300 bg-gradient-to-br from-orange-500 to-brand-deep shadow-md shadow-orange-200 ring-2 ring-orange-300/60" : "border-slate-300 bg-slate-200"}`}
           onClick={handleToggleLike}
           disabled={loading || user.id === currentUser.id || (!liked && !canLikeProfiles)}
           aria-label={liked ? "Remove like" : "Like this user"}
@@ -149,11 +149,18 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
                 : "Like"
           }
         >
-          <FaHeart
-            color={liked ? "#fff" : "#fff"}
-            style={{ stroke: liked ? "#fff" : "#0f172a" }}
-            size={24}
-          />
+          {isMatch ? (
+            <span className="relative inline-flex h-4 w-5 items-center justify-center">
+              <FaHeart size={12} className="absolute left-0 text-white" />
+              <FaHeart size={12} className="absolute right-0 text-white" />
+            </span>
+          ) : (
+            <FaHeart
+              color="#fff"
+              style={{ stroke: "#fff" }}
+              size={24}
+            />
+          )}
         </button>
       </div>
 

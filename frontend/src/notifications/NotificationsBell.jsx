@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
 import { useNotifications } from "./useNotifications.js";
 
 function createCardMessage(primaryName, verb, count) {
@@ -26,6 +27,62 @@ function formatNotificationDateTime(value) {
   });
 }
 
+function GroupTypeIcon({ type }) {
+  if (type === "profile_view") {
+    return <FaEye className="h-5 w-5" aria-hidden="true" />;
+  }
+  if (type === "like_received") {
+    return <FaHeart className="h-5 w-5" aria-hidden="true" />;
+  }
+  if (type === "unlike") {
+    return <FaHeartBroken className="h-5 w-5" aria-hidden="true" />;
+  }
+  if (type === "match") {
+    return (
+      <span className="relative inline-flex h-5 w-6 items-center justify-center" aria-hidden="true">
+        <FaHeart className="absolute left-0 h-4 w-4" />
+        <FaHeart className="absolute right-0 h-4 w-4" />
+      </span>
+    );
+  }
+
+  return <FaHeart className="h-5 w-5" aria-hidden="true" />;
+}
+
+function getGroupAccentClass(type) {
+  if (type === "profile_view") {
+    return "bg-blue-100 text-blue-700";
+  }
+  if (type === "like_received") {
+    return "bg-orange-100 text-orange-700";
+  }
+  if (type === "unlike") {
+    return "bg-slate-200 text-slate-700";
+  }
+  if (type === "match") {
+    return "bg-red-100 text-red-700";
+  }
+
+  return "bg-slate-100 text-slate-700";
+}
+
+function getGroupBorderClass(type) {
+  if (type === "profile_view") {
+    return "border-blue-200";
+  }
+  if (type === "like_received") {
+    return "border-orange-200";
+  }
+  if (type === "unlike") {
+    return "border-slate-300";
+  }
+  if (type === "match") {
+    return "border-red-200";
+  }
+
+  return "border-slate-200";
+}
+
 export default function NotificationsBell() {
   const {
     notifications,
@@ -35,9 +92,11 @@ export default function NotificationsBell() {
     isAuthenticated,
     refresh,
     markAllAsRead,
+    markNotificationAsRead,
     notificationGroups,
   } = useNotifications();
   const [open, setOpen] = useState(false);
+  const [dismissingGroups, setDismissingGroups] = useState([]);
   const rootRef = useRef(null);
 
   useEffect(() => {
@@ -67,6 +126,26 @@ export default function NotificationsBell() {
 
   function handleBellClick() {
     setOpen((prev) => !prev);
+  }
+
+  async function handleGroupClick(group) {
+    const relatedUnreadNotifications = notifications.filter(
+      (item) => !item.is_read && item.type === group.type,
+    );
+
+    setDismissingGroups((prev) =>
+      prev.includes(group.type) ? prev : [...prev, group.type],
+    );
+
+    if (relatedUnreadNotifications.length > 0) {
+      await Promise.all(
+        relatedUnreadNotifications.map((item) => markNotificationAsRead(item.id)),
+      );
+    }
+
+    window.setTimeout(() => {
+      setDismissingGroups((prev) => prev.filter((type) => type !== group.type));
+    }, 180);
   }
 
   return (
@@ -125,13 +204,17 @@ export default function NotificationsBell() {
           {!loading && notificationGroups.length > 0 && (
             <div className="space-y-2">
               {notificationGroups.map((group) => (
-                <div
+                <button
                   key={group.type}
+                  type="button"
+                  onClick={() => void handleGroupClick(group)}
                   className="w-full text-left"
                 >
-                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white">
-                    <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-orange-400 to-brand text-white flex items-center justify-center text-lg font-semibold">
-                      {group.primaryActor.charAt(0) || "?"}
+                  <div
+                    className={`flex items-center gap-3 rounded-2xl border bg-slate-50 p-3 transition duration-200 hover:bg-white ${getGroupBorderClass(group.type)} ${dismissingGroups.includes(group.type) ? "translate-x-5 opacity-0 scale-95" : "hover:border-slate-300"}`}
+                  >
+                    <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-lg font-semibold ${getGroupAccentClass(group.type)}`}>
+                      <GroupTypeIcon type={group.type} />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm text-slate-700">
@@ -143,7 +226,7 @@ export default function NotificationsBell() {
                       )}
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}

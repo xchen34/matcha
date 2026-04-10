@@ -21,6 +21,7 @@ function UserProfilePage({ currentUser }) {
   const [blockedUser, setBlockedUser] = useState(false);
   const [moderationMessage, setModerationMessage] = useState("");
   const [liked, setLiked] = useState(false);
+  const [likedByProfile, setLikedByProfile] = useState(false);
   const [isMatch, setIsMatch] = useState(false);
   const [loadingLike, setLoadingLike] = useState(false);
   const [likeError, setLikeError] = useState("");
@@ -42,6 +43,11 @@ function UserProfilePage({ currentUser }) {
           return;
         }
         setData(payload);
+        if (payload?.relation) {
+          setLiked(Boolean(payload.relation.i_liked));
+          setLikedByProfile(Boolean(payload.relation.liked_me));
+          setIsMatch(Boolean(payload.relation.is_match));
+        }
       } catch {
         setError("Failed to load profile");
       } finally {
@@ -170,11 +176,18 @@ function UserProfilePage({ currentUser }) {
 
         if (incoming.type === "match") {
           setLiked(true);
+          setLikedByProfile(true);
           setIsMatch(true);
           return;
         }
 
+        if (incoming.type === "like_received") {
+          setLikedByProfile(true);
+          return;
+        }
+
         if (incoming.type === "unlike") {
+          setLikedByProfile(false);
           setIsMatch(false);
         }
       },
@@ -301,6 +314,13 @@ function UserProfilePage({ currentUser }) {
   const { user, profile } = data;
   const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
   const isOwnProfile = String(currentUser?.id || "") === String(user.id);
+  const relationLabel = isMatch
+    ? "Match"
+    : likedByProfile
+      ? "Liked you"
+      : liked
+        ? "You liked"
+        : "Not liked";
 
   function formatLastSeen(value) {
     if (!value) return "Unknown";
@@ -332,30 +352,39 @@ function UserProfilePage({ currentUser }) {
           {!isOwnProfile && (
             <div className="relative flex items-center gap-2">
               <span
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${isMatch ? "bg-emerald-100 text-emerald-700" : liked ? "bg-orange-100 text-orange-700" : "bg-slate-200 text-slate-700"}`}
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${isMatch ? "bg-red-600 text-white" : likedByProfile ? "bg-pink-100 text-pink-700" : liked ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-700"}`}
               >
-                {isMatch ? "Match" : liked ? "Liked" : "Like"}
+                {relationLabel}
               </span>
 
               <button
                 type="button"
                 onClick={handleToggleLike}
                 disabled={loadingLike || user.id === currentUser.id || (!liked && !canLikeProfiles)}
-                aria-label={liked ? "Remove like" : "Like this user"}
+                aria-label={isMatch ? "Disconnect from this profile" : liked ? "Remove like" : "Like this user"}
                 title={
                   !liked && !canLikeProfiles
                     ? "Add a profile picture first"
-                    : liked
-                      ? "Unlike"
+                    : isMatch
+                      ? "Disconnect"
+                      : liked
+                        ? "Unlike"
                       : "Like"
                 }
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-gradient-to-br from-brand to-brand-deep shadow-md shadow-orange-200 transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${liked ? "ring-2 ring-brand/60" : ""}`}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${isMatch ? "border-red-700 bg-red-600 shadow-md shadow-red-200" : liked ? "border-orange-300 bg-gradient-to-br from-orange-500 to-brand-deep shadow-md shadow-orange-200 ring-2 ring-orange-300/60" : "border-slate-300 bg-slate-200 text-slate-700"}`}
               >
-                <FaHeart
-                  color="#fff"
-                  style={{ stroke: liked ? "#fff" : "#0f172a" }}
-                  size={16}
-                />
+                {isMatch ? (
+                  <span className="relative inline-flex h-4 w-5 items-center justify-center">
+                    <FaHeart size={12} className="absolute left-0 text-white" />
+                    <FaHeart size={12} className="absolute right-0 text-white" />
+                  </span>
+                ) : (
+                  <FaHeart
+                    color={liked ? "#fff" : "#fff"}
+                    style={{ stroke: liked ? "#fff" : "#fff" }}
+                    size={16}
+                  />
+                )}
               </button>
 
               <button
