@@ -67,6 +67,12 @@ async function initDb() {
       "create_user_blocks_table.sql",
     );
     const createUserBlocksSql = fs.readFileSync(userBlocksSqlPath, "utf8");
+    const chatSqlPath = path.join(
+      __dirname,
+      "sql",
+      "create_chat_tables.sql",
+    );
+    const createChatSql = fs.readFileSync(chatSqlPath, "utf8");
     const seedFakeUsersSqlPath = path.join(
       __dirname,
       "sql",
@@ -135,6 +141,7 @@ async function initDb() {
     await pool.query(createNotificationsSql);
     await pool.query(createFakeReportsSql);
     await pool.query(createUserBlocksSql);
+    await pool.query(createChatSql);
     await pool.query(migrateLegacyUsersSql);
     await pool.query(seedFakeUsersSql);
 

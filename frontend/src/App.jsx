@@ -7,6 +7,8 @@ import FindMatchPage from "./pages/FindMatchPage";
 import BlockedUsersPage from "./pages/BlockedUsersPage";
 import PopularityListPage from "./pages/PopularityListPage";
 import UserProfilePage from "./pages/UserProfilePage";
+import ChatListPage from "./pages/ChatListPage.jsx";
+import ChatConversationPage from "./pages/ChatConversationPage.jsx";
 import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
 import NotificationsBell from "./notifications/NotificationsBell.jsx";
 import { useNotifications } from "./notifications/useNotifications.js";
@@ -18,6 +20,7 @@ import {
   validatePhotoFile,
 } from "./utils/photoValidator.js";
 import { buildApiHeaders } from "./utils.js";
+import ChatIndicator from "./chat/ChatIndicator.jsx";
 const STORAGE_KEY = "matcha.currentUser";
 
 const cardClass =
@@ -1863,6 +1866,7 @@ function App() {
           <div className="mx-auto flex max-w-5xl justify-end px-5 sm:px-6 lg:px-8">
             <div className="pointer-events-auto relative flex items-center gap-2 rounded-full border border-orange-300 bg-orange-50/95 p-2 shadow-lg shadow-orange-200/60 backdrop-blur">
               <NotificationsBell />
+              <ChatIndicator currentUser={currentUser} />
               <div ref={settingsMenuRef} className="relative">
                 <button
                   type="button"
@@ -1969,6 +1973,26 @@ function App() {
         <Route
           path="/blocked-users"
           element={<BlockedUsersPage currentUser={currentUser} />}
+        />
+        <Route
+          path="/messages"
+          element={
+            currentUser ? (
+              <ChatListPage currentUser={currentUser} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/messages/:conversationId"
+          element={
+            currentUser ? (
+              <ChatConversationPage currentUser={currentUser} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
         <Route
           path="/users/:id"

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
+import { ensureConversationExists } from "../chat/api.js";
 import { useNotifications } from "../notifications/useNotifications.js";
 import { getRealtimeSocket, onRealtimeEvent } from "../realtime/socket.js";
 
@@ -92,6 +93,7 @@ function PopularityListPage({ currentUser, mode = "views" }) {
   const [lists, setLists] = useState({ views: [], likes: [], matches: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [startingChatFor, setStartingChatFor] = useState(null);
   const { attentionUsersByMode = {} } = useNotifications();
 
   const config = useMemo(() => MODE_CONFIG[mode] || MODE_CONFIG.views, [mode]);
@@ -256,6 +258,50 @@ function PopularityListPage({ currentUser, mode = "views" }) {
     };
   }, [currentUser?.id, fetchLists]);
 
+  const startChatWith = useCallback(
+    async (userId) => {
+      if (!currentUser?.id || !userId) return;
+      setStartingChatFor(userId);
+      setError("");
+      try {
+        const payload = await ensureConversationExists(currentUser, userId);
+        const conversationId = payload?.conversation_id;
+        if (conversationId) {
+          navigate(`/messages/${conversationId}`);
+          return;
+        }
+        setError("Unable to open conversation.");
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setStartingChatFor(null);
+      }
+    },
+    [currentUser, navigate],
+  );
+
+  const renderActionButtons = (user) => (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => navigate(`/users/${user.id}`)}
+        className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+      >
+        View profile
+      </button>
+      {mode === "matches" && (
+        <button
+          type="button"
+          onClick={() => startChatWith(user.id)}
+          disabled={startingChatFor === user.id}
+          className="inline-flex items-center justify-center rounded-full border border-brand bg-brand px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-deep disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {startingChatFor === user.id ? "Opening…" : "Chat"}
+        </button>
+      )}
+    </div>
+  );
+
   if (!currentUser) return <Navigate to="/login" replace />;
   if (loading) return <p className="text-sm text-slate-600">Loading...</p>;
   if (error) return <p className="text-sm text-red-600">{error}</p>;
@@ -310,13 +356,7 @@ function PopularityListPage({ currentUser, mode = "views" }) {
                       {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/users/${user.id}`)}
-                    className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
-                  >
-                    View profile
-                  </button>
+                  {renderActionButtons(user)}
                 </div>
               ))}
             </div>
@@ -339,13 +379,7 @@ function PopularityListPage({ currentUser, mode = "views" }) {
                   {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate(`/users/${user.id}`)}
-                className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
-              >
-                View profile
-              </button>
+              {renderActionButtons(user)}
             </div>
           ))
         )}

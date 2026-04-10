@@ -8,6 +8,7 @@ const authRouter = require("./routes/auth");
 const profileRouter = require("./routes/profile");
 const likesRouter = require("./routes/likes");
 const notificationsRouter = require("./routes/notifications");
+const chatsRouter = require("./routes/chats");
 const moderationRouter = require("./routes/moderation");
 
 const app = express();
@@ -73,6 +74,7 @@ app.use("/api", usersRouter);
 app.use("/api", authRouter);
 app.use("/api", likesRouter);
 app.use("/api", notificationsRouter);
+app.use("/api", chatsRouter);
 app.use("/api", moderationRouter);
 app.use("/api", profileRouter);
 
