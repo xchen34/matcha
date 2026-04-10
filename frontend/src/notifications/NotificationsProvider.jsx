@@ -21,21 +21,41 @@ function hasAnyModeAttention(modeSets) {
 
 function mapTypeToMode(type) {
   if (type === "profile_view") return "views";
-  if (type === "like_received" || type === "unlike") return "likes";
+  if (type === "like_received") return "likes";
   if (type === "match") return "matches";
   return null;
 }
 
+function getActorUserId(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) return null;
+  return String(parsed);
+}
+
+function getLatestPerActorAndType(items, unreadOnly = false) {
+  const latestByActorAndType = new Map();
+  for (const item of sortByNewest(items)) {
+    if (unreadOnly && item.is_read) continue;
+    const actorUserId = getActorUserId(item.actor_user_id);
+    if (!actorUserId) continue;
+    const key = `${actorUserId}:${item.type}`;
+    if (!latestByActorAndType.has(key)) {
+      latestByActorAndType.set(key, item);
+    }
+  }
+  return Array.from(latestByActorAndType.values());
+}
+
 function deriveAttentionFromNotifications(items) {
+  const finalUnreadItems = getLatestPerActorAndType(items, true);
   const result = createEmptyModeSets();
-  for (const item of items) {
-    if (item.is_read) continue;
+  for (const item of finalUnreadItems) {
     const mode = mapTypeToMode(item.type);
-    const parsedUserId = Number(item.actor_user_id);
-    if (!mode || !Number.isInteger(parsedUserId) || parsedUserId <= 0) {
+    const actorUserId = getActorUserId(item.actor_user_id);
+    if (!mode || !actorUserId) {
       continue;
     }
-    result[mode].add(String(parsedUserId));
+    result[mode].add(actorUserId);
   }
   return result;
 }
@@ -87,19 +107,6 @@ export function NotificationsProvider({ currentUser, children }) {
       const data = await response.json();
       const list = Array.isArray(data.notifications) ? sortByNewest(data.notifications) : [];
       setNotifications(list);
-      setUnreadCount(
-        Number.isFinite(data.unread_count)
-          ? data.unread_count
-          : list.filter((item) => !item.is_read).length,
-      );
-
-      const derivedAttention = deriveAttentionFromNotifications(list);
-      setAttentionUsersByMode((prev) => {
-        if (hasAnyModeAttention(prev)) {
-          return prev;
-        }
-        return derivedAttention;
-      });
     } catch {
       setError("Network error while loading notifications.");
     } finally {
@@ -153,13 +160,16 @@ export function NotificationsProvider({ currentUser, children }) {
             item.id === notificationId ? { ...item, is_read: true } : item,
           ),
         );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
       } catch {
         setError("Network error while updating notifications.");
       }
     },
     [currentUser, notifications],
   );
+
+  useEffect(() => {
+    setUnreadCount(getLatestPerActorAndType(notifications, true).length);
+  }, [notifications]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -186,10 +196,6 @@ export function NotificationsProvider({ currentUser, children }) {
         setNotifications((prev) => {
           const deduped = prev.filter((item) => item.id !== incoming.id);
           return sortByNewest([incoming, ...deduped]);
-        });
-        setUnreadCount((prev) => {
-          if (incoming.is_read) return prev;
-          return prev + 1;
         });
 
         const mode = mapTypeToMode(incoming.type);
@@ -231,6 +237,7 @@ export function NotificationsProvider({ currentUser, children }) {
   }, [currentUser?.id, fetchNotifications]);
 
   const notificationInsights = useMemo(() => {
+    const finalUnreadItems = getLatestPerActorAndType(notifications, true);
     const sectionSets = {
       views: new Set(),
       likes: new Set(),
@@ -261,34 +268,26 @@ export function NotificationsProvider({ currentUser, children }) {
       profile_view: "views",
       like_received: "likes",
       match: "matches",
-      unlike: "likes",
     };
 
-    const getUserId = (value) => {
-      const parsed = Number(value);
-      if (!Number.isInteger(parsed) || parsed <= 0) return null;
-      return String(parsed);
-    };
-
-    for (const item of notifications) {
+    for (const item of finalUnreadItems) {
       const section = typeToSection[item.type];
       const mode = typeToMode[item.type];
-      if (!item.is_read && section) {
+
+      if (section) {
         sectionCounts[section] += 1;
       }
-
-      if (!item.is_read && mode) {
+      if (mode) {
         modeCounts[mode] += 1;
       }
 
-      const userId = getUserId(item.actor_user_id);
-      if (!item.is_read && userId) {
-        if (section) {
-          sectionSets[section].add(userId);
-        }
-        if (mode) {
-          modeSets[mode].add(userId);
-        }
+      const userId = getActorUserId(item.actor_user_id);
+      if (!userId) continue;
+      if (section) {
+        sectionSets[section].add(userId);
+      }
+      if (mode) {
+        modeSets[mode].add(userId);
       }
     }
 
@@ -311,42 +310,44 @@ export function NotificationsProvider({ currentUser, children }) {
         likes: modeCounts.likes > 0,
         matches: modeCounts.matches > 0,
       },
+      modeCounts,
       overflowSection,
     };
   }, [notifications]);
 
   const notificationGroups = useMemo(() => {
+    const finalUnreadItems = getLatestPerActorAndType(notifications, true);
     const definitions = {
       profile_view: {
         section: "views",
-        verb: "看过",
-        label: "谁看过我",
+        verb: "viewed",
+        label: "New profile view",
       },
       like_received: {
         section: "likes",
-        verb: "点赞了",
-        label: "谁喜欢了我",
+        verb: "liked",
+        label: "New like",
       },
       unlike: {
         section: "likes",
-        verb: "取消了喜欢",
-        label: "喜欢动态",
+        verb: "unliked",
+        label: "Like removed",
       },
       match: {
         section: "matches",
-        verb: "和你互相喜欢",
-        label: "互相喜欢",
+        verb: "matched with",
+        label: "New match",
       },
     };
 
     const groups = [];
     for (const [type, def] of Object.entries(definitions)) {
-      const items = notifications.filter((item) => item.type === type);
+      const items = finalUnreadItems.filter((item) => item.type === type);
       if (items.length === 0) continue;
 
       items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       const primary = items[0];
-      const primaryActor = primary.actor_username || "某人";
+      const primaryActor = primary.actor_username || "Someone";
 
       groups.push({
         type,
@@ -368,12 +369,28 @@ export function NotificationsProvider({ currentUser, children }) {
 
   const attentionBadges = useMemo(
     () => ({
-      views: attentionUsersByMode.views.size > 0,
-      likes: attentionUsersByMode.likes.size > 0,
-      matches: attentionUsersByMode.matches.size > 0,
+      views: attentionUsersByMode.views.size,
+      likes: attentionUsersByMode.likes.size,
+      matches: attentionUsersByMode.matches.size,
     }),
     [attentionUsersByMode],
   );
+
+  const clearAttentionMode = useCallback((mode) => {
+    if (!mode || !["views", "likes", "matches"].includes(mode)) {
+      return;
+    }
+
+    setAttentionUsersByMode((prev) => {
+      const next = {
+        views: new Set(prev.views),
+        likes: new Set(prev.likes),
+        matches: new Set(prev.matches),
+      };
+      next[mode].clear();
+      return next;
+    });
+  }, []);
 
   const clearAttentionDots = useCallback(() => {
     setAttentionUsersByMode(createEmptyModeSets());
@@ -395,6 +412,7 @@ export function NotificationsProvider({ currentUser, children }) {
       modeBadges: notificationInsights.modeBadges,
       attentionUsersByMode,
       attentionBadges,
+      clearAttentionMode,
       clearAttentionDots,
       overflowSection: notificationInsights.overflowSection,
       notificationGroups,
@@ -411,6 +429,7 @@ export function NotificationsProvider({ currentUser, children }) {
       notificationInsights,
       attentionUsersByMode,
       attentionBadges,
+      clearAttentionMode,
       clearAttentionDots,
       notificationGroups,
     ],

@@ -34,12 +34,37 @@ const secondaryButtonClass =
   "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition";
 
 function TopNav({ currentUser }) {
-  const { attentionBadges = {} } = useNotifications();
+  const location = useLocation();
+  const { attentionBadges = {}, clearAttentionMode } = useNotifications();
+  const previousPathRef = useRef(location.pathname);
 
-  const withDot = (label, active) => (
-    <span className="inline-flex items-center gap-1">
-      {label}
-      {active && <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New activity" />}
+  useEffect(() => {
+    const previousPath = previousPathRef.current;
+    if (previousPath === "/popularity/views") {
+      clearAttentionMode("views");
+    } else if (previousPath === "/popularity/likes") {
+      clearAttentionMode("likes");
+    } else if (previousPath === "/popularity/matches") {
+      clearAttentionMode("matches");
+    }
+
+    previousPathRef.current = location.pathname;
+  }, [location.pathname, clearAttentionMode]);
+
+  const modeCounts = {
+    views: Number(attentionBadges.views || 0),
+    likes: Number(attentionBadges.likes || 0),
+    matches: Number(attentionBadges.matches || 0),
+  };
+
+  const withBadge = (label, count) => (
+    <span className="relative inline-flex items-center">
+      <span>{label}</span>
+      {count > 0 && (
+        <span className="absolute -right-5 -top-4 inline-flex min-w-6 h-6 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold text-white">
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
     </span>
   );
 
@@ -70,21 +95,21 @@ function TopNav({ currentUser }) {
         <NavLink to="/popularity/views" className={({ isActive }) =>
           `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
         }>
-          {withDot("Who viewed me", attentionBadges.views)}
+          {withBadge("Who viewed me", modeCounts.views)}
         </NavLink>
       )}
       {currentUser && (
         <NavLink to="/popularity/likes" className={({ isActive }) =>
           `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
         }>
-          {withDot("Who liked me", attentionBadges.likes)}
+          {withBadge("Who liked me", modeCounts.likes)}
         </NavLink>
       )}
       {currentUser && (
         <NavLink to="/popularity/matches" className={({ isActive }) =>
           `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
         }>
-          {withDot("Who matched with me", attentionBadges.matches)}
+          {withBadge("Who matched with me", modeCounts.matches)}
         </NavLink>
       )}
     </nav>

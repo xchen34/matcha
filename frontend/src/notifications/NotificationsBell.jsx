@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useNotifications } from "./useNotifications.js";
 
 function createCardMessage(primaryName, verb, count) {
   const others = Math.max(0, count - 1);
   if (others === 0) {
-    return `${primaryName} ${verb} 你`;
+    return `${verb} you`;
   }
-  return `${primaryName} 等 ${others} 人 ${verb} 你`;
+  return `and ${others} others ${verb} you`;
 }
 
 function formatNotificationDateTime(value) {
@@ -16,12 +15,18 @@ function formatNotificationDateTime(value) {
     return "";
   }
 
-  const pad = (num) => String(num).padStart(2, "0");
-  return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  return date.toLocaleString("en-GB", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
 }
 
 export default function NotificationsBell() {
-  const navigate = useNavigate();
   const {
     notifications,
     unreadCount,
@@ -30,7 +35,6 @@ export default function NotificationsBell() {
     isAuthenticated,
     refresh,
     markAllAsRead,
-    overflowSection,
     notificationGroups,
   } = useNotifications();
   const [open, setOpen] = useState(false);
@@ -52,23 +56,17 @@ export default function NotificationsBell() {
 
     document.addEventListener("mousedown", onDocumentClick);
     return () => document.removeEventListener("mousedown", onDocumentClick);
-  }, []);
+  }, [open, unreadCount, markAllAsRead]);
 
-  function handleViewClick() {
-    const firstRelatedSection =
-      notificationGroups[0]?.section || overflowSection || "views";
+  function handleGotItClick() {
+    if (unreadCount > 0) {
+      void markAllAsRead();
+    }
     setOpen(false);
-    navigate(`/popularity/${firstRelatedSection}`);
   }
 
   function handleBellClick() {
-    setOpen((prev) => {
-      const nextOpen = !prev;
-      if (nextOpen && unreadCount > 0) {
-        void markAllAsRead();
-      }
-      return nextOpen;
-    });
+    setOpen((prev) => !prev);
   }
 
   return (
@@ -109,9 +107,9 @@ export default function NotificationsBell() {
               <button
                 type="button"
                 className="text-xs font-semibold text-slate-600 hover:text-slate-900"
-                onClick={handleViewClick}
+                onClick={handleGotItClick}
               >
-                查看
+                Got it
               </button>
             )}
           </div>
@@ -136,8 +134,10 @@ export default function NotificationsBell() {
                       {group.primaryActor.charAt(0) || "?"}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900">{group.label}</p>
-                      <p className="text-xs text-slate-500">{createCardMessage(group.primaryActor, group.verb, group.count)}</p>
+                      <p className="text-sm text-slate-700">
+                        <span className="font-semibold text-slate-900">{group.primaryActor}</span>{" "}
+                        {createCardMessage(group.primaryActor, group.verb, group.count)}
+                      </p>
                       {group.latestAt && (
                         <p className="mt-1 text-[11px] text-slate-400">{formatNotificationDateTime(group.latestAt)}</p>
                       )}
