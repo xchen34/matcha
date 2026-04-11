@@ -1,7 +1,7 @@
 // Moved to pages/FindMatchPage.jsx
 import { useCallback, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { FaFire } from "react-icons/fa";
+import { FaFire, FaSearch, FaUserFriends, FaFilter, FaSort, FaMapMarkerAlt, FaTags, FaUser, FaStar, FaArrowDown, FaArrowUp } from "react-icons/fa";
 import UserCard from "../components/UserCard.jsx";
 import { buildApiHeaders } from "../utils.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
@@ -447,10 +447,10 @@ function FindMatchPage({ currentUser }) {
   return (
     <section className={cardClass}>
       <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
-          Discover
-        </p>
-        <h2 className="text-2xl font-semibold text-slate-900">Find your match</h2>
+        <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-900">
+          <FaUserFriends size={22} aria-hidden="true" />
+          <span>Find your match</span>
+        </h2>
         <p className="text-sm text-slate-500">
           Suggested results are ranked intelligently by compatibility,
           proximity, shared tags, and fame rating.
@@ -460,11 +460,12 @@ function FindMatchPage({ currentUser }) {
       <div className="space-y-3">
         <div className="inline-flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-brand-deep text-white shadow-md shadow-orange-200/60">
-            <FaFire size={22} />
+            <FaFire size={22} aria-hidden="true" />
           </div>
           <div className="leading-tight">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Fame note
+            <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <FaStar size={11} className="text-amber-400" aria-hidden="true" />
+              <span>Fame note</span>
             </p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{fameRating}</p>
             <p className="text-xs text-slate-500">hot score (recent activity)</p>
@@ -479,7 +480,10 @@ function FindMatchPage({ currentUser }) {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-4">
-          <label className="text-xs font-semibold text-slate-500">Search username</label>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <FaSearch size={12} aria-hidden="true" />
+            <span>Search username</span>
+          </label>
           <input
             type="text"
             name="username"
@@ -490,7 +494,10 @@ function FindMatchPage({ currentUser }) {
           />
         </div>
         <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-2 relative">
-          <label className="text-xs font-semibold text-slate-500">City</label>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <FaMapMarkerAlt size={12} aria-hidden="true" />
+            <span>City</span>
+          </label>
           <input
             type="text"
             name="city"
@@ -518,7 +525,10 @@ function FindMatchPage({ currentUser }) {
           ) : null}
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-500">Min age</label>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <FaUser size={12} aria-hidden="true" />
+            <span>Min age</span>
+          </label>
           <input
             type="number"
             name="min_age"
@@ -532,7 +542,10 @@ function FindMatchPage({ currentUser }) {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-500">Max age</label>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <FaUser size={12} aria-hidden="true" />
+            <span>Max age</span>
+          </label>
           <input
             type="number"
             name="max_age"
@@ -546,7 +559,10 @@ function FindMatchPage({ currentUser }) {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-500">Min fame</label>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <FaStar size={12} aria-hidden="true" />
+            <span>Min fame</span>
+          </label>
           <input
             type="number"
             step="0.1"
@@ -560,7 +576,10 @@ function FindMatchPage({ currentUser }) {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-500">Max fame</label>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <FaStar size={12} aria-hidden="true" />
+            <span>Max fame</span>
+          </label>
           <input
             type="number"
             step="0.1"
@@ -574,7 +593,10 @@ function FindMatchPage({ currentUser }) {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-500">Sort by</label>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <FaSort size={12} aria-hidden="true" />
+            <span>Sort by</span>
+          </label>
           <select
             name="sort_by"
             value={draftFilters.sort_by}
@@ -589,7 +611,10 @@ function FindMatchPage({ currentUser }) {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-500">Order</label>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <FaArrowDown size={12} aria-hidden="true" />
+            <span>Order</span>
+          </label>
           <select
             name="sort_dir"
             value={draftFilters.sort_dir}

@@ -47,6 +47,18 @@ function initRealtime(server) {
 
     onSocketConnect(ioInstance, userId, socket.id).catch(() => {});
 
+    socket.on(REALTIME_EVENTS.CHAT_CONVERSATION_JOIN, (payload) => {
+      const conversationId = Number(payload?.conversation_id);
+      if (!Number.isInteger(conversationId) || conversationId <= 0) return;
+      socket.join(`conversation:${conversationId}`);
+    });
+
+    socket.on(REALTIME_EVENTS.CHAT_CONVERSATION_LEAVE, (payload) => {
+      const conversationId = Number(payload?.conversation_id);
+      if (!Number.isInteger(conversationId) || conversationId <= 0) return;
+      socket.leave(`conversation:${conversationId}`);
+    });
+
     socket.on(REALTIME_EVENTS.PRESENCE_PING, () => {
       onSocketConnect(ioInstance, userId, socket.id).catch(() => {});
     });

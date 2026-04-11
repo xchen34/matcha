@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { FaFire } from "react-icons/fa";
+import { FaFire, FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
 import { buildApiHeaders } from "../utils.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
 
@@ -121,9 +121,6 @@ function MyPopularityPage({ currentUser }) {
   return (
     <section className={cardClass}>
       <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
-          Popularity
-        </p>
         <h2 className="text-2xl font-semibold text-slate-900">My popularity</h2>
         <p className="text-sm text-slate-500">Who viewed me, who liked me, and who matched with me</p>
       </div>
@@ -171,7 +168,8 @@ function MyPopularityPage({ currentUser }) {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-700 p-5 text-white shadow-lg shadow-slate-200/50">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70 flex items-center gap-2">
+                <FaEye className="text-white/70" size={13} title="Viewed you" />
                 Who viewed me
               </p>
               <p className="mt-2 text-sm text-white/80">Latest profile visitors</p>
@@ -210,7 +208,8 @@ function MyPopularityPage({ currentUser }) {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-brand via-brand/90 to-brand-deep p-5 text-white shadow-lg shadow-orange-200/50">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80 flex items-center gap-2">
+                <FaHeart className="text-pink-400" size={12} title="Liked you" />
                 Who liked me
               </p>
               <p className="mt-2 text-sm text-white/85">People who liked your profile</p>
@@ -249,7 +248,8 @@ function MyPopularityPage({ currentUser }) {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-emerald-700 to-teal-700 p-5 text-white shadow-lg shadow-emerald-200/50">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80 flex items-center gap-2">
+                <FaHeartBroken className="text-emerald-300" size={12} title="Matched" />
                 Who matched with me
               </p>
               <p className="mt-2 text-sm text-white/85">People who liked you back</p>

@@ -4,6 +4,9 @@ const REALTIME_EVENTS = {
   NOTIFICATION_CREATED: "notification:created",
   PROFILE_UPDATED: "profile:updated",
   CHAT_MESSAGE_CREATED: "chat:message:created",
+  CHAT_CONVERSATION_READ: "chat:conversation:read",
+  CHAT_CONVERSATION_JOIN: "chat:conversation:join",
+  CHAT_CONVERSATION_LEAVE: "chat:conversation:leave",
 };
 
 module.exports = {

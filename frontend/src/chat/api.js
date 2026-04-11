@@ -19,15 +19,48 @@ export async function fetchChatConversations(currentUser) {
   return handleResponse(response, "Unable to load conversations.");
 }
 
-export async function fetchConversationMessages(currentUser, conversationId) {
+export async function fetchConversationMessages(
+  currentUser,
+  conversationId,
+  options = {},
+) {
   if (!currentUser?.id) {
     throw new Error("Not authenticated");
   }
-  const response = await fetch(`/api/chats/${conversationId}/messages`, {
+
+  const limit = Number(options.limit);
+  const offset = Number(options.offset);
+  const params = new URLSearchParams();
+  if (Number.isInteger(limit) && limit > 0) {
+    params.set("limit", String(limit));
+  }
+  if (Number.isInteger(offset) && offset >= 0) {
+    params.set("offset", String(offset));
+  }
+
+  const query = params.toString();
+  const endpoint = query
+    ? `/api/chats/${conversationId}/messages?${query}`
+    : `/api/chats/${conversationId}/messages`;
+
+  const response = await fetch(endpoint, {
     headers: buildApiHeaders(currentUser),
     cache: "no-store",
   });
   return handleResponse(response, "Unable to load conversation.");
+}
+
+export async function markConversationAsRead(currentUser, conversationId) {
+  if (!currentUser?.id) {
+    throw new Error("Not authenticated");
+  }
+  const response = await fetch(`/api/chats/${conversationId}/read`, {
+    method: "POST",
+    headers: buildApiHeaders(currentUser, {
+      "Content-Type": "application/json",
+    }),
+  });
+  return handleResponse(response, "Unable to mark conversation as read.");
 }
 
 export async function sendChatMessage(currentUser, recipientUserId, content) {

@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { FaHeart } from "react-icons/fa";
+import { FiActivity, FiCalendar, FiCompass, FiInfo, FiMapPin, FiStar, FiTag, FiUser } from "react-icons/fi";
 import { Navigate, useParams } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+
+function FieldLabel({ icon: Icon, children }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+      <Icon size={13} aria-hidden="true" />
+      <span>{children}</span>
+    </span>
+  );
+}
 
 function UserProfilePage({ currentUser }) {
   const { id } = useParams();
@@ -480,44 +490,32 @@ function UserProfilePage({ currentUser }) {
 
       <div className="grid sm:grid-cols-2 gap-3 text-sm text-slate-700">
         <div>
-          <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            Bio
-          </span>
+          <FieldLabel icon={FiInfo}>Bio</FieldLabel>
           <p className="mt-1 text-slate-800">{profile.biography || "-"}</p>
         </div>
         <div className="space-y-2">
           <div>
-            <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Gender
-            </span>
+            <FieldLabel icon={FiUser}>Gender</FieldLabel>
             <p className="mt-1 text-slate-800">{profile.gender || "-"}</p>
           </div>
           <div>
-            <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Sexual preference
-            </span>
+            <FieldLabel icon={FiCompass}>Sexual preference</FieldLabel>
             <p className="mt-1 text-slate-800">{profile.sexual_preference || "-"}</p>
           </div>
           <div>
-            <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Age
-            </span>
+            <FieldLabel icon={FiCalendar}>Age</FieldLabel>
             <p className="mt-1 text-slate-800">
               {profile.age !== undefined && profile.age !== null ? profile.age : "-"}
             </p>
           </div>
           <div>
-            <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Location
-            </span>
+            <FieldLabel icon={FiMapPin}>Location</FieldLabel>
             <p className="mt-1 text-slate-800">
               {profile.city || "-"} {profile.neighborhood ? `· ${profile.neighborhood}` : ""}
             </p>
           </div>
           <div>
-            <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Status
-            </span>
+            <FieldLabel icon={FiActivity}>Status</FieldLabel>
             <div className="mt-1 space-y-1">
               <span
                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${user.is_online ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"}`}
@@ -536,8 +534,8 @@ function UserProfilePage({ currentUser }) {
 
       {Array.isArray(profile.tags) && profile.tags.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            Tags
+          <p>
+            <FieldLabel icon={FiTag}>Tags</FieldLabel>
           </p>
           <div className="flex flex-wrap gap-2">
             {profile.tags.map((tag) => (
@@ -555,8 +553,9 @@ function UserProfilePage({ currentUser }) {
       <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand via-brand/90 to-brand-deep p-5 text-white shadow-lg shadow-orange-200/50">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
-              Fame rating
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
+              <FiStar size={13} aria-hidden="true" />
+              <span>Fame rating</span>
             </p>
           </div>
         </div>

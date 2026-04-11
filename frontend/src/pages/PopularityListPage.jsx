@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
 import { Navigate, useNavigate } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
 import { ensureConversationExists } from "../chat/api.js";
@@ -309,10 +310,17 @@ function PopularityListPage({ currentUser, mode = "views" }) {
   return (
     <section className={cardClass}>
       <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
-          Popularity
-        </p>
-        <h2 className="text-2xl font-semibold text-slate-900">{config.title}</h2>
+        <h2 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
+          {mode === "views" && <FaEye className="inline text-slate-900" size={22} title="Viewed you" />}
+          {mode === "likes" && <FaHeart className="inline text-slate-900" size={20} title="Liked you" />}
+          {mode === "matches" && (
+            <span className="relative inline-flex h-6 w-8 items-center justify-center text-slate-900 align-middle">
+              <FaHeart className="absolute left-0" size={18} />
+              <FaHeart className="absolute right-0" size={18} />
+            </span>
+          )}
+          {config.title}
+        </h2>
         <p className="text-sm text-slate-500">{config.subtitle}</p>
       </div>
 
@@ -368,7 +376,7 @@ function PopularityListPage({ currentUser, mode = "views" }) {
               className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
             >
               <div>
-                <p className="inline-flex items-center gap-1 font-semibold text-slate-900">
+                <p className="font-semibold text-slate-900">
                   @{user.username}
                   {unreadUserSet.has(String(user.id)) && (
                     <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New notification" />

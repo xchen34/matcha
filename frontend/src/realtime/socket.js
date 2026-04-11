@@ -2,6 +2,7 @@ import { io } from "socket.io-client";
 
 let socket = null;
 let pingIntervalId = null;
+const activeConversationIds = new Set();
 
 function ensureSocket() {
   if (socket) return socket;
@@ -10,6 +11,14 @@ function ensureSocket() {
     path: "/socket.io",
     transports: ["websocket", "polling"],
     autoConnect: false,
+  });
+
+  socket.on("connect", () => {
+    for (const conversationId of activeConversationIds) {
+      socket.emit("chat:conversation:join", {
+        conversation_id: conversationId,
+      });
+    }
   });
 
   return socket;
@@ -59,4 +68,20 @@ export function onRealtimeEvent(event, handler) {
 
 export function getRealtimeSocket() {
   return ensureSocket();
+}
+
+export function joinConversationRoom(conversationId) {
+  const id = Number(conversationId);
+  if (!Number.isInteger(id) || id <= 0) return;
+  activeConversationIds.add(id);
+  const s = ensureSocket();
+  s.emit("chat:conversation:join", { conversation_id: id });
+}
+
+export function leaveConversationRoom(conversationId) {
+  const id = Number(conversationId);
+  if (!Number.isInteger(id) || id <= 0) return;
+  activeConversationIds.delete(id);
+  const s = ensureSocket();
+  s.emit("chat:conversation:leave", { conversation_id: id });
 }

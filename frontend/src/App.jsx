@@ -1,14 +1,31 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { FaLocationArrow } from "react-icons/fa";
-import { FiSettings } from "react-icons/fi";
+import {
+  FiCalendar,
+  FiCompass,
+  FiEye,
+  FiHeart,
+  FiImage,
+  FiInfo,
+  FiLogIn,
+  FiLogOut,
+  FiMail,
+  FiMapPin,
+  FiMessageCircle,
+  FiSettings,
+  FiSlash,
+  FiTag,
+  FiUser,
+  FiUserPlus,
+  FiUsers,
+} from "react-icons/fi";
 import UserCard from "./components/UserCard";
 import FindMatchPage from "./pages/FindMatchPage";
 import BlockedUsersPage from "./pages/BlockedUsersPage";
 import PopularityListPage from "./pages/PopularityListPage";
 import UserProfilePage from "./pages/UserProfilePage";
-import ChatListPage from "./pages/ChatListPage.jsx";
-import ChatConversationPage from "./pages/ChatConversationPage.jsx";
+import MessagesPage from "./pages/MessagesPage.jsx";
 import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
 import NotificationsBell from "./notifications/NotificationsBell.jsx";
 import { useNotifications } from "./notifications/useNotifications.js";
@@ -60,9 +77,12 @@ function TopNav({ currentUser }) {
     matches: Number(attentionBadges.matches || 0),
   };
 
-  const withBadge = (label, count) => (
+  const withBadge = (icon, label, count) => (
     <span className="relative inline-flex items-center">
-      <span>{label}</span>
+      <span className="inline-flex items-center gap-1.5">
+        <span aria-hidden="true">{icon}</span>
+        <span>{label}</span>
+      </span>
       {count > 0 && (
         <span className="absolute -right-5 -top-4 inline-flex min-w-6 h-6 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold text-white">
           {count > 99 ? "99+" : count}
@@ -77,43 +97,55 @@ function TopNav({ currentUser }) {
         <NavLink to="/login" className={({ isActive }) =>
           `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
         }>
-          Login
+          <span className="inline-flex items-center gap-1.5">
+            <FiLogIn size={15} aria-hidden="true" />
+            <span>Login</span>
+          </span>
         </NavLink>
       )}
       {!currentUser && (
         <NavLink to="/register" className={({ isActive }) =>
           `${secondaryButtonClass} ${isActive ? "bg-slate-900  border-slate-900" : ""}`
         }>
-          Create Account
+          <span className="inline-flex items-center gap-1.5">
+            <FiUserPlus size={15} aria-hidden="true" />
+            <span>Create Account</span>
+          </span>
         </NavLink>
       )}
       {currentUser && (
-        <NavLink to="/find-match" className={({ isActive }) =>
-          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
-        }>
-          Find your match
-        </NavLink>
-      )}
-      {currentUser && (
-        <NavLink to="/popularity/views" className={({ isActive }) =>
-          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
-        }>
-          {withBadge("Who viewed me", modeCounts.views)}
-        </NavLink>
-      )}
-      {currentUser && (
-        <NavLink to="/popularity/likes" className={({ isActive }) =>
-          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
-        }>
-          {withBadge("Who liked me", modeCounts.likes)}
-        </NavLink>
-      )}
-      {currentUser && (
-        <NavLink to="/popularity/matches" className={({ isActive }) =>
-          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
-        }>
-          {withBadge("Who matched with me", modeCounts.matches)}
-        </NavLink>
+        <>
+          <NavLink to="/find-match" className={({ isActive }) =>
+            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          }>
+            <span className="inline-flex items-center gap-1.5">
+              <FiUsers size={15} aria-hidden="true" />
+              <span>Find your match</span>
+            </span>
+          </NavLink>
+          <NavLink to="/popularity/views" className={({ isActive }) =>
+            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          }>
+            {withBadge(<FiEye size={15} />, "Who viewed me", modeCounts.views)}
+          </NavLink>
+          <NavLink to="/popularity/likes" className={({ isActive }) =>
+            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          }>
+            {withBadge(<FiHeart size={15} />, "Who liked me", modeCounts.likes)}
+          </NavLink>
+          <NavLink to="/popularity/matches" className={({ isActive }) =>
+            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          }>
+            {withBadge(
+              <span className="relative inline-flex h-4 w-5 items-center justify-center text-slate-500">
+                <FiHeart size={11} className="absolute left-0" />
+                <FiHeart size={11} className="absolute right-0" />
+              </span>,
+              "Who matched with me",
+              modeCounts.matches,
+            )}
+          </NavLink>
+        </>
       )}
     </nav>
   );
@@ -1270,10 +1302,13 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   return (
     <section className={cardClass}>
       <div className="space-y-1">
+        <FiUser size={20} aria-hidden="true" />
         <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
           Profile
         </p>
-        <h2 className="text-2xl font-semibold text-slate-900">Your details</h2>
+        <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-900">
+          <span>Your details</span>
+        </h2>
       </div>
 
       {currentUser && (
@@ -1286,16 +1321,13 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         <p className="text-sm text-slate-500">Loading...</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Account
-            </p>
-          </div>
-
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-                Username
+                <span className="inline-flex items-center gap-1.5">
+                  <FiUser size={13} aria-hidden="true" />
+                  <span>Username</span>
+                </span>
               </label>
               <input
                 name="username"
@@ -1307,7 +1339,10 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
             </div>
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-                Birth date
+                <span className="inline-flex items-center gap-1.5">
+                  <FiCalendar size={13} aria-hidden="true" />
+                  <span>Birth date</span>
+                </span>
               </label>
               <input
                 name="birth_date"
@@ -1323,7 +1358,10 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-                First name
+                <span className="inline-flex items-center gap-1.5">
+                  <FiUser size={13} aria-hidden="true" />
+                  <span>First name</span>
+                </span>
               </label>
               <input
                 name="first_name"
@@ -1335,7 +1373,10 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
             </div>
             <div className="space-y-1">
               <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-                Last name
+                <span className="inline-flex items-center gap-1.5">
+                  <FiUser size={13} aria-hidden="true" />
+                  <span>Last name</span>
+                </span>
               </label>
               <input
                 name="last_name"
@@ -1349,7 +1390,10 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
 
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Email address
+              <span className="inline-flex items-center gap-1.5">
+                <FiMail size={13} aria-hidden="true" />
+                <span>Email address</span>
+              </span>
             </label>
             <input
               name="email"
@@ -1363,7 +1407,10 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
 
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Biography
+              <span className="inline-flex items-center gap-1.5">
+                <FiInfo size={13} aria-hidden="true" />
+                <span>Biography</span>
+              </span>
             </label>
             <textarea
               name="biography"
@@ -1377,7 +1424,10 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
 
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Gender
+              <span className="inline-flex items-center gap-1.5">
+                <FiUser size={13} aria-hidden="true" />
+                <span>Gender</span>
+              </span>
             </label>
             <select
               name="gender"
@@ -1395,7 +1445,10 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
 
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Sexual preference
+              <span className="inline-flex items-center gap-1.5">
+                <FiCompass size={13} aria-hidden="true" />
+                <span>Sexual preference</span>
+              </span>
             </label>
             <select
               name="sexual_preference"
@@ -1414,7 +1467,10 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-                Photos (max {MAX_PHOTOS_COUNT}, {bytesToKB(MAX_PHOTO_SIZE_BYTES)}KB each)
+                <span className="inline-flex items-center gap-1.5">
+                  <FiImage size={13} aria-hidden="true" />
+                  <span>Photos (max {MAX_PHOTOS_COUNT}, {bytesToKB(MAX_PHOTO_SIZE_BYTES)}KB each)</span>
+                </span>
               </label>
               <input
                 type="file"
@@ -1463,8 +1519,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Location
+            <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              <FiMapPin size={13} aria-hidden="true" />
+              <span>Location</span>
             </p>
           </div>
 
@@ -1629,7 +1686,10 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           {/* Latitude/Longitude UI hidden for now */}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Interests (tags)</label>
+            <label className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
+              <FiTag size={14} aria-hidden="true" />
+              <span>Interests (tags)</span>
+            </label>
             <div className="flex gap-2">
               <select
                 value={selectedTag}
@@ -1886,9 +1946,10 @@ function App() {
                         setIsSettingsOpen(false);
                         navigate("/profile");
                       }}
-                      className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
                     >
-                      My profile
+                      <FiUser size={15} aria-hidden="true" />
+                      <span>My profile</span>
                     </button>
                     <button
                       type="button"
@@ -1896,16 +1957,29 @@ function App() {
                         setIsSettingsOpen(false);
                         navigate("/blocked-users");
                       }}
-                      className="block w-full border-t border-slate-100 px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
+                      className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
                     >
-                      Blocked users
+                      <FiSlash size={15} aria-hidden="true" />
+                      <span>Blocked users</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSettingsOpen(false);
+                        navigate("/messages");
+                      }}
+                      className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
+                    >
+                      <FiMessageCircle size={15} aria-hidden="true" />
+                      <span>Messages</span>
                     </button>
                     <button
                       type="button"
                       onClick={logout}
-                      className="block w-full border-t border-slate-100 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+                      className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
                     >
-                      Log out
+                      <FiLogOut size={15} aria-hidden="true" />
+                      <span>Log out</span>
                     </button>
                   </div>
                 )}
@@ -1978,7 +2052,7 @@ function App() {
           path="/messages"
           element={
             currentUser ? (
-              <ChatListPage currentUser={currentUser} />
+              <MessagesPage currentUser={currentUser} />
             ) : (
               <Navigate to="/login" replace />
             )
@@ -1988,7 +2062,7 @@ function App() {
           path="/messages/:conversationId"
           element={
             currentUser ? (
-              <ChatConversationPage currentUser={currentUser} />
+              <MessagesPage currentUser={currentUser} />
             ) : (
               <Navigate to="/login" replace />
             )
