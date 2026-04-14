@@ -660,7 +660,6 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         )}
         <ul className="space-y-1">
           {(() => {
-            // Trouver le dernier message matched et unmatched
             let lastMatchedIdx = -1;
             let lastUnmatchedIdx = -1;
             let matchedDate = null;
@@ -710,6 +709,98 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
               showDate = unmatchedDate;
             }
 
+            if (!isMatch && blockStatus === 'unmatched') {
+              let lastDate = null;
+              if (lastMatchedIdx !== -1) {
+                lastDate = messages[lastMatchedIdx]?.created_at;
+              } else if (messages.length > 0) {
+                lastDate = messages[messages.length - 1]?.created_at;
+              } else {
+                lastDate = new Date();
+              }
+              const dateObj = new Date(lastDate);
+              const dateStr = !Number.isNaN(dateObj.getTime())
+                ? `${dateObj.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })} at ${dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
+                : '';
+              const filteredMessages = messages.map((msg, index) => {
+                if (matchedRegex.test(msg.content) || unmatchedRegex.test(msg.content)) {
+                  return null;
+                }
+                const isMine = Number(msg.sender_user_id) === currentUserId;
+                const prevMsg = index > 0 ? messages[index - 1] : null;
+                const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+                const startsNewDay =
+                  !prevMsg ||
+                  getMessageDateKey(prevMsg.created_at) !== getMessageDateKey(msg.created_at);
+                const isLastInGroup = !nextMsg || !areMessagesInSameGroup(msg, nextMsg);
+                const messageId = msg.id != null ? String(msg.id) : `idx-${index}`;
+                const showTimestamp = isLastInGroup || openedTimestampId === messageId;
+                return (
+                  <li
+                    key={
+                      msg.id != null
+                        ? `msg-${msg.id}`
+                        : `msg-${index}-${msg.created_at ?? ""}`
+                    }
+                    className="space-y-1"
+                  >
+                    {startsNewDay && (
+                      <div className="py-1 text-center">
+                        <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-slate-500">
+                          {formatDaySeparator(msg.created_at)}
+                        </span>
+                      </div>
+                    )}
+                    <div className={`flex w-full ${isMine ? "justify-end" : "justify-start"}`}>
+                      <div className={`group flex max-w-[62%] flex-col ${isMine ? "items-end" : "items-start"}`}>
+                        <button
+                          type="button"
+                          onClick={() => setOpenedTimestampId(messageId)}
+                          className={`${chatBubbleClass} text-left ${
+                            isMine
+                              ? "from-brand to-brand-deep bg-gradient-to-r border-transparent text-white shadow-lg"
+                              : "border-slate-200 bg-slate-100 text-slate-900"
+                          }`}
+                        >
+                          <p className="text-sm leading-relaxed whitespace-normal break-normal">{msg.content}</p>
+                        </button>
+                        {isMine ? (
+                          <div
+                            className={`inline-flex items-center gap-1 overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
+                              showTimestamp
+                                ? "mt-0.5 max-h-6 opacity-100"
+                                : "max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
+                            }`}
+                          >
+                            <span>{formatTime(msg.created_at)}</span>
+                            <MessageStatus isRead={Boolean(msg.is_read)} />
+                          </div>
+                        ) : (
+                          <p
+                            className={`overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
+                              showTimestamp
+                                ? "mt-0.5 max-h-6 opacity-100"
+                                : "max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
+                            }`}
+                          >
+                            {formatTime(msg.created_at)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                );
+              });
+              return [
+                ...filteredMessages,
+                <li key="unmatched-badge-immediate" className="py-2 text-center">
+                  <span className="inline-flex rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-[0.9rem] font-semibold text-yellow-800">
+                    You unmatched{dateStr ? ` on ${dateStr}` : ''}
+                  </span>
+                </li>
+              ];
+            }
+
             return messages.map((msg, index) => {
               const isMine = Number(msg.sender_user_id) === currentUserId;
               const prevMsg = index > 0 ? messages[index - 1] : null;
@@ -721,13 +812,12 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
               const messageId = msg.id != null ? String(msg.id) : `idx-${index}`;
               const showTimestamp = isLastInGroup || openedTimestampId === messageId;
 
-              // Affiche uniquement le badge le plus récent (matched ou unmatched)
               if (index === showIdx && showType === 'matched') {
                 return (
                   <li key={msg.id != null ? `msg-matched-${msg.id}` : `msg-matched-${index}-${msg.created_at ?? ""}`}
                       className="py-2 text-center">
                     <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[0.9rem] font-semibold text-red-700">
-                      You matched{showDate ? ` on ${showDate}` : ''}!
+                      You matched{showDate ? ` on ${showDate}` : ''}
                     </span>
                   </li>
                 );
@@ -737,7 +827,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                   <li key={msg.id != null ? `msg-unmatched-${msg.id}` : `msg-unmatched-${index}-${msg.created_at ?? ""}`}
                       className="py-2 text-center">
                     <span className="inline-flex rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-[0.9rem] font-semibold text-yellow-800">
-                      You unmatched{showDate ? ` on ${showDate}` : ''}!
+                      You unmatched{showDate ? ` on ${showDate}` : ''}
                     </span>
                   </li>
                 );

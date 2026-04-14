@@ -17,6 +17,44 @@ function FieldLabel({ icon: Icon, children }) {
   );
 }
 
+// Affichage des photos avec adaptation selon dimensions
+function ProfilePhotosGrid({ photos }) {
+  const [dimensions, setDimensions] = useState({});
+
+  function handleImgLoad(photoId, e) {
+    const { naturalWidth: w, naturalHeight: h } = e.target;
+    setDimensions((prev) => ({ ...prev, [photoId]: { w, h } }));
+  }
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {photos.map((photo) => {
+        const dim = dimensions[photo.id];
+        let style = "object-cover h-32 w-full";
+        if (dim) {
+          const ratio = dim.w / dim.h;
+          if (ratio > 1.2) style = "object-cover w-full h-24"; // paysage
+          else if (ratio < 0.8) style = "object-cover w-full h-40"; // portrait
+          else style = "object-cover w-full h-32"; // carré ou proche
+        }
+        return (
+          <div
+            key={photo.id}
+            className={`overflow-hidden rounded-xl border ${photo.is_primary ? "border-brand" : "border-slate-200"}`}
+          >
+            <img
+              src={photo.data_url}
+              alt="Profile"
+              className={style}
+              onLoad={(e) => handleImgLoad(photo.id, e)}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function UserProfilePage({ currentUser }) {
   const { id } = useParams();
   const [data, setData] = useState(null);
@@ -480,20 +518,7 @@ function UserProfilePage({ currentUser }) {
       {likeError && <p className="text-sm text-red-600">{likeError}</p>}
 
       {Array.isArray(profile.photos) && profile.photos.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {profile.photos.map((photo) => (
-            <div
-              key={photo.id}
-              className={`overflow-hidden rounded-xl border ${photo.is_primary ? "border-brand" : "border-slate-200"}`}
-            >
-              <img
-                src={photo.data_url}
-                alt="Profile"
-                className="h-32 w-full object-cover"
-              />
-            </div>
-          ))}
-        </div>
+        <ProfilePhotosGrid photos={profile.photos} />
       )}
 
       {/* Note about like restrictions */}
