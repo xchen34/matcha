@@ -1,6 +1,7 @@
 const express = require("express");
 const pool = require("../db");
 const { createNotification } = require("./notificationsService");
+const { insertSystemMessage } = require("../utils/chatSystemMessage");
 const { isUserOnline } = require("../realtime/presence");
 
 const router = express.Router();
@@ -567,6 +568,58 @@ router.post("/users/:id/like", async (req, res, next) => {
         message: "A user you liked liked you back.",
         metadata: { with_user_id: liked_user_id },
       });
+
+      // Récupérer les infos des deux utilisateurs pour personnaliser le message
+      const userRes = await pool.query(
+        `SELECT id, username, first_name FROM users WHERE id = $1 OR id = $2`,
+        [liker_user_id, liked_user_id],
+      );
+      let userA = userRes.rows.find(
+        (u) => String(u.id) === String(liker_user_id),
+      );
+      let userB = userRes.rows.find(
+        (u) => String(u.id) === String(liked_user_id),
+      );
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-GB");
+      const timeStr = now.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      await insertSystemMessage(
+        liker_user_id,
+        liked_user_id,
+        `You matched with ${userB.first_name || userB.username || userB.id} on ${dateStr} at ${timeStr}`,
+      );
+      await insertSystemMessage(
+        liked_user_id,
+        liker_user_id,
+        `You matched with ${userA.first_name || userA.username || userA.id} on ${dateStr} at ${timeStr}`,
+      );
+
+      try {
+        const { getIO } = require("../realtime");
+        const { REALTIME_EVENTS } = require("../realtime/events");
+        const io = getIO && getIO();
+        if (io) {
+          io.to(`user:${liker_user_id}`).emit(
+            REALTIME_EVENTS.MATCH_STATUS_CHANGED,
+            {
+              userId: liked_user_id,
+              matched: true,
+            },
+          );
+          io.to(`user:${liked_user_id}`).emit(
+            REALTIME_EVENTS.MATCH_STATUS_CHANGED,
+            {
+              userId: liker_user_id,
+              matched: true,
+            },
+          );
+        }
+      } catch (e) {
+        /* ignore */
+      }
     }
 
     res.status(201).json({ message: "Like enregistré" });
@@ -595,6 +648,48 @@ router.delete("/users/:id/like", async (req, res, next) => {
       return res
         .status(200)
         .json({ message: "Like déjà retiré ou inexistant" });
+    }
+
+    // Check if this unlike breaks a match
+    const reciprocalLike = await pool.query(
+      `SELECT 1 FROM likes WHERE liker_user_id = $1 AND liked_user_id = $2`,
+      [liked_user_id, liker_user_id],
+    );
+    if (reciprocalLike.rowCount === 0) {
+      await insertSystemMessage(
+        liker_user_id,
+        liked_user_id,
+        "You are no longer matched. You cannot send messages.",
+      );
+      await insertSystemMessage(
+        liked_user_id,
+        liker_user_id,
+        "You are no longer matched. You cannot send messages.",
+      );
+
+      try {
+        const { getIO } = require("../realtime");
+        const { REALTIME_EVENTS } = require("../realtime/events");
+        const io = getIO && getIO();
+        if (io) {
+          io.to(`user:${liker_user_id}`).emit(
+            REALTIME_EVENTS.MATCH_STATUS_CHANGED,
+            {
+              userId: liked_user_id,
+              matched: false,
+            },
+          );
+          io.to(`user:${liked_user_id}`).emit(
+            REALTIME_EVENTS.MATCH_STATUS_CHANGED,
+            {
+              userId: liker_user_id,
+              matched: false,
+            },
+          );
+        }
+      } catch (e) {
+        /* ignore */
+      }
     }
 
     await createNotification({

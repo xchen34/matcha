@@ -4,6 +4,51 @@ const { getIO, REALTIME_EVENTS } = require("../realtime");
 const { isUserOnline } = require("../realtime/presence");
 
 const router = express.Router();
+router.delete("/:conversationId", async (req, res, next) => {
+  console.log(
+    "[DELETE /api/chats/:conversationId] called",
+    req.params.conversationId,
+    "user:",
+    req.header("x-user-id"),
+  );
+  try {
+    const currentUserId = parsePositiveInt(req.header("x-user-id"));
+    const conversationId = parsePositiveInt(req.params.conversationId);
+    if (!currentUserId || !conversationId) {
+      return res
+        .status(400)
+        .json({ error: "x-user-id header et conversation id requis" });
+    }
+
+    const convResult = await pool.query(
+      `SELECT user_a_id, user_b_id FROM chat_conversations WHERE id = $1 LIMIT 1`,
+      [conversationId],
+    );
+    if (convResult.rowCount === 0) {
+      return res.status(404).json({ error: "Conversation introuvable" });
+    }
+    const { user_a_id, user_b_id } = convResult.rows[0];
+    if (
+      Number(currentUserId) !== Number(user_a_id) &&
+      Number(currentUserId) !== Number(user_b_id)
+    ) {
+      return res
+        .status(403)
+        .json({ error: "Accès refusé à cette conversation" });
+    }
+
+    await pool.query(`DELETE FROM chat_messages WHERE conversation_id = $1`, [
+      conversationId,
+    ]);
+    await pool.query(`DELETE FROM chat_conversations WHERE id = $1`, [
+      conversationId,
+    ]);
+
+    return res.json({ success: true });
+  } catch (error) {
+    return next(error);
+  }
+});
 
 function getConversationRoomName(conversationId) {
   return `conversation:${conversationId}`;
@@ -84,9 +129,16 @@ function ensureConnectionAllowed(status) {
     err.status = 403;
     throw err;
   }
+}
 
+function ensureMatchRequired(status) {
+  if (status.is_blocked) {
+    const err = new Error("Chat is blocked between these users.");
+    err.status = 403;
+    throw err;
+  }
   if (!status.is_match) {
-    const err = new Error("Chat is only available for connected users");
+    const err = new Error("You must be matched to send messages.");
     err.status = 403;
     throw err;
   }
@@ -129,7 +181,17 @@ router.get("/chats", async (req, res, next) => {
         lm.sender_user_id AS last_message_sender_id,
         lm.content AS last_message_content,
         lm.created_at AS last_message_created_at,
-        COALESCE(unread_counts.unread_count, 0) AS unread_count
+        COALESCE(unread_counts.unread_count, 0) AS unread_count,
+        EXISTS (
+          SELECT 1 FROM likes l1 WHERE l1.liker_user_id = $1 AND l1.liked_user_id = uc.other_user_id
+        ) AND EXISTS (
+          SELECT 1 FROM likes l2 WHERE l2.liker_user_id = uc.other_user_id AND l2.liked_user_id = $1
+        ) AS is_match,
+        EXISTS (
+          SELECT 1 FROM user_blocks ub
+          WHERE (ub.blocker_user_id = $1 AND ub.blocked_user_id = uc.other_user_id)
+             OR (ub.blocker_user_id = uc.other_user_id AND ub.blocked_user_id = $1)
+        ) AS is_blocked
       FROM user_conversations uc
       JOIN chat_conversations c ON c.id = uc.conversation_id
       JOIN users u ON u.id = uc.other_user_id
@@ -146,48 +208,33 @@ router.get("/chats", async (req, res, next) => {
         WHERE recipient_user_id = $1 AND NOT is_read
         GROUP BY conversation_id
       ) unread_counts ON unread_counts.conversation_id = uc.conversation_id
-      WHERE EXISTS (
-          SELECT 1
-          FROM likes l1
-          WHERE l1.liker_user_id = $1
-            AND l1.liked_user_id = uc.other_user_id
-        )
-        AND EXISTS (
-          SELECT 1
-          FROM likes l2
-          WHERE l2.liker_user_id = uc.other_user_id
-            AND l2.liked_user_id = $1
-        )
-        AND NOT EXISTS (
-          SELECT 1
-          FROM user_blocks ub
-          WHERE (ub.blocker_user_id = $1 AND ub.blocked_user_id = uc.other_user_id)
-            OR (ub.blocker_user_id = uc.other_user_id AND ub.blocked_user_id = $1)
-        )
       ORDER BY c.last_message_at DESC NULLS LAST, uc.conversation_id ASC
     `;
 
     const result = await pool.query(sql, [currentUserId]);
 
-    const conversations = result.rows.map((row) => ({
-      conversation_id: row.conversation_id,
-      other_user: {
-        id: row.other_user_id,
-        username: row.other_username,
-        first_name: row.first_name || "",
-        last_name: row.last_name || "",
-        is_online: isUserOnline(row.other_user_id),
-        primary_photo_url: row.other_primary_photo_url || "",
-      },
-      last_message: row.last_message_content
-        ? {
-            sender_user_id: row.last_message_sender_id,
-            content: row.last_message_content,
-            created_at: row.last_message_created_at,
-          }
-        : null,
-      unread_count: Number(row.unread_count ?? 0),
-    }));
+    const conversations = result.rows
+      .filter((row) => !row.is_blocked)
+      .map((row) => ({
+        conversation_id: row.conversation_id,
+        other_user: {
+          id: row.other_user_id,
+          username: row.other_username,
+          first_name: row.first_name || "",
+          last_name: row.last_name || "",
+          is_online: isUserOnline(row.other_user_id),
+          primary_photo_url: row.other_primary_photo_url || "",
+        },
+        last_message: row.last_message_content
+          ? {
+              sender_user_id: row.last_message_sender_id,
+              content: row.last_message_content,
+              created_at: row.last_message_created_at,
+            }
+          : null,
+        unread_count: Number(row.unread_count ?? 0),
+        is_match: !!row.is_match,
+      }));
 
     return res.json({ conversations });
   } catch (error) {
@@ -298,6 +345,7 @@ router.get("/chats/:conversationId/messages", async (req, res, next) => {
           primary_photo_url: otherUserResult.rows[0]?.primary_photo_url || "",
           is_online: isUserOnline(otherUserId),
         },
+        is_match: !!status.is_match,
       },
       messages,
       paging: {
@@ -435,7 +483,7 @@ router.post("/chats/messages", async (req, res, next) => {
     }
 
     const status = await fetchConnectionStatus(currentUserId, recipientUserId);
-    ensureConnectionAllowed(status);
+    ensureMatchRequired(status);
 
     const userA = Math.min(currentUserId, recipientUserId);
     const userB = Math.max(currentUserId, recipientUserId);

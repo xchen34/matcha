@@ -136,6 +136,9 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           </div>
         </div>
       </div>
+      {!profilePhotoUrl && (
+        <div className="text-amber-700 mb-1">No profile photo: can't be liked.</div>
+      )}
 
       {/* Footer always at the bottom for perfect alignment */}
       <div className="flex items-center justify-between mt-2 text-xs font-semibold text-slate-700">
@@ -153,11 +156,17 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           <button
             className={`flex h-7 w-7 items-center justify-center rounded-full border transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${isMatch ? "border-red-700 bg-red-600 shadow-md shadow-red-200" : liked ? "border-orange-300 bg-gradient-to-br from-orange-500 to-brand-deep shadow-md shadow-orange-200 ring-2 ring-orange-300/60" : "border-slate-300 bg-slate-200"}`}
             onClick={handleToggleLike}
-            disabled={loading || user.id === currentUser.id || (!liked && !canLikeProfiles)}
+            disabled={
+              loading ||
+              user.id === currentUser.id ||
+              (!liked && (!canLikeProfiles || !profilePhotoUrl))
+            }
             aria-label={liked ? "Remove like" : "Like this user"}
             title={
               !liked && !canLikeProfiles
-                ? "Add a profile picture first"
+                ? "You must add a profile photo to like others."
+                : !liked && !profilePhotoUrl
+                  ? "This user has no profile photo."
                 : liked
                   ? "Unlike"
                   : "Like"

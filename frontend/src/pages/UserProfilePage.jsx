@@ -272,13 +272,15 @@ function UserProfilePage({ currentUser }) {
   async function handleToggleLike() {
     if (!currentUser?.id || isOwnProfile) return;
 
+    // Block immediately if user has no profile photo
+    if (!liked && !canLikeProfiles) {
+      setLikeError("You must add a profile photo before you can like other users.");
+      return;
+    }
+
     setLoadingLike(true);
     setLikeError("");
     try {
-      if (!liked && !canLikeProfiles) {
-        throw new Error("Add a profile picture first to like users.");
-      }
-
       if (!liked) {
         const response = await fetch(`/api/users/${id}/like`, {
           method: "POST",
@@ -290,8 +292,10 @@ function UserProfilePage({ currentUser }) {
           if (!alreadyLikedMessages.includes(payload.message)) {
             throw new Error(payload.error || "Error while liking");
           }
+          // If already liked, keep state as is
+        } else {
+          setLiked(true);
         }
-        setLiked(true);
       } else {
         const response = await fetch(`/api/users/${id}/like`, {
           method: "DELETE",
@@ -370,16 +374,20 @@ function UserProfilePage({ currentUser }) {
               <button
                 type="button"
                 onClick={handleToggleLike}
-                disabled={loadingLike || user.id === currentUser.id || (!liked && !canLikeProfiles)}
+                disabled={
+                  loadingLike ||
+                  user.id === currentUser.id ||
+                  (!liked && (!canLikeProfiles || !Array.isArray(profile.photos) || !profile.photos.some((photo) => photo.is_primary)))
+                }
                 aria-label={isMatch ? "Disconnect from this profile" : liked ? "Remove like" : "Like this user"}
                 title={
-                  !liked && !canLikeProfiles
-                    ? "Add a profile picture first"
+                  !liked && (!canLikeProfiles || !Array.isArray(profile.photos) || !profile.photos.some((photo) => photo.is_primary))
+                    ? "Add a profile photo for both accounts first"
                     : isMatch
                       ? "Disconnect"
                       : liked
                         ? "Unlike"
-                      : "Like"
+                        : "Like"
                 }
                 className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${isMatch ? "border-red-700 bg-red-600 shadow-md shadow-red-200" : liked ? "border-orange-300 bg-gradient-to-br from-orange-500 to-brand-deep shadow-md shadow-orange-200 ring-2 ring-orange-300/60" : "border-slate-300 bg-slate-200 text-slate-700"}`}
               >
@@ -486,6 +494,17 @@ function UserProfilePage({ currentUser }) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Note about like restrictions */}
+      {(!Array.isArray(profile.photos) || profile.photos.length === 0 || !canLikeProfiles) && (
+        <p className="text-xs text-amber-700 mt-2">
+          {!Array.isArray(profile.photos) || profile.photos.length === 0
+            ? "No profile photo: can't be liked."
+            : !canLikeProfiles
+              ? "Add a profile photo to like."
+              : null}
+        </p>
       )}
 
       <div className="grid sm:grid-cols-2 gap-3 text-sm text-slate-700">

@@ -446,20 +446,29 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   const hasSexualPreference = (form.sexual_preference || "").trim().length > 0;
   const hasProfilePhoto = form.photos.length > 0;
   const hasPrimaryProfilePhoto = form.photos.some((photo) => photo.is_primary);
+  // Required fields logic
+  const hasUsername = (form.username || "").trim().length > 0;
+  const hasFirstName = (form.first_name || "").trim().length > 0;
+  const hasLastName = (form.last_name || "").trim().length > 0;
+  const hasEmail = (form.email || "").trim().length > 0;
+  const hasAge = (form.birth_date || "").trim().length > 0;
+  const hasCity = (form.city || "").trim().length > 0;
+
   const hasRequiredFields =
-    hasBiography &&
-    hasGender &&
-    hasSexualPreference &&
-    hasManualLocationInput &&
-    hasProfilePhoto &&
-    hasPrimaryProfilePhoto;
+    hasUsername &&
+    hasFirstName &&
+    hasLastName &&
+    hasEmail &&
+    hasAge &&
+    hasCity;
+
   const missingRequiredFields = [
-    !hasBiography ? "biography" : null,
-    !hasGender ? "gender" : null,
-    !hasSexualPreference ? "sexual preference" : null,
-    !hasManualLocationInput ? "city or neighborhood" : null,
-    !hasProfilePhoto ? "profile photo" : null,
-    hasProfilePhoto && !hasPrimaryProfilePhoto ? "primary profile photo" : null,
+    !hasUsername ? "username" : null,
+    !hasFirstName ? "first name" : null,
+    !hasLastName ? "last name" : null,
+    !hasEmail ? "email" : null,
+    !hasAge ? "age" : null,
+    !hasCity ? "city" : null,
   ].filter(Boolean);
   const isLocationAccepted =
     Boolean(locationValidation?.is_valid) ||
@@ -1302,11 +1311,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   return (
     <section className={cardClass}>
       <div className="space-y-1">
-        <FiUser size={20} aria-hidden="true" />
-        <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
-          Profile
-        </p>
         <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-900">
+          <FiUser size={20} aria-hidden="true" />
           <span>Your details</span>
         </h2>
       </div>
@@ -1326,7 +1332,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
                 <span className="inline-flex items-center gap-1.5">
                   <FiUser size={13} aria-hidden="true" />
-                  <span>Username</span>
+                  <span>Username<span className="text-red-600">*</span></span>
                 </span>
               </label>
               <input
@@ -1341,7 +1347,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
                 <span className="inline-flex items-center gap-1.5">
                   <FiCalendar size={13} aria-hidden="true" />
-                  <span>Birth date</span>
+                  <span>Birth date<span className="text-red-600">*</span></span>
                 </span>
               </label>
               <input
@@ -1360,7 +1366,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
                 <span className="inline-flex items-center gap-1.5">
                   <FiUser size={13} aria-hidden="true" />
-                  <span>First name</span>
+                  <span>First name<span className="text-red-600">*</span></span>
                 </span>
               </label>
               <input
@@ -1375,7 +1381,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
                 <span className="inline-flex items-center gap-1.5">
                   <FiUser size={13} aria-hidden="true" />
-                  <span>Last name</span>
+                  <span>Last name<span className="text-red-600">*</span></span>
                 </span>
               </label>
               <input
@@ -1392,7 +1398,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
               <span className="inline-flex items-center gap-1.5">
                 <FiMail size={13} aria-hidden="true" />
-                <span>Email address</span>
+                <span>Email address<span className="text-red-600">*</span></span>
               </span>
             </label>
             <input
@@ -1521,7 +1527,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           <div className="space-y-1">
             <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
               <FiMapPin size={13} aria-hidden="true" />
-              <span>Location</span>
+              <span>Location<span className="text-red-600">*</span></span>
             </p>
           </div>
 
@@ -1566,6 +1572,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                   className={`${inputClass} flex-1 ${cityAutocompleteOptions.length > 0 ? "rounded-b-none" : ""} ${isNeighborhoodSelected ? "opacity-60" : ""}`}
                   autoComplete="new-password"
                   disabled={isNeighborhoodSelected}
+                  required
                 />
                 
                 {isNeighborhoodSelected && (
@@ -1750,7 +1757,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
 
           {!canSaveProfile && (
             <p className="text-xs text-amber-700">
-              Save is locked. Required: {missingRequiredFields.join(", ") || "verified location"}.
+              Save is locked. Required: {missingRequiredFields.join(", ") || "verified location"}.<br />
+              <span className="text-xs text-slate-500">Fields marked with <span className="text-red-600">*</span> are required.</span>
             </p>
           )}
         </form>

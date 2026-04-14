@@ -1,4 +1,4 @@
-const REALTIME_EVENTS = {
+export const REALTIME_EVENTS = {
   PRESENCE_UPDATE: "presence:update",
   PRESENCE_PING: "presence:ping",
   NOTIFICATION_CREATED: "notification:created",
@@ -8,8 +8,4 @@ const REALTIME_EVENTS = {
   CHAT_CONVERSATION_JOIN: "chat:conversation:join",
   CHAT_CONVERSATION_LEAVE: "chat:conversation:leave",
   MATCH_STATUS_CHANGED: "match:status:changed",
-};
-
-module.exports = {
-  REALTIME_EVENTS,
 };

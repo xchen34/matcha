@@ -7,6 +7,7 @@ import {
   leaveConversationRoom,
   onRealtimeEvent,
 } from "../realtime/socket.js";
+import { REALTIME_EVENTS } from "../realtime/events";
 import { buildApiHeaders } from "../utils.js";
 import {
   fetchConversationMessages,
@@ -20,8 +21,10 @@ const chatBubbleClass =
   "rounded-2xl border border-slate-200 px-3 py-1 text-sm leading-tight shadow-sm";
 const chatInputClass =
   "w-full rounded-2xl border border-slate-200 px-4 py-2 text-base text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition min-h-[72px]";
-const chatButtonClass =
-  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-4 py-3 text-base font-semibold text-white shadow-lg shadow-orange-200/60 hover:-translate-y-0.5 transition";
+const chatButtonClass = (isDisabled) =>
+  isDisabled
+    ? "inline-flex items-center justify-center rounded-full bg-slate-300 px-4 py-3 text-base font-semibold text-white shadow-lg opacity-60 cursor-not-allowed"
+    : "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-4 py-3 text-base font-semibold text-white shadow-lg shadow-orange-200/60 hover:-translate-y-0.5 transition";
 
 function MessageStatus({ isRead, className = "" }) {
   if (isRead) {
@@ -129,8 +132,14 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [conversation, setConversation] = useState(null);
+  const [isMatch, setIsMatch] = useState(true);
+  const [matchError, setMatchError] = useState("");
+  const [blockStatus, setBlockStatus] = useState(null); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const isMatchError =
+    error &&
+    (error === "You must be matched to send messages");
   const [body, setBody] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -167,6 +176,24 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
           : [],
       );
       setConversation(data.conversation || null);
+      // Gestion du match
+      if (data.conversation && typeof data.conversation.is_match !== "undefined") {
+        setIsMatch(Boolean(data.conversation.is_match));
+        if (!data.conversation.is_match) {
+          setBlockStatus("unmatched");
+        } else {
+          setBlockStatus(null);
+        }
+      } else {
+        setIsMatch(true); // fallback
+        setBlockStatus(null);
+      }
+      // Gestion du blocage (si info présente dans la conversation)
+      if (data.conversation?.blocked_by_you) {
+        setBlockStatus("blocked_by_you");
+      } else if (data.conversation?.blocked_you) {
+        setBlockStatus("blocked_you");
+      }
       setMessagesOffset(Array.isArray(data.messages) ? data.messages.length : 0);
       setHasMoreMessages(Boolean(data?.paging?.has_more));
     } catch (err) {
@@ -350,20 +377,20 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       return undefined;
     }
 
-    const off = onRealtimeEvent("chat:message:created", (payload) => {
-        const message = payload?.message;
-        if (
-          !message ||
-          Number(message.conversation_id) !== Number(conversation.id)
-        ) {
-          return;
-        }
+    const offMessage = onRealtimeEvent("chat:message:created", (payload) => {
+      const message = payload?.message;
+      if (
+        !message ||
+        Number(message.conversation_id) !== Number(conversation.id)
+      ) {
+        return;
+      }
 
-        setMessages((prev) => dedupeMessages([...prev, message]));
-        if (Number(message.sender_user_id) !== Number(currentUser.id)) {
-          void markCurrentConversationAsRead();
-        }
-      });
+      setMessages((prev) => dedupeMessages([...prev, message]));
+      if (Number(message.sender_user_id) !== Number(currentUser.id)) {
+        void markCurrentConversationAsRead();
+      }
+    });
 
     const offReadUpdate = onRealtimeEvent(
       "chat:conversation:read",
@@ -404,9 +431,28 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       },
     );
 
+    const offMatchStatus = onRealtimeEvent("match:status:changed", (payload) => {
+      if (!payload) return;
+      const otherUserId = conversation?.other_user?.id;
+      // On ne fait la logique que si la conversation affichée correspond à l'utilisateur concerné
+      if (!otherUserId) return;
+      if (Number(payload.userId) === Number(otherUserId)) {
+        // Si le match est rompu, on affiche un message et on désactive l'envoi
+        if (payload.matched === false) {
+          setIsMatch(false);
+          setMatchError("Le match a été annulé. Vous ne pouvez plus envoyer de messages à cet utilisateur.");
+        } else {
+          setIsMatch(true);
+          setMatchError("");
+        }
+        void loadConversation();
+      }
+    });
+
     return () => {
-      off();
+      offMessage();
       offReadUpdate();
+      offMatchStatus();
     };
   }, [currentUser?.id, conversation?.id, loadConversation, markCurrentConversationAsRead]);
 
@@ -549,7 +595,21 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
             />
           </button>
           <div>
-            <h2 className="text-3xl font-bold text-slate-900">{displayName}</h2>
+            <h2 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
+              {displayName}
+              {blockStatus === "unmatched" && (
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold border border-yellow-300">Unmatched</span>
+              )}
+              {blockStatus === "blocked_by_you" && (
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-semibold border border-red-300">Blocked</span>
+              )}
+              {blockStatus === "blocked_you" && (
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-semibold border border-red-300">Blocked you</span>
+              )}
+              {blockStatus === null && isMatch && (
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-semibold border border-green-300">Matched</span>
+              )}
+            </h2>
             <p className="text-sm text-slate-500">
               {conversation?.other_user?.is_online ? "Currently online" : "Offline"}
             </p>
@@ -572,8 +632,16 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         )}
       </header>
 
-      {error && (
-        <p className="text-sm text-amber-600">{error}</p>
+      {matchError && (
+        <div className="mt-2">
+          <p className="text-sm text-red-600 font-semibold">{matchError}</p>
+        </div>
+      )}
+
+      {error && isMatch && (
+        <div className="mt-2">
+          <p className="text-sm text-amber-600">{error}</p>
+        </div>
       )}
 
       <div
@@ -591,94 +659,176 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
           </p>
         )}
         <ul className="space-y-1">
-          {messages.map((msg, index) => {
-            const isMine = Number(msg.sender_user_id) === currentUserId;
-            const prevMsg = index > 0 ? messages[index - 1] : null;
-            const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
-            const startsNewDay =
-              !prevMsg ||
-              getMessageDateKey(prevMsg.created_at) !== getMessageDateKey(msg.created_at);
-            const isLastInGroup = !nextMsg || !areMessagesInSameGroup(msg, nextMsg);
-            const messageId = msg.id != null ? String(msg.id) : `idx-${index}`;
-            const showTimestamp = isLastInGroup || openedTimestampId === messageId;
-
-            return (
-              <li
-                key={
-                  msg.id != null
-                    ? `msg-${msg.id}`
-                    : `msg-${index}-${msg.created_at ?? ""}`
+          {(() => {
+            // Trouver le dernier message matched et unmatched
+            let lastMatchedIdx = -1;
+            let lastUnmatchedIdx = -1;
+            let matchedDate = null;
+            let unmatchedDate = null;
+            const unmatchedRegex = /unmatched|no longer matched/i;
+            const matchedRegex = /matched with/i;
+            messages.forEach((msg, idx) => {
+              if (matchedRegex.test(msg.content)) {
+                if (lastMatchedIdx === -1 || new Date(msg.created_at) > new Date(messages[lastMatchedIdx]?.created_at)) {
+                  lastMatchedIdx = idx;
+                  const dateMatch = msg.content.match(/on (.+)$/i);
+                  matchedDate = dateMatch ? dateMatch[1] : null;
                 }
-                className="space-y-1"
-              >
-                {startsNewDay && (
-                  <div className="py-1 text-center">
-                    <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-slate-500">
-                      {formatDaySeparator(msg.created_at)}
+              }
+              if (unmatchedRegex.test(msg.content)) {
+                if (lastUnmatchedIdx === -1 || new Date(msg.created_at) > new Date(messages[lastUnmatchedIdx]?.created_at)) {
+                  lastUnmatchedIdx = idx;
+                  const dateMatch = msg.content.match(/on (.+)$/i);
+                  unmatchedDate = dateMatch ? dateMatch[1] : null;
+                }
+              }
+            });
+
+            // Choisir le plus récent des deux événements
+            let showType = null;
+            let showIdx = -1;
+            let showDate = null;
+            if (lastMatchedIdx !== -1 && lastUnmatchedIdx !== -1) {
+              const matchedTime = new Date(messages[lastMatchedIdx].created_at).getTime();
+              const unmatchedTime = new Date(messages[lastUnmatchedIdx].created_at).getTime();
+              if (unmatchedTime > matchedTime) {
+                showType = 'unmatched';
+                showIdx = lastUnmatchedIdx;
+                showDate = unmatchedDate;
+              } else {
+                showType = 'matched';
+                showIdx = lastMatchedIdx;
+                showDate = matchedDate;
+              }
+            } else if (lastMatchedIdx !== -1) {
+              showType = 'matched';
+              showIdx = lastMatchedIdx;
+              showDate = matchedDate;
+            } else if (lastUnmatchedIdx !== -1) {
+              showType = 'unmatched';
+              showIdx = lastUnmatchedIdx;
+              showDate = unmatchedDate;
+            }
+
+            return messages.map((msg, index) => {
+              const isMine = Number(msg.sender_user_id) === currentUserId;
+              const prevMsg = index > 0 ? messages[index - 1] : null;
+              const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+              const startsNewDay =
+                !prevMsg ||
+                getMessageDateKey(prevMsg.created_at) !== getMessageDateKey(msg.created_at);
+              const isLastInGroup = !nextMsg || !areMessagesInSameGroup(msg, nextMsg);
+              const messageId = msg.id != null ? String(msg.id) : `idx-${index}`;
+              const showTimestamp = isLastInGroup || openedTimestampId === messageId;
+
+              // Affiche uniquement le badge le plus récent (matched ou unmatched)
+              if (index === showIdx && showType === 'matched') {
+                return (
+                  <li key={msg.id != null ? `msg-matched-${msg.id}` : `msg-matched-${index}-${msg.created_at ?? ""}`}
+                      className="py-2 text-center">
+                    <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[0.9rem] font-semibold text-red-700">
+                      You matched{showDate ? ` on ${showDate}` : ''}!
                     </span>
-                  </div>
-                )}
-                <div className={`flex w-full ${isMine ? "justify-end" : "justify-start"}`}>
-                  <div className={`group flex max-w-[62%] flex-col ${isMine ? "items-end" : "items-start"}`}>
-                    <button
-                      type="button"
-                      onClick={() => setOpenedTimestampId(messageId)}
-                      className={`${chatBubbleClass} text-left ${
-                        isMine
-                          ? "from-brand to-brand-deep bg-gradient-to-r border-transparent text-white shadow-lg"
-                          : "border-slate-200 bg-slate-100 text-slate-900"
-                      }`}
-                    >
-                      <p className="text-sm leading-relaxed whitespace-normal break-normal">{msg.content}</p>
-                    </button>
-                    {isMine ? (
-                      <div
-                        className={`inline-flex items-center gap-1 overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
-                          showTimestamp
-                            ? "mt-0.5 max-h-6 opacity-100"
-                            : "max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
+                  </li>
+                );
+              }
+              if (index === showIdx && showType === 'unmatched') {
+                return (
+                  <li key={msg.id != null ? `msg-unmatched-${msg.id}` : `msg-unmatched-${index}-${msg.created_at ?? ""}`}
+                      className="py-2 text-center">
+                    <span className="inline-flex rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-[0.9rem] font-semibold text-yellow-800">
+                      You unmatched{showDate ? ` on ${showDate}` : ''}!
+                    </span>
+                  </li>
+                );
+              }
+
+              // Masque tous les autres messages système matched/unmatched
+              if (matchedRegex.test(msg.content) || unmatchedRegex.test(msg.content)) {
+                return null;
+              }
+
+              return (
+                <li
+                  key={
+                    msg.id != null
+                      ? `msg-${msg.id}`
+                      : `msg-${index}-${msg.created_at ?? ""}`
+                  }
+                  className="space-y-1"
+                >
+                  {startsNewDay && (
+                    <div className="py-1 text-center">
+                      <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-slate-500">
+                        {formatDaySeparator(msg.created_at)}
+                      </span>
+                    </div>
+                  )}
+                  <div className={`flex w-full ${isMine ? "justify-end" : "justify-start"}`}>
+                    <div className={`group flex max-w-[62%] flex-col ${isMine ? "items-end" : "items-start"}`}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenedTimestampId(messageId)}
+                        className={`${chatBubbleClass} text-left ${
+                          isMine
+                            ? "from-brand to-brand-deep bg-gradient-to-r border-transparent text-white shadow-lg"
+                            : "border-slate-200 bg-slate-100 text-slate-900"
                         }`}
                       >
-                        <span>{formatTime(msg.created_at)}</span>
-                        <MessageStatus isRead={Boolean(msg.is_read)} />
-                      </div>
-                    ) : (
-                      <p
-                        className={`overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
-                          showTimestamp
-                            ? "mt-0.5 max-h-6 opacity-100"
-                            : "max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
-                        }`}
-                      >
-                        {formatTime(msg.created_at)}
-                      </p>
-                    )}
+                        <p className="text-sm leading-relaxed whitespace-normal break-normal">{msg.content}</p>
+                      </button>
+                      {isMine ? (
+                        <div
+                          className={`inline-flex items-center gap-1 overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
+                            showTimestamp
+                              ? "mt-0.5 max-h-6 opacity-100"
+                              : "max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
+                          }`}
+                        >
+                          <span>{formatTime(msg.created_at)}</span>
+                          <MessageStatus isRead={Boolean(msg.is_read)} />
+                        </div>
+                      ) : (
+                        <p
+                          className={`overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
+                            showTimestamp
+                              ? "mt-0.5 max-h-6 opacity-100"
+                              : "max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
+                          }`}
+                        >
+                          {formatTime(msg.created_at)}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </li>
-            );
-          })}
+                </li>
+              );
+            });
+          })()}
         </ul>
       </div>
 
-      <form onSubmit={handleSend} className="space-y-2">
-        <textarea
-          rows={2}
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          className={chatInputClass}
-          placeholder="Write a message..."
-        />
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            className={chatButtonClass}
-            disabled={isSending || !body.trim()}
-          >
-            {isSending ? "Sending…" : "Send message"}
-          </button>
-        </div>
-      </form>
+      {isMatch && (
+        <form onSubmit={handleSend} className="space-y-2">
+          <textarea
+            rows={2}
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            className={chatInputClass}
+            placeholder="Write a message..."
+            disabled={isSending}
+          />
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className={chatButtonClass(isSending || !body.trim())}
+              disabled={isSending || !body.trim()}
+            >
+              {isSending ? "Sending…" : "Send message"}
+            </button>
+          </div>
+        </form>
+      )}
     </section>
   );
 }

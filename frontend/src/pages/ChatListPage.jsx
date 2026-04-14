@@ -165,6 +165,8 @@ export default function ChatListPage({ currentUser, embedded = false }) {
 
   const emptyState = !loading && conversations.length === 0;
 
+
+
   return (
     <section className={embedded ? "space-y-4" : "space-y-6"}>
       {!embedded && (
@@ -209,9 +211,24 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                   photoUrl={conv.other_user.primary_photo_url}
                   isOnline={Boolean(conv.other_user.is_online)}
                 />
+                {/* Croix supprimée ici, bouton uniquement à droite du temps */}
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-base font-semibold text-slate-900">{displayName}</p>
+                    <p className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                      {displayName}
+                      {conv.blocked_by_you && (
+                        <span className="ml-1 px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-semibold border border-red-300">Blocked</span>
+                      )}
+                      {conv.blocked_you && (
+                        <span className="ml-1 px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-semibold border border-red-300">Blocked you</span>
+                      )}
+                      {conv.is_match === false && (
+                        <span className="ml-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold border border-yellow-300">Unmatched</span>
+                      )}
+                      {conv.is_match === true && !conv.blocked_by_you && !conv.blocked_you && (
+                        <span className="ml-1 px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-semibold border border-green-300">Matched</span>
+                      )}
+                    </p>
                   </div>
                   <p className="text-slate-500">
                     {messagePreview.length > 80
@@ -219,12 +236,14 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                       : messagePreview}
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-2 text-right">
-                  {lastMessageTime && (
-                    <span className="text-[0.65rem] uppercase tracking-[0.2em] text-slate-400">
-                      {lastMessageTime}
-                    </span>
-                  )}
+                <div className="flex flex-col items-end gap-2 text-right min-w-[48px]">
+                  <div className="flex items-center gap-2">
+                    {lastMessageTime && (
+                      <span className="text-[0.65rem] uppercase tracking-[0.2em] text-slate-400">
+                        {lastMessageTime}
+                      </span>
+                    )}
+                  </div>
                   {conv.unread_count > 0 && (
                     <span className="rounded-full bg-brand px-2 py-0.5 text-[0.65rem] font-semibold text-white">
                       {conv.unread_count}
@@ -236,6 +255,8 @@ export default function ChatListPage({ currentUser, embedded = false }) {
           );
         })}
       </ul>
+
+
 
       {emptyState && (
         <p className="text-sm text-slate-500">
