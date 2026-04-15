@@ -67,12 +67,13 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   return (
     <div className="relative flex flex-col justify-between h-full gap-3 rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-orange-100 transition hover:shadow-md">
       <div>
-        <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+        <div className="relative overflow-hidden rounded-xl mb-4">
           {profilePhotoUrl ? (
             <img
               src={profilePhotoUrl}
               alt={`@${user.username} profile`}
-              className="h-40 w-full object-cover"
+              className="h-40 w-full object-contain rounded-xl"
+              style={{ objectFit: 'contain' }}
             />
           ) : (
             <div className="flex h-40 w-full items-center justify-center text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">

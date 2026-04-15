@@ -20,38 +20,112 @@ function FieldLabel({ icon: Icon, children }) {
 // Affichage des photos avec adaptation selon dimensions
 function ProfilePhotosGrid({ photos }) {
   const [dimensions, setDimensions] = useState({});
+  const [mainSize, setMainSize] = useState({ w: 224, h: 224 });
 
   function handleImgLoad(photoId, e) {
     const { naturalWidth: w, naturalHeight: h } = e.target;
     setDimensions((prev) => ({ ...prev, [photoId]: { w, h } }));
+    if (photoId === photos[0]?.id) {
+      const size = Math.max(w, h, 200);
+      setMainSize({ w: size, h: size });
+    }
   }
 
+  const [modalIndex, setModalIndex] = useState(null);
+  const openModal = (idx) => setModalIndex(idx);
+  const closeModal = () => setModalIndex(null);
+  const showPrev = () => setModalIndex((i) => (i > 0 ? i - 1 : photos.length - 1));
+  const showNext = () => setModalIndex((i) => (i < photos.length - 1 ? i + 1 : 0));
+
+  // Keyboard navigation for modal
+  useEffect(() => {
+    if (modalIndex === null) return;
+    function handleKeyDown(e) {
+      if (e.key === 'ArrowLeft') {
+        showPrev();
+      } else if (e.key === 'ArrowRight') {
+        showNext();
+      } else if (e.key === 'Escape') {
+        closeModal();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalIndex]);
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      {photos.map((photo) => {
-        const dim = dimensions[photo.id];
-        let style = "object-cover h-32 w-full";
-        if (dim) {
-          const ratio = dim.w / dim.h;
-          if (ratio > 1.2) style = "object-cover w-full h-24"; // paysage
-          else if (ratio < 0.8) style = "object-cover w-full h-40"; // portrait
-          else style = "object-cover w-full h-32"; // carré ou proche
-        }
-        return (
-          <div
-            key={photo.id}
-            className={`overflow-hidden rounded-xl border ${photo.is_primary ? "border-brand" : "border-slate-200"}`}
-          >
+    <>
+      <div className="flex flex-wrap gap-2">
+        {photos.map((photo, idx) => {
+          const dim = dimensions[photo.id];
+          // Toujours utiliser object-contain pour que l'image soit entièrement visible
+          const objectFit = "object-contain";
+          return (
+            <div
+              key={photo.id}
+              className={`flex items-center justify-center bg-slate-100 overflow-hidden rounded-xl border group ${photo.is_primary ? "border-brand" : "border-slate-200"}`}
+              style={{ width: mainSize.w, height: mainSize.h, minWidth: mainSize.w, minHeight: mainSize.h, maxWidth: mainSize.w, maxHeight: mainSize.h, position: 'relative', zIndex: 1 }}
+            >
+              <div className="relative w-full h-full">
+                <img
+                  src={photo.data_url}
+                  alt="Profile"
+                  className="object-contain w-full h-full transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 group-hover:shadow-2xl cursor-zoom-in"
+                  style={{ background: "#f1f5f9" }}
+                  onLoad={(e) => handleImgLoad(photo.id, e)}
+                  onClick={() => openModal(idx)}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {modalIndex !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fadein"
+          onClick={closeModal}
+        >
+          <div className="relative flex items-center" onClick={e => e.stopPropagation()}>
+            <button
+              className="absolute left-[-3rem] md:left-[-4rem] top-1/2 -translate-y-1/2 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition z-10"
+              onClick={showPrev}
+              aria-label="Photo précédente"
+              type="button"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
             <img
-              src={photo.data_url}
-              alt="Profile"
-              className={style}
-              onLoad={(e) => handleImgLoad(photo.id, e)}
+              src={photos[modalIndex].data_url}
+              alt="Profile large"
+              className="max-h-[70vh] max-w-[70vw] rounded-xl shadow-2xl border-4 border-white"
+              style={{ background: '#f1f5f9' }}
             />
+            <button
+              className="absolute right-[-3rem] md:right-[-4rem] top-1/2 -translate-y-1/2 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition z-10"
+              onClick={showNext}
+              aria-label="Photo suivante"
+              type="button"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <button
+              className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition"
+              onClick={closeModal}
+              aria-label="Fermer"
+              type="button"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-        );
-      })}
-    </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -59,6 +133,16 @@ function UserProfilePage({ currentUser }) {
   const { id } = useParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+    // Reset error and data when user or id changes (prevents stale error after logout/login)
+    useEffect(() => {
+      setError("");
+      setData(null);
+    }, [currentUser, id]);
+
+    // Réinitialisation globale de l'erreur si currentUser change (logout/login)
+    useEffect(() => {
+      setError("");
+    }, [currentUser]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
@@ -81,9 +165,21 @@ function UserProfilePage({ currentUser }) {
       setLoading(true);
       setError("");
       try {
-        const response = await fetch(`/api/profile/${id}`, {
-          headers: buildApiHeaders(currentUser),
-        });
+        // Si l'utilisateur courant consulte son propre profil, utiliser /api/profile/me
+        let response;
+        if (currentUser && String(currentUser.id) === String(id)) {
+          response = await fetch(`/api/profile/me`, {
+            headers: buildApiHeaders(currentUser),
+          });
+        } else {
+          response = await fetch(`/api/profile/${id}`, {
+            headers: buildApiHeaders(currentUser),
+          });
+        }
+        if (response.status === 401 || response.status === 403) {
+          window.location.href = "/login";
+          return;
+        }
         const payload = await response.json();
         if (!response.ok) {
           setError(payload.error || "Failed to load profile");
@@ -358,12 +454,17 @@ function UserProfilePage({ currentUser }) {
     }
   }
 
-  if (!currentUser) return <Navigate to="/login" replace />;
+  // If not logged in, do not show error, just redirect
+  if (!currentUser) {
+    if (error) setError("");
+    return <Navigate to="/login" replace />;
+  }
   if (loading) return <p className="text-sm text-slate-600">Loading profile...</p>;
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (!data) return null;
 
   const { user, profile } = data;
+  console.log('UserProfilePage profile:', profile);
   const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
   const isOwnProfile = String(currentUser?.id || "") === String(user.id);
   const relationLabel = isMatch
@@ -550,6 +651,24 @@ function UserProfilePage({ currentUser }) {
             <FieldLabel icon={FiCalendar}>Age</FieldLabel>
             <p className="mt-1 text-slate-800">
               {profile.age !== undefined && profile.age !== null ? profile.age : "-"}
+            </p>
+          </div>
+          <div>
+            <FieldLabel icon={FiCalendar}>Birth date</FieldLabel>
+            <p className="mt-1 text-slate-800">
+              {profile.birth_date
+                ? (() => {
+                    // Parse as local date to avoid timezone shift
+                    const [y, m, d] = profile.birth_date.split('-');
+                    if (!y || !m || !d) return "-";
+                    const date = new Date(Number(y), Number(m) - 1, Number(d));
+                    return date.toLocaleDateString("en-GB", {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                    });
+                  })()
+                : "-"}
             </p>
           </div>
           <div>

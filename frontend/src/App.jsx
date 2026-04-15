@@ -205,6 +205,8 @@ function RegisterPage() {
     email: "",
     username: "",
     birth_date: "",
+    gender: "",
+    sexual_preference: "",
     password: "",
   });
   const [message, setMessage] = useState("");
@@ -287,6 +289,42 @@ function RegisterPage() {
             max={todayIso}
           />
           <p className="text-xs text-slate-500">Required to verify you are at least 18 years old.</p>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Gender
+          </label>
+          <select
+            name="gender"
+            value={form.gender}
+            onChange={handleChange}
+            className={inputClass}
+            required
+          >
+            <option value="">Select gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="non_binary">Non-binary</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Sexual preference
+          </label>
+          <select
+            name="sexual_preference"
+            value={form.sexual_preference}
+            onChange={handleChange}
+            className={inputClass}
+            required
+          >
+            <option value="">Select preference</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="both">Both</option>
+            <option value="other">Other</option>
+          </select>
         </div>
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
@@ -576,15 +614,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         );
 
         const data = await response.json();
-        console.log("[city-suggestions] response", {
-          city,
-          status: response.status,
-          ok: response.ok,
-          count: Array.isArray(data?.suggestions) ? data.suggestions.length : 0,
-          sample: Array.isArray(data?.suggestions)
-            ? data.suggestions.slice(0, 3).map((item) => item.city)
-            : [],
-        });
         if (!response.ok || cancelled) {
           if (!cancelled) {
             setMessage(
@@ -606,10 +635,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           setCitySearchSuggestions(suggestions);
         }
       } catch (error) {
-        console.log("[city-suggestions] failed", {
-          city,
-          message: error?.message || "unknown error",
-        });
+
         if (!cancelled) {
           setCitySearchSuggestions([]);
           setMessage("City suggestions failed. Check backend availability.");
@@ -1004,15 +1030,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           return;
         }
 
-      console.log("[validate-location] response", {
-        city,
-        neighborhood,
-        status: response.status,
-        ok: response.ok,
-        validation: data?.validation || null,
-        suggestionsCount: Array.isArray(data?.suggestions) ? data.suggestions.length : 0,
-      });
-
         if (!response.ok) {
           setLocationValidation(null);
           setLocationSuggestions([]);
@@ -1323,6 +1340,28 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         </p>
       )}
 
+      {/* Affichage en lecture seule de la date de naissance */}
+      {form.birth_date && (
+        <div className="mb-2">
+          <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold inline-flex items-center gap-1.5">
+            <FiCalendar size={13} aria-hidden="true" />
+            <span>Birth date (read-only)</span>
+          </span>
+          <span className="ml-2 text-slate-800 font-medium">
+            {(() => {
+              const [y, m, d] = form.birth_date.split("-");
+              if (!y || !m || !d) return "-";
+              const date = new Date(Number(y), Number(m) - 1, Number(d));
+              return date.toLocaleDateString("en-GB", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+              });
+            })()}
+          </span>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-sm text-slate-500">Loading...</p>
       ) : (
@@ -1432,7 +1471,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
               <span className="inline-flex items-center gap-1.5">
                 <FiUser size={13} aria-hidden="true" />
-                <span>Gender</span>
+                <span>Gender<span className="text-red-600">*</span></span>
               </span>
             </label>
             <select
@@ -1453,7 +1492,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
               <span className="inline-flex items-center gap-1.5">
                 <FiCompass size={13} aria-hidden="true" />
-                <span>Sexual preference</span>
+                <span>Sexual preference<span className="text-red-600">*</span></span>
               </span>
             </label>
             <select

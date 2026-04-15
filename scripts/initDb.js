@@ -144,10 +144,11 @@ async function initDb() {
     await pool.query(createChatSql);
     await pool.query(migrateLegacyUsersSql);
     await pool.query(seedFakeUsersSql);
-
-    console.log(
-      "Database initialized: users, profiles, likes, tags, user_profile_tags, user_photos, notifications, fake_account_reports, user_blocks, and presence fields are ready and fake users are seeded.",
-    );
+    const { spawnSync } = require("child_process");
+    const result = spawnSync("node", [path.join(__dirname, "seed_photos_for_existing_users.js")], { stdio: "inherit" });
+    if (result.status !== 0) {
+      throw new Error("Seeding user photos failed");
+    }
   } catch (error) {
     console.error("Failed to initialize database:", error.message);
     process.exitCode = 1;

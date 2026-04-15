@@ -1060,20 +1060,18 @@ router.put("/profile/me", async (req, res, next) => {
       photos,
     } = req.body;
 
-    if (!isNonEmptyString(biography)) {
-      return res.status(400).json({ error: "biography is required" });
+    if (biography !== undefined && biography !== null && typeof biography !== "string") {
+      return res.status(400).json({ error: "biography must be a string" });
     }
-    if (!isNonEmptyString(gender) || !allowedGenders.includes(gender)) {
-      return res
-        .status(400)
-        .json({ error: "gender is invalid", allowed_values: allowedGenders });
-    }
-    if (
-      !isNonEmptyString(sexual_preference) ||
-      !allowedPreferences.includes(sexual_preference)
-    ) {
+    if (!gender || !allowedGenders.includes(gender)) {
       return res.status(400).json({
-        error: "sexual_preference is invalid",
+        error: "gender is required and must be valid",
+        allowed_values: allowedGenders,
+      });
+    }
+    if (!sexual_preference || !allowedPreferences.includes(sexual_preference)) {
+      return res.status(400).json({
+        error: "sexual_preference is required and must be valid",
         allowed_values: allowedPreferences,
       });
     }

@@ -371,7 +371,7 @@ router.get("/matches", async (req, res, next) => {
         SELECT
           city,
           gender,
-          COALESCE(NULLIF(sexual_preference, ''), 'both') AS sexual_preference
+          sexual_preference
         FROM profiles
         WHERE user_id = $1
       ),
@@ -462,13 +462,14 @@ router.get("/matches", async (req, res, next) => {
           OR (p.city IS NOT NULL AND LOWER(p.city) = LOWER($8::text))
         )
         AND (
-          COALESCE(me.sexual_preference, 'both') = 'both'
-          OR (COALESCE(me.sexual_preference, 'both') = 'male' AND p.gender = 'male')
-          OR (COALESCE(me.sexual_preference, 'both') = 'female' AND p.gender = 'female')
-          OR (COALESCE(me.sexual_preference, 'both') = 'other' AND p.gender IN ('non_binary', 'other'))
+          me.sexual_preference IS NULL OR me.sexual_preference = ''
+          OR me.sexual_preference = 'both'
+          OR (me.sexual_preference = 'male' AND p.gender = 'male')
+          OR (me.sexual_preference = 'female' AND p.gender = 'female')
+          OR (me.sexual_preference = 'other' AND p.gender IN ('non_binary', 'other'))
         )
         AND (
-          me.gender IS NULL
+          me.gender IS NULL OR me.gender = ''
           OR COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'both'
           OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'male' AND me.gender = 'male')
           OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'female' AND me.gender = 'female')
