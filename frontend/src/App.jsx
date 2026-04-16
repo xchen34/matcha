@@ -406,8 +406,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     last_name: "",
     email: "",
     biography: "",
-    gender: "",
-    sexual_preference: "",
     birth_date: "",
     city: "",
     neighborhood: "",
@@ -442,8 +440,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   const hasCityInput = (form.city || "").trim().length > 0;
   const hasNeighborhoodInput = (form.neighborhood || "").trim().length > 0;
   const hasBiography = (form.biography || "").trim().length > 0;
-  const hasGender = (form.gender || "").trim().length > 0;
-  const hasSexualPreference = (form.sexual_preference || "").trim().length > 0;
   const hasProfilePhoto = form.photos.length > 0;
   const hasPrimaryProfilePhoto = form.photos.some((photo) => photo.is_primary);
   // Required fields logic
@@ -576,15 +572,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         );
 
         const data = await response.json();
-        console.log("[city-suggestions] response", {
-          city,
-          status: response.status,
-          ok: response.ok,
-          count: Array.isArray(data?.suggestions) ? data.suggestions.length : 0,
-          sample: Array.isArray(data?.suggestions)
-            ? data.suggestions.slice(0, 3).map((item) => item.city)
-            : [],
-        });
         if (!response.ok || cancelled) {
           if (!cancelled) {
             setMessage(
@@ -606,10 +593,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           setCitySearchSuggestions(suggestions);
         }
       } catch (error) {
-        console.log("[city-suggestions] failed", {
-          city,
-          message: error?.message || "unknown error",
-        });
+
         if (!cancelled) {
           setCitySearchSuggestions([]);
           setMessage("City suggestions failed. Check backend availability.");
@@ -657,8 +641,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         last_name: data.user?.last_name || "",
         email: data.user?.email || "",
         biography: data.profile.biography || "",
-        gender: data.profile.gender || "",
-        sexual_preference: data.profile.sexual_preference || "",
         birth_date: data.profile.birth_date
           ? String(data.profile.birth_date).slice(0, 10)
           : "",
@@ -1004,15 +986,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           return;
         }
 
-      console.log("[validate-location] response", {
-        city,
-        neighborhood,
-        status: response.status,
-        ok: response.ok,
-        validation: data?.validation || null,
-        suggestionsCount: Array.isArray(data?.suggestions) ? data.suggestions.length : 0,
-      });
-
         if (!response.ok) {
           setLocationValidation(null);
           setLocationSuggestions([]);
@@ -1233,8 +1206,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       last_name: form.last_name,
       email: form.email,
       biography: form.biography,
-      gender: form.gender,
-      sexual_preference: form.sexual_preference,
       birth_date: form.birth_date || null,
       city: form.city,
       neighborhood: form.neighborhood,
@@ -1271,8 +1242,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         last_name: data.user?.last_name || prev.last_name,
         email: data.user?.email || prev.email,
         biography: data.profile.biography || "",
-        gender: data.profile.gender || "",
-        sexual_preference: data.profile.sexual_preference || "",
         birth_date: data.profile.birth_date
           ? String(data.profile.birth_date).slice(0, 10)
           : "",

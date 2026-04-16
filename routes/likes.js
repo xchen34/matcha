@@ -371,7 +371,7 @@ router.get("/matches", async (req, res, next) => {
         SELECT
           city,
           gender,
-          COALESCE(NULLIF(sexual_preference, ''), 'both') AS sexual_preference
+          sexual_preference
         FROM profiles
         WHERE user_id = $1
       ),
@@ -461,14 +461,15 @@ router.get("/matches", async (req, res, next) => {
           $8::text IS NULL
           OR (p.city IS NOT NULL AND LOWER(p.city) = LOWER($8::text))
         )
+        -- Si l'utilisateur n'a pas spécifié d'orientation, on considère 'both' (bisexual)
         AND (
-          COALESCE(me.sexual_preference, 'both') = 'both'
-          OR (COALESCE(me.sexual_preference, 'both') = 'male' AND p.gender = 'male')
-          OR (COALESCE(me.sexual_preference, 'both') = 'female' AND p.gender = 'female')
-          OR (COALESCE(me.sexual_preference, 'both') = 'other' AND p.gender IN ('non_binary', 'other'))
+          COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'both'
+          OR (COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'male' AND p.gender = 'male')
+          OR (COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'female' AND p.gender = 'female')
+          OR (COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'other' AND p.gender IN ('non_binary', 'other'))
         )
         AND (
-          me.gender IS NULL
+          me.gender IS NULL OR me.gender = ''
           OR COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'both'
           OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'male' AND me.gender = 'male')
           OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'female' AND me.gender = 'female')

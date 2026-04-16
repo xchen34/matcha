@@ -92,22 +92,23 @@ router.post("/auth/register", async (req, res, next) => {
 
     const passwordHash = await bcrypt.hash(password, 10); // bcrypt.hash() 方法用于将用户提供的密码进行哈希处理，生成一个安全的密码哈希值。第一个参数是要哈希的密码字符串，第二个参数是 saltRounds，表示哈希算法的复杂度（迭代次数）。较高的 saltRounds 会增加哈希计算的时间，从而提高安全性，但也会增加服务器负载。通常建议使用 10 或更高的值。
 
+    // Création de l'utilisateur
     const sql = `
       INSERT INTO users (email, username, first_name, last_name, password_hash)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING id, email, username, first_name, last_name, email_verified, created_at
-    `; // SQL 插入语句，使用参数化查询（$1、$2 等）来防止 SQL 注入攻击。RETURNING 子句允许在插入后立即返回新创建的用户记录，方便后续处理和响应。 $1 对应 email，$2 对应 username，依此类推。参数化查询确保用户输入被正确转义，避免恶意输入导致的 SQL 注入漏洞。
+    `;
+    const values = [normalizedEmail, normalizedUsername, "", "", passwordHash];
+    const result = await pool.query(sql, values);
 
-    /**
-     * sql 里只包含占位符 $1…$5，没有真实值；values 数组就是把具体数据传给驱动做“参数绑定”。执行时，pool.query(sql, values) 会：
-
-保留 sql 字符串的结构（表名、列名、占位符）。
-把 values 按顺序绑定到 $1…$5，生成一条安全的参数化查询并发送给数据库。
-驱动负责类型转换、转义，避免把用户输入当成 SQL 语句片段执行，从而防止注入。
-如果不传 values，占位符里就没有实际数据，查询无法执行。
-     */
-    const values = [normalizedEmail, normalizedUsername, "", "", passwordHash]; // values 数组包含了 SQL 查询中对应参数的位置的实际值。这个数组会被传递给 pool.query() 方法，与 SQL 语句中的 $1、$2 等占位符一一对应，确保查询的安全性和正确性。]
-    const result = await pool.query(sql, values); // 执行 SQL 查询，将用户数据插入数据库。pool.query() 方法接受 SQL 语句和参数数组，返回一个 Promise，解析后包含查询结果。这里使用 await 等待查询完成，并将结果存储在 result 变量中。result.rows[0] 将包含新创建的用户记录。values参数是一个数组，包含了 SQL 查询中对应参数的位置的实际值。这个数组会被传递给 pool.query() 方法，与 SQL 语句中的 $1、$2 等占位符一一对应，确保查询的安全性和正确性。
+    // Ajout du profil avec uniquement birth_date
+    const userId = result.rows[0].id;
+    await pool.query(
+      `INSERT INTO profiles (user_id, birth_date)
+       VALUES ($1, $2)
+       ON CONFLICT (user_id) DO UPDATE SET birth_date = EXCLUDED.birth_date`,
+      [userId, birth_date],
+    );
 
     return res.status(201).json({
       message: "User registered successfully",

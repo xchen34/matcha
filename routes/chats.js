@@ -5,12 +5,6 @@ const { isUserOnline } = require("../realtime/presence");
 
 const router = express.Router();
 router.delete("/:conversationId", async (req, res, next) => {
-  console.log(
-    "[DELETE /api/chats/:conversationId] called",
-    req.params.conversationId,
-    "user:",
-    req.header("x-user-id"),
-  );
   try {
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const conversationId = parsePositiveInt(req.params.conversationId);

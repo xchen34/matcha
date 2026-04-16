@@ -3,6 +3,7 @@ import { FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
 import { Navigate, useNavigate } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
 import { ensureConversationExists } from "../chat/api.js";
+import ChatAvatar from "../chat/ChatAvatar.jsx";
 import { useNotifications } from "../notifications/useNotifications.js";
 import { getRealtimeSocket, onRealtimeEvent } from "../realtime/socket.js";
 
@@ -352,17 +353,19 @@ function PopularityListPage({ currentUser, mode = "views" }) {
                   key={`${user.id}-${index}`}
                   className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
                 >
-                  <div>
-                    <p className="inline-flex items-center gap-1 font-semibold text-slate-900">
-                      @{user.username}
-                      {unreadUserSet.has(String(user.id)) && (
-                        <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New notification" />
-                      )}
-                    </p>
-                    <p className="text-xs text-slate-500">{config.helperText}</p>
-                    <p className="text-[11px] text-slate-400">
-                      {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="inline-flex items-center gap-1 font-semibold text-slate-900">
+                        @{user.username}
+                        {unreadUserSet.has(String(user.id)) && (
+                          <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New notification" />
+                        )}
+                      </p>
+                      <p className="text-xs text-slate-500">{config.helperText}</p>
+                      <p className="text-[11px] text-slate-400">
+                        {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
+                      </p>
+                    </div>
                   </div>
                   {renderActionButtons(user)}
                 </div>
@@ -375,17 +378,20 @@ function PopularityListPage({ currentUser, mode = "views" }) {
               key={`${user.id}-${user.created_at ?? user.matched_at ?? mode}`}
               className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
             >
-              <div>
-                <p className="font-semibold text-slate-900">
-                  @{user.username}
-                  {unreadUserSet.has(String(user.id)) && (
-                    <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New notification" />
-                  )}
-                </p>
-                <p className="text-xs text-slate-500">{config.helperText}</p>
-                <p className="text-[11px] text-slate-400">
-                  {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
-                </p>
+              <div className="flex items-center gap-3">
+                {/* Avatar retiré */}
+                <div>
+                  <p className="font-semibold text-slate-900">
+                    @{user.username}
+                    {unreadUserSet.has(String(user.id)) && (
+                      <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New notification" />
+                    )}
+                  </p>
+                  <p className="text-xs text-slate-500">{config.helperText}</p>
+                  <p className="text-[11px] text-slate-400">
+                    {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
+                  </p>
+                </div>
               </div>
               {renderActionButtons(user)}
             </div>

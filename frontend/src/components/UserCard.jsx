@@ -1,4 +1,4 @@
-import { FaHeart, FaUser, FaMapMarkerAlt, FaTags, FaStar, FaTransgender } from "react-icons/fa";
+import { FaHeart, FaUser, FaMapMarkerAlt, FaTags, FaStar } from "react-icons/fa";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -67,12 +67,13 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   return (
     <div className="relative flex flex-col justify-between h-full gap-3 rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-orange-100 transition hover:shadow-md">
       <div>
-        <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+        <div className="relative overflow-hidden rounded-xl mb-4">
           {profilePhotoUrl ? (
             <img
               src={profilePhotoUrl}
               alt={`@${user.username} profile`}
-              className="h-40 w-full object-cover"
+              className="h-40 w-full object-contain rounded-xl"
+              style={{ objectFit: 'contain' }}
             />
           ) : (
             <div className="flex h-40 w-full items-center justify-center text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -97,10 +98,6 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
             @{user.username}
           </h3>
           <div className="flex flex-wrap gap-2 text-sm text-slate-600 items-center mb-1">
-            <span className="inline-flex items-center gap-1">
-              <FaTransgender size={13} aria-hidden="true" />
-              <span className="font-semibold text-slate-800">{user.gender || "-"}</span>
-            </span>
             <span className="inline-flex items-center gap-1">
               <FaUser size={13} aria-hidden="true" />
               <span className="font-semibold text-slate-800">{user.age !== undefined && user.age !== null ? user.age : "-"}</span>
