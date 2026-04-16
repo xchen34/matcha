@@ -386,6 +386,7 @@ router.get("/matches", async (req, res, next) => {
         u.email,
         u.last_seen_at,
         p.gender,
+        p.sexual_preference,
         p.city,
         p.neighborhood,
         LEAST(
@@ -475,7 +476,7 @@ router.get("/matches", async (req, res, next) => {
           OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'female' AND me.gender = 'female')
           OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'other' AND me.gender IN ('non_binary', 'other'))
         )
-      GROUP BY u.id, u.username, u.email, u.last_seen_at, p.gender, p.city, p.neighborhood, p.fame_rating, p.birth_date, ph.primary_photo_url, me.city
+      GROUP BY u.id, u.username, u.email, u.last_seen_at, p.gender, p.sexual_preference, p.city, p.neighborhood, p.fame_rating, p.birth_date, ph.primary_photo_url, me.city
       ORDER BY
         ${orderBySql}
       LIMIT $9::int

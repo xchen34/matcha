@@ -1392,6 +1392,7 @@ router.put("/profile/me", async (req, res, next) => {
         profile: {
           username: updatedUser.username,
           gender: profile.gender || "",
+          sexual_preference: profile.sexual_preference || "",
           city: profile.city || "",
           neighborhood: profile.neighborhood || "",
           age: getAge(profile.birth_date),

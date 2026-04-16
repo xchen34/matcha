@@ -29,10 +29,7 @@ function ensureSocket() {
 
   socket.on("disconnect", (reason) => {
     if (isUnloading) return;
-    if (
-      reason === "io server disconnect" ||
-      reason === "io client disconnect"
-    ) {
+    if (reason === "io server disconnect") {
       alert(
         "You no longer have access to this conversation or the connection was closed.\n\n" +
           "Vous n'avez plus accès à cette conversation ou la connexion a été coupée.",

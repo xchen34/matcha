@@ -4,8 +4,19 @@ require("dotenv").config();
 // This is useful for development and testing purposes, to have some photos associated with users created before the photo feature was implemented.
 // Usage : node scripts/seed_photos_for_existing_users.js
 
-const fetch = (...args) =>
-  import("node-fetch").then(({ default: fetch }) => fetch(...args));
+async function fetchWithFallback(...args) {
+  if (typeof globalThis.fetch === "function") {
+    return globalThis.fetch(...args);
+  }
+  try {
+    const { default: nodeFetch } = await import("node-fetch");
+    return nodeFetch(...args);
+  } catch (error) {
+    throw new Error(
+      "No fetch implementation available. Use Node.js >= 18 or install node-fetch.",
+    );
+  }
+}
 const pool = require("../db");
 
 const MIN_PHOTOS = 0;
@@ -108,7 +119,7 @@ async function fetchRandomPhoto(gender = null, retry = 0) {
   if (gender && (gender === "male" || gender === "female")) {
     url += `&gender=${gender}`;
   }
-  const res = await fetch(url);
+  const res = await fetchWithFallback(url);
   const data = await res.json();
   if (
     data.results &&

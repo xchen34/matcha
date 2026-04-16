@@ -185,6 +185,7 @@ function FindMatchPage({ currentUser }) {
                 ? profile.username
                 : entry.username,
             gender: profile.gender ?? entry.gender,
+            sexual_preference: profile.sexual_preference ?? entry.sexual_preference,
             city: profile.city ?? entry.city,
             neighborhood: profile.neighborhood ?? entry.neighborhood,
             age: profile.age ?? entry.age,
