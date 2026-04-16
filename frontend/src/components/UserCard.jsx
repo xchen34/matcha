@@ -1,4 +1,4 @@
-import { FaHeart, FaUser, FaMapMarkerAlt, FaTags, FaStar, FaTransgender } from "react-icons/fa";
+import { FaHeart, FaUser, FaMapMarkerAlt, FaTags, FaStar } from "react-icons/fa";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -98,10 +98,6 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
             @{user.username}
           </h3>
           <div className="flex flex-wrap gap-2 text-sm text-slate-600 items-center mb-1">
-            <span className="inline-flex items-center gap-1">
-              <FaTransgender size={13} aria-hidden="true" />
-              <span className="font-semibold text-slate-800">{user.gender || "-"}</span>
-            </span>
             <span className="inline-flex items-center gap-1">
               <FaUser size={13} aria-hidden="true" />
               <span className="font-semibold text-slate-800">{user.age !== undefined && user.age !== null ? user.age : "-"}</span>

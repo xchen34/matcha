@@ -205,8 +205,6 @@ function RegisterPage() {
     email: "",
     username: "",
     birth_date: "",
-    gender: "",
-    sexual_preference: "",
     password: "",
   });
   const [message, setMessage] = useState("");
@@ -289,42 +287,6 @@ function RegisterPage() {
             max={todayIso}
           />
           <p className="text-xs text-slate-500">Required to verify you are at least 18 years old.</p>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            Gender
-          </label>
-          <select
-            name="gender"
-            value={form.gender}
-            onChange={handleChange}
-            className={inputClass}
-            required
-          >
-            <option value="">Select gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="non_binary">Non-binary</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            Sexual preference
-          </label>
-          <select
-            name="sexual_preference"
-            value={form.sexual_preference}
-            onChange={handleChange}
-            className={inputClass}
-            required
-          >
-            <option value="">Select preference</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="both">Both</option>
-            <option value="other">Other</option>
-          </select>
         </div>
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
@@ -444,8 +406,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     last_name: "",
     email: "",
     biography: "",
-    gender: "",
-    sexual_preference: "",
     birth_date: "",
     city: "",
     neighborhood: "",
@@ -480,8 +440,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   const hasCityInput = (form.city || "").trim().length > 0;
   const hasNeighborhoodInput = (form.neighborhood || "").trim().length > 0;
   const hasBiography = (form.biography || "").trim().length > 0;
-  const hasGender = (form.gender || "").trim().length > 0;
-  const hasSexualPreference = (form.sexual_preference || "").trim().length > 0;
   const hasProfilePhoto = form.photos.length > 0;
   const hasPrimaryProfilePhoto = form.photos.some((photo) => photo.is_primary);
   // Required fields logic
@@ -683,8 +641,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         last_name: data.user?.last_name || "",
         email: data.user?.email || "",
         biography: data.profile.biography || "",
-        gender: data.profile.gender || "",
-        sexual_preference: data.profile.sexual_preference || "",
         birth_date: data.profile.birth_date
           ? String(data.profile.birth_date).slice(0, 10)
           : "",
@@ -1250,8 +1206,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       last_name: form.last_name,
       email: form.email,
       biography: form.biography,
-      gender: form.gender,
-      sexual_preference: form.sexual_preference,
       birth_date: form.birth_date || null,
       city: form.city,
       neighborhood: form.neighborhood,
@@ -1288,8 +1242,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         last_name: data.user?.last_name || prev.last_name,
         email: data.user?.email || prev.email,
         biography: data.profile.biography || "",
-        gender: data.profile.gender || "",
-        sexual_preference: data.profile.sexual_preference || "",
         birth_date: data.profile.birth_date
           ? String(data.profile.birth_date).slice(0, 10)
           : "",
@@ -1338,28 +1290,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         <p className="text-sm text-slate-500">
           @{currentUser.username} · {currentUser.email}
         </p>
-      )}
-
-      {/* Affichage en lecture seule de la date de naissance */}
-      {form.birth_date && (
-        <div className="mb-2">
-          <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold inline-flex items-center gap-1.5">
-            <FiCalendar size={13} aria-hidden="true" />
-            <span>Birth date (read-only)</span>
-          </span>
-          <span className="ml-2 text-slate-800 font-medium">
-            {(() => {
-              const [y, m, d] = form.birth_date.split("-");
-              if (!y || !m || !d) return "-";
-              const date = new Date(Number(y), Number(m) - 1, Number(d));
-              return date.toLocaleDateString("en-GB", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-              });
-            })()}
-          </span>
-        </div>
       )}
 
       {loading ? (
@@ -1471,7 +1401,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
               <span className="inline-flex items-center gap-1.5">
                 <FiUser size={13} aria-hidden="true" />
-                <span>Gender<span className="text-red-600">*</span></span>
+                <span>Gender</span>
               </span>
             </label>
             <select
@@ -1492,7 +1422,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
               <span className="inline-flex items-center gap-1.5">
                 <FiCompass size={13} aria-hidden="true" />
-                <span>Sexual preference<span className="text-red-600">*</span></span>
+                <span>Sexual preference</span>
               </span>
             </label>
             <select

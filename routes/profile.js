@@ -916,9 +916,10 @@ router.get("/profile/:id", async (req, res, next) => {
       }
     }
 
-    const [profileResult, tagsResult, photosResult, relationResult] = await Promise.all([
-      pool.query(
-        `
+    const [profileResult, tagsResult, photosResult, relationResult] =
+      await Promise.all([
+        pool.query(
+          `
         SELECT
           u.id AS user_id,
           u.username,
@@ -942,30 +943,30 @@ router.get("/profile/:id", async (req, res, next) => {
         WHERE u.id = $1
         LIMIT 1
         `,
-        [requestedId],
-      ),
-      pool.query(
-        `
+          [requestedId],
+        ),
+        pool.query(
+          `
         SELECT t.name
         FROM user_profile_tags upt
         JOIN tags t ON t.id = upt.tag_id
         WHERE upt.user_id = $1
         ORDER BY t.name ASC
         `,
-        [requestedId],
-      ),
-      pool.query(
-        `
+          [requestedId],
+        ),
+        pool.query(
+          `
         SELECT id, data_url, is_primary
         FROM user_photos
         WHERE user_id = $1
         ORDER BY is_primary DESC, id ASC
         `,
-        [requestedId],
-      ),
-      currentUserId
-        ? pool.query(
-            `
+          [requestedId],
+        ),
+        currentUserId
+          ? pool.query(
+              `
             SELECT
               EXISTS(
                 SELECT 1
@@ -978,10 +979,10 @@ router.get("/profile/:id", async (req, res, next) => {
                 WHERE liker_user_id = $2 AND liked_user_id = $1
               ) AS liked_me
             `,
-            [currentUserId, requestedId],
-          )
-        : Promise.resolve({ rows: [{ i_liked: false, liked_me: false }] }),
-    ]);
+              [currentUserId, requestedId],
+            )
+          : Promise.resolve({ rows: [{ i_liked: false, liked_me: false }] }),
+      ]);
 
     if (profileResult.rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -1060,20 +1061,25 @@ router.put("/profile/me", async (req, res, next) => {
       photos,
     } = req.body;
 
-    if (biography !== undefined && biography !== null && typeof biography !== "string") {
+    if (
+      biography !== undefined &&
+      biography !== null &&
+      typeof biography !== "string"
+    ) {
       return res.status(400).json({ error: "biography must be a string" });
     }
-    if (!gender || !allowedGenders.includes(gender)) {
+    if (gender && !allowedGenders.includes(gender)) {
       return res.status(400).json({
-        error: "gender is required and must be valid",
+        error: "gender must be valid",
         allowed_values: allowedGenders,
       });
     }
-    if (!sexual_preference || !allowedPreferences.includes(sexual_preference)) {
-      return res.status(400).json({
-        error: "sexual_preference is required and must be valid",
-        allowed_values: allowedPreferences,
-      });
+    let safeSexualPreference = sexual_preference;
+    if (
+      !safeSexualPreference ||
+      !allowedPreferences.includes(safeSexualPreference)
+    ) {
+      safeSexualPreference = "both";
     }
 
     const gpsConsent = Boolean(gps_consent);

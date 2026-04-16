@@ -461,12 +461,12 @@ router.get("/matches", async (req, res, next) => {
           $8::text IS NULL
           OR (p.city IS NOT NULL AND LOWER(p.city) = LOWER($8::text))
         )
+        -- Si l'utilisateur n'a pas spécifié d'orientation, on considère 'both' (bisexual)
         AND (
-          me.sexual_preference IS NULL OR me.sexual_preference = ''
-          OR me.sexual_preference = 'both'
-          OR (me.sexual_preference = 'male' AND p.gender = 'male')
-          OR (me.sexual_preference = 'female' AND p.gender = 'female')
-          OR (me.sexual_preference = 'other' AND p.gender IN ('non_binary', 'other'))
+          COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'both'
+          OR (COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'male' AND p.gender = 'male')
+          OR (COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'female' AND p.gender = 'female')
+          OR (COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'other' AND p.gender IN ('non_binary', 'other'))
         )
         AND (
           me.gender IS NULL OR me.gender = ''

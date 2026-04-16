@@ -640,12 +640,6 @@ function UserProfilePage({ currentUser }) {
         </div>
         <div className="space-y-2">
           <div>
-            <FieldLabel icon={FiUser}>Gender</FieldLabel>
-            <p className="mt-1 text-slate-800">{profile.gender || "-"}</p>
-          </div>
-          <div>
-            <FieldLabel icon={FiCompass}>Sexual preference</FieldLabel>
-            <p className="mt-1 text-slate-800">{profile.sexual_preference || "-"}</p>
           </div>
           <div>
             <FieldLabel icon={FiCalendar}>Age</FieldLabel>

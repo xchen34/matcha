@@ -38,7 +38,7 @@ function isAtLeast18YearsOld(birthDate) {
 
 router.post("/auth/register", async (req, res, next) => {
   try {
-    const { email, username, birth_date, gender, sexual_preference, password } = req.body;
+    const { email, username, birth_date, password } = req.body;
     const normalizedEmail = typeof email === "string" ? email.trim() : "";
     const normalizedUsername =
       typeof username === "string" ? username.trim() : "";
@@ -101,13 +101,13 @@ router.post("/auth/register", async (req, res, next) => {
     const values = [normalizedEmail, normalizedUsername, "", "", passwordHash];
     const result = await pool.query(sql, values);
 
-    // Ajout du profil complet (birth_date, gender, sexual_preference)
+    // Ajout du profil avec uniquement birth_date
     const userId = result.rows[0].id;
     await pool.query(
-      `INSERT INTO profiles (user_id, birth_date, gender, sexual_preference)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (user_id) DO UPDATE SET birth_date = EXCLUDED.birth_date, gender = EXCLUDED.gender, sexual_preference = EXCLUDED.sexual_preference`,
-      [userId, birth_date, gender, sexual_preference]
+      `INSERT INTO profiles (user_id, birth_date)
+       VALUES ($1, $2)
+       ON CONFLICT (user_id) DO UPDATE SET birth_date = EXCLUDED.birth_date`,
+      [userId, birth_date],
     );
 
     return res.status(201).json({
