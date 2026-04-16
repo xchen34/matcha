@@ -36,6 +36,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
   const lastMarkedConversationRef = useRef(null);
   const knownConversationIdsRef = useRef(new Set());
   const markId = Number(location.state?.markAsReadConversationId) || null;
+  const shouldScrollList = conversations.length >= 8;
 
   const loadConversations = useCallback(async () => {
     if (!currentUser?.id) {
@@ -188,73 +189,81 @@ export default function ChatListPage({ currentUser, embedded = false }) {
         <p className="text-sm text-slate-500">Loading messages...</p>
       )}
 
-      <ul className={embedded ? "space-y-2" : "space-y-3"}>
-        {conversations.map((conv) => {
-          const messagePreview = conv.last_message?.content || "No messages yet";
-          const lastMessageTime = formatTimestamp(conv.last_message?.created_at);
+      <div
+        className={
+          shouldScrollList
+            ? `max-h-[calc(100vh-16rem)] overflow-y-auto pr-1 ${embedded ? "scrollbar-gutter-stable" : ""}`
+            : undefined
+        }
+      >
+        <ul className={embedded ? "space-y-2" : "space-y-3"}>
+          {conversations.map((conv) => {
+            const messagePreview = conv.last_message?.content || "No messages yet";
+            const lastMessageTime = formatTimestamp(conv.last_message?.created_at);
 
-          const displayName =
-            conv.other_user.first_name ||
-            conv.other_user.username ||
-            `User ${conv.other_user.id}`;
+            const displayName =
+              conv.other_user.first_name ||
+              conv.other_user.username ||
+              `User ${conv.other_user.id}`;
 
-          return (
-            <li key={conv.conversation_id}>
-              <Link
-                to={`/messages/${conv.conversation_id}`}
-                className={`flex items-center gap-3 rounded-2xl border border-slate-200 bg-white text-sm shadow-sm transition hover:border-slate-300 ${
-                  embedded ? "p-3" : "p-4"
-                }`}
-              >
-                <ChatAvatar
-                  name={displayName}
-                  photoUrl={conv.other_user.primary_photo_url}
-                  isOnline={Boolean(conv.other_user.is_online)}
-                />
-                {/* Croix supprimée ici, bouton uniquement à droite du temps */}
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                      {displayName}
-                      {conv.blocked_by_you && (
-                        <span className="ml-1 px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-semibold border border-red-300">Blocked</span>
-                      )}
-                      {conv.blocked_you && (
-                        <span className="ml-1 px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-semibold border border-red-300">Blocked you</span>
-                      )}
-                      {conv.is_match === false && (
-                        <span className="ml-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold border border-yellow-300">Unmatched</span>
-                      )}
-                      {conv.is_match === true && !conv.blocked_by_you && !conv.blocked_you && (
-                        <span className="ml-1 px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-semibold border border-green-300">Matched</span>
-                      )}
+            return (
+              <li key={conv.conversation_id}>
+                <Link
+                  to={`/messages/${conv.conversation_id}`}
+                  className={`flex items-center gap-3 rounded-2xl border border-slate-200 bg-white text-sm shadow-sm transition hover:border-slate-300 ${
+                    embedded ? "p-3" : "p-4"
+                  }`}
+                >
+                  <ChatAvatar
+                    name={displayName}
+                    photoUrl={conv.other_user.primary_photo_url}
+                    isOnline={Boolean(conv.other_user.is_online)}
+                  />
+                  {/* Croix supprimée ici, bouton uniquement à droite du temps */}
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                        {displayName}
+                        {conv.blocked_by_you && (
+                          <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Blocked</span>
+                        )}
+                        {conv.blocked_you && (
+                          <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Blocked you</span>
+                        )}
+                        {conv.is_match === false && (
+                          <span className="ml-1 rounded-full border border-yellow-300 bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">Unmatched</span>
+                        )}
+                        {conv.is_match === true && !conv.blocked_by_you && !conv.blocked_you && (
+                          <span className="ml-1 rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">Matched</span>
+                        )}
+                      </p>
+                    </div>
+                    <p className="text-slate-500">
+                      {messagePreview.length > 80
+                        ? `${messagePreview.slice(0, 80)}…`
+                        : messagePreview}
                     </p>
                   </div>
-                  <p className="text-slate-500">
-                    {messagePreview.length > 80
-                      ? `${messagePreview.slice(0, 80)}…`
-                      : messagePreview}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-2 text-right min-w-[48px]">
-                  <div className="flex items-center gap-2">
-                    {lastMessageTime && (
-                      <span className="text-[0.65rem] uppercase tracking-[0.2em] text-slate-400">
-                        {lastMessageTime}
+                  <div className="flex min-w-[48px] flex-col items-end gap-2 text-right">
+                    <div className="flex items-center gap-2">
+                      {lastMessageTime && (
+                        <span className="text-[0.65rem] uppercase tracking-[0.2em] text-slate-400">
+                          {lastMessageTime}
+                        </span>
+                      )}
+                    </div>
+                    {conv.unread_count > 0 && (
+                      <span className="rounded-full bg-brand px-2 py-0.5 text-[0.65rem] font-semibold text-white">
+                        {conv.unread_count}
                       </span>
                     )}
                   </div>
-                  {conv.unread_count > 0 && (
-                    <span className="rounded-full bg-brand px-2 py-0.5 text-[0.65rem] font-semibold text-white">
-                      {conv.unread_count}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
 
 
 
