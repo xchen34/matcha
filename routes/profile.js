@@ -11,6 +11,7 @@ const {
 } = require("../utils/photoValidator");
 
 const router = express.Router();
+const MAX_BIO_LENGTH = 500;
 const allowedGenders = ["male", "female", "non_binary", "other"];
 const allowedPreferences = ["male", "female", "both", "other"];
 const GEO_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -1068,6 +1069,14 @@ router.put("/profile/me", async (req, res, next) => {
     ) {
       return res.status(400).json({ error: "biography must be a string" });
     }
+
+    const safeBiography =
+      typeof biography === "string" ? biography.trim() : "";
+    if (safeBiography.length > MAX_BIO_LENGTH) {
+      return res.status(400).json({
+        error: `biography must be at most ${MAX_BIO_LENGTH} characters`,
+      });
+    }
     if (gender && !allowedGenders.includes(gender)) {
       return res.status(400).json({
         error: "gender must be valid",
@@ -1235,7 +1244,7 @@ router.put("/profile/me", async (req, res, next) => {
         [
           normalizedFirstName,
           normalizedLastName,
-          normalizedEmail,
+          safeBiography,
           normalizedUsername,
           currentUserId,
         ],

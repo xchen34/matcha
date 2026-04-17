@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiMessageSquare } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { onRealtimeEvent } from "../realtime/socket.js";
+import { truncateAndEscape, sanitizeText } from "../utils/xssEscape.js";
 import { fetchChatConversations } from "./api.js";
 import ChatAvatar from "./ChatAvatar.jsx";
 
@@ -10,9 +11,7 @@ const SHORTCUT_LIMIT = 6;
 
 function formatPreview(lastMessage) {
   if (!lastMessage?.content) return "No messages yet";
-  return lastMessage.content.length > 48
-    ? `${lastMessage.content.slice(0, 48)}...`
-    : lastMessage.content;
+  return truncateAndEscape(lastMessage.content, 48);
 }
 
 export default function ChatIndicator({ currentUser }) {
@@ -179,10 +178,11 @@ export default function ChatIndicator({ currentUser }) {
               <p className="px-3 py-3 text-sm text-slate-500">No conversations yet.</p>
             ) : (
               shortcuts.map((conv) => {
-                const displayName =
+                const displayName = sanitizeText(
                   conv.other_user?.first_name ||
                   conv.other_user?.username ||
-                  `User ${conv.other_user?.id ?? ""}`;
+                  `User ${conv.other_user?.id ?? ""}`
+                );
 
                 return (
                   <button

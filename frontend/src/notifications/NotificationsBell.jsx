@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
+import { sanitizeText } from "../utils/xssEscape.js";
 import { useNotifications } from "./useNotifications.js";
 
 function createCardMessage(primaryName, verb, count) {
@@ -218,7 +219,7 @@ export default function NotificationsBell() {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm text-slate-700">
-                        <span className="font-semibold text-slate-900">{group.primaryActor}</span>{" "}
+                        <span className="font-semibold text-slate-900">{sanitizeText(group.primaryActor)}</span>{" "}
                         {createCardMessage(group.primaryActor, group.verb, group.count)}
                       </p>
                       {group.latestAt && (

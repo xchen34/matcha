@@ -2,8 +2,10 @@ const express = require("express");
 const pool = require("../db");
 const { getIO, REALTIME_EVENTS } = require("../realtime");
 const { isUserOnline } = require("../realtime/presence");
+const { authSensitiveLimiter } = require("../middleware/rateLimit");
 
 const router = express.Router();
+const MAX_CHAT_MESSAGE_LENGTH = 1200;
 router.delete("/:conversationId", async (req, res, next) => {
   try {
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
@@ -31,9 +33,23 @@ router.delete("/:conversationId", async (req, res, next) => {
         .json({ error: "Accès refusé à cette conversation" });
     }
 
-    await pool.query(`DELETE FROM chat_messages WHERE conversation_id = $1`, [
-      conversationId,
-    ]);
+    const io = getIO();
+    if (io) {
+      const payload = { conversation_id: conversationId };
+      io.to(`conversation:${conversationId}`).emit(
+        REALTIME_EVENTS.CHAT_CONVERSATION_DELETED,
+        payload,
+      );
+      io.to(`user:${user_a_id}`).emit(
+        REALTIME_EVENTS.CHAT_CONVERSATION_DELETED,
+        payload,
+      );
+      io.to(`user:${user_b_id}`).emit(
+        REALTIME_EVENTS.CHAT_CONVERSATION_DELETED,
+        payload,
+      );
+    }
+
     await pool.query(`DELETE FROM chat_conversations WHERE id = $1`, [
       conversationId,
     ]);
@@ -137,6 +153,100 @@ function ensureMatchRequired(status) {
     throw err;
   }
 }
+
+router.delete(
+  "/chats/:conversationId/messages/:messageId",
+  authSensitiveLimiter,
+  async (req, res, next) => {
+    try {
+      const currentUserId = parsePositiveInt(req.header("x-user-id"));
+      const conversationId = parsePositiveInt(req.params.conversationId);
+      const messageId = parsePositiveInt(req.params.messageId);
+      if (!currentUserId || !conversationId || !messageId) {
+        return res.status(400).json({
+          error: "x-user-id header, conversation id and message id are required",
+        });
+      }
+
+      const conversationResult = await pool.query(
+        `
+        SELECT id, user_a_id, user_b_id
+        FROM chat_conversations
+        WHERE id = $1
+          AND $2 IN (user_a_id, user_b_id)
+        LIMIT 1
+        `,
+        [conversationId, currentUserId],
+      );
+
+      if (conversationResult.rowCount === 0) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+
+      const messageResult = await pool.query(
+        `
+        SELECT id, conversation_id, sender_user_id, recipient_user_id, content, created_at, is_read
+        FROM chat_messages
+        WHERE id = $1
+          AND conversation_id = $2
+        LIMIT 1
+        `,
+        [messageId, conversationId],
+      );
+
+      if (messageResult.rowCount === 0) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+
+      const message = messageResult.rows[0];
+      if (Number(message.sender_user_id) !== Number(currentUserId)) {
+        return res.status(403).json({ error: "You can only delete your own messages" });
+      }
+
+      await pool.query(
+        `
+        DELETE FROM chat_messages
+        WHERE id = $1
+          AND conversation_id = $2
+        `,
+        [messageId, conversationId],
+      );
+
+      const io = getIO();
+      if (io) {
+        const payload = {
+          conversation_id: conversationId,
+          message_id: messageId,
+          sender_user_id: message.sender_user_id,
+        };
+        io.to(`conversation:${conversationId}`).emit(
+          REALTIME_EVENTS.CHAT_MESSAGE_DELETED,
+          payload,
+        );
+        io.to(`user:${message.sender_user_id}`).emit(
+          REALTIME_EVENTS.CHAT_MESSAGE_DELETED,
+          payload,
+        );
+        io.to(`user:${message.recipient_user_id}`).emit(
+          REALTIME_EVENTS.CHAT_MESSAGE_DELETED,
+          payload,
+        );
+      }
+
+      return res.json({ success: true, conversation_id: conversationId, message_id: messageId });
+    } catch (error) {
+      if (error && error.code === "42P01") {
+        return res
+          .status(503)
+          .json({ error: "Chat feature not available yet (missing schema)" });
+      }
+      if (error.status && error.status >= 400 && error.status < 500) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      return next(error);
+    }
+  },
+);
 
 router.get("/chats", async (req, res, next) => {
   try {
@@ -461,7 +571,13 @@ router.post("/chats/messages", async (req, res, next) => {
       return res.status(400).json({ error: "Message cannot be empty" });
     }
 
-    const truncatedContent = safeContent.slice(0, 1200);
+    if (safeContent.length > MAX_CHAT_MESSAGE_LENGTH) {
+      return res.status(400).json({
+        error: `Message cannot exceed ${MAX_CHAT_MESSAGE_LENGTH} characters`,
+      });
+    }
+
+    const truncatedContent = safeContent;
 
     const recipientResult = await pool.query(
       `

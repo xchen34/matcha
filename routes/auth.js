@@ -6,8 +6,14 @@ const path = require("path");
 const pool = require("../db");
 const { createRealtimeToken } = require("../realtime/authToken");
 const { sendVerificationEmail, sendPasswordResetEmail } = require("../utils/emailService");
+const {
+  authLimiter,
+  authSensitiveLimiter,
+} = require("../middleware/rateLimit");
 
 const router = express.Router(); //router 是一个独立的 Express 应用实例，可以定义自己的路由和中间件。最后通过 module.exports 导出，供 app.js 挂载使用。
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 72;
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); // 简单的邮箱格式验证，确保包含一个 @ 和一个 .，且没有空格。实际项目中可以使用更复杂的验证库，如 validator.js。
@@ -61,7 +67,47 @@ function getCommonPasswords() {
   }
 }
 
-router.post("/auth/register", async (req, res, next) => {
+function validatePasswordStrength(password, commonPasswords) {
+  const value = typeof password === "string" ? password : "";
+
+  if (value.length < MIN_PASSWORD_LENGTH) {
+    return {
+      valid: false,
+      error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`,
+    };
+  }
+
+  // bcrypt only uses first 72 bytes; enforce an upper bound to avoid confusion.
+  if (value.length > MAX_PASSWORD_LENGTH) {
+    return {
+      valid: false,
+      error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters long.`,
+    };
+  }
+
+  const hasLower = /[a-z]/.test(value);
+  const hasUpper = /[A-Z]/.test(value);
+  const hasDigit = /\d/.test(value);
+
+  if (!hasLower || !hasUpper || !hasDigit) {
+    return {
+      valid: false,
+      error:
+        "Password must include at least one uppercase letter, one lowercase letter, and one number.",
+    };
+  }
+
+  if (commonPasswords.includes(value.toLowerCase())) {
+    return {
+      valid: false,
+      error: "Password is too common. Please choose a stronger password.",
+    };
+  }
+
+  return { valid: true };
+}
+
+router.post("/auth/register", authLimiter, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const { email, username, birth_date, password } = req.body;
@@ -91,10 +137,12 @@ router.post("/auth/register", async (req, res, next) => {
     }
 
     const commonPasswords = getCommonPasswords();
-    if (commonPasswords.includes(normalizedPassword.toLowerCase())) {
-      return res.status(400).json({
-        error: "Password is too common. Please choose a stronger password.",
-      });
+    const passwordValidation = validatePasswordStrength(
+      normalizedPassword,
+      commonPasswords,
+    );
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ error: passwordValidation.error });
     }
 
     if (!isValidEmail(normalizedEmail)) {
@@ -188,7 +236,7 @@ router.post("/auth/register", async (req, res, next) => {
   }
 });
 
-router.post("/auth/login", async (req, res, next) => {
+router.post("/auth/login", authSensitiveLimiter, async (req, res, next) => {
   try {
     const { username, password } = req.body;
     const identifier = typeof username === "string" ? username.trim() : "";
@@ -289,7 +337,7 @@ router.get("/auth/realtime-token", async (req, res, next) => {
   }
 });
 
-router.post("/auth/verify-email", async (req, res, next) => {
+router.post("/auth/verify-email", authLimiter, async (req, res, next) => {
   try {
     const { token } = req.body;
 
@@ -344,7 +392,7 @@ router.post("/auth/verify-email", async (req, res, next) => {
   }
 });
 
-router.post("/auth/resend-verification-email", async (req, res, next) => {
+router.post("/auth/resend-verification-email", authSensitiveLimiter, async (req, res, next) => {
   try {
     const { email } = req.body;
 
@@ -411,7 +459,7 @@ router.post("/auth/resend-verification-email", async (req, res, next) => {
   }
 });
 
-router.post("/auth/forgot-password", async (req, res, next) => {
+router.post("/auth/forgot-password", authSensitiveLimiter, async (req, res, next) => {
   try {
     const { email } = req.body;
     const normalizedEmail = typeof email === "string" ? email.trim() : "";
@@ -486,7 +534,7 @@ router.post("/auth/forgot-password", async (req, res, next) => {
   }
 });
 
-router.post("/auth/reset-password", async (req, res, next) => {
+router.post("/auth/reset-password", authSensitiveLimiter, async (req, res, next) => {
   try {
     const { token, new_password } = req.body;
     const normalizedToken = typeof token === "string" ? token.trim() : "";
@@ -500,10 +548,12 @@ router.post("/auth/reset-password", async (req, res, next) => {
     }
 
     const commonPasswords = getCommonPasswords();
-    if (commonPasswords.includes(normalizedPassword.toLowerCase())) {
-      return res.status(400).json({
-        error: "Password is too common. Please choose a stronger password.",
-      });
+    const passwordValidation = validatePasswordStrength(
+      normalizedPassword,
+      commonPasswords,
+    );
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ error: passwordValidation.error });
     }
 
     const result = await pool.query(
@@ -538,5 +588,64 @@ router.post("/auth/reset-password", async (req, res, next) => {
     return next(error);
   }
 });
+
+router.delete(
+  "/auth/delete-account",
+  authSensitiveLimiter,
+  async (req, res, next) => {
+    try {
+      const currentUserId = Number(req.header("x-user-id"));
+      const rawEmail = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+      const rawPassword = typeof req.body?.password === "string" ? req.body.password : "";
+      const normalizedPassword = rawPassword.trim();
+
+      if ((!Number.isInteger(currentUserId) || currentUserId <= 0) && !rawEmail) {
+        return res.status(400).json({ error: "x-user-id header or email is required" });
+      }
+
+      if (!rawPassword) {
+        return res.status(400).json({ error: "password is required" });
+      }
+
+      const result = await pool.query(
+        `
+      SELECT id, password_hash, email
+      FROM users
+      WHERE ($1::bigint IS NOT NULL AND id = $1)
+         OR ($2 <> '' AND LOWER(email) = LOWER($2))
+      ORDER BY CASE WHEN $1::bigint IS NOT NULL AND id = $1 THEN 0 ELSE 1 END
+      LIMIT 1
+      `,
+        [Number.isInteger(currentUserId) && currentUserId > 0 ? currentUserId : null, rawEmail],
+      );
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const user = result.rows[0];
+      let isPasswordValid = await bcrypt.compare(rawPassword, user.password_hash);
+      if (!isPasswordValid && normalizedPassword !== rawPassword) {
+        isPasswordValid = await bcrypt.compare(normalizedPassword, user.password_hash);
+      }
+
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
+
+      await pool.query(
+        `
+      DELETE FROM users
+      WHERE id = $1
+      `,
+        [user.id],
+      );
+
+      return res.json({ message: "Account deleted successfully" });
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
 
 module.exports = router;

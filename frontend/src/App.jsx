@@ -16,6 +16,7 @@ import {
   FiSettings,
   FiSlash,
   FiTag,
+  FiTrash2,
   FiUser,
   FiUserPlus,
   FiUsers,
@@ -43,6 +44,7 @@ import {
 import { buildApiHeaders } from "./utils.js";
 import ChatIndicator from "./chat/ChatIndicator.jsx";
 const STORAGE_KEY = "matcha.currentUser";
+const MAX_BIO_LENGTH = 500;
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
@@ -1481,7 +1483,11 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               onChange={handleChange}
               className={textareaClass}
               rows={4}
+              maxLength={MAX_BIO_LENGTH}
             />
+            <p className="text-xs text-slate-500 text-right">
+              {(form.biography || "").length}/{MAX_BIO_LENGTH}
+            </p>
           </div>
 
           <div className="space-y-1">
@@ -1983,6 +1989,41 @@ function App() {
     navigate("/login", { replace: true });
   }
 
+  async function handleDeleteAccount() {
+    if (!currentUser?.id) return;
+
+    setIsSettingsOpen(false);
+    const confirmed = window.confirm(
+      "Delete your account permanently? This action cannot be undone.",
+    );
+    if (!confirmed) return;
+
+    const password = window.prompt("Please enter your password to confirm:");
+    if (password === null) return;
+
+    try {
+      const response = await fetch("/api/auth/delete-account", {
+        method: "DELETE",
+        headers: buildApiHeaders(
+          { id: currentUser.id },
+          { "Content-Type": "application/json" },
+        ),
+        body: JSON.stringify({ password, email: currentUser.email || "" }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        window.alert(data.error || "Failed to delete account.");
+        return;
+      }
+
+      window.alert("Your account has been deleted.");
+      logout();
+    } catch {
+      window.alert("Network error while deleting account.");
+    }
+  }
+
   return (
     <NotificationsProvider currentUser={currentUser}>
       {currentUser && !isLoginPage && (
@@ -2036,6 +2077,14 @@ function App() {
                     >
                       <FiMessageCircle size={15} aria-hidden="true" />
                       <span>Messages</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteAccount}
+                      className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+                    >
+                      <FiTrash2 size={15} aria-hidden="true" />
+                      <span>Delete account</span>
                     </button>
                     <button
                       type="button"

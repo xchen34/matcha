@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ChatAvatar from "../chat/ChatAvatar.jsx";
 import { onRealtimeEvent } from "../realtime/socket.js";
+import { REALTIME_EVENTS } from "../realtime/events.js";
+import { truncateAndEscape, sanitizeText } from "../utils/xssEscape.js";
 import { fetchChatConversations } from "../chat/api.js";
 
 function formatTimestamp(value) {
@@ -121,6 +123,28 @@ export default function ChatListPage({ currentUser, embedded = false }) {
   useEffect(() => {
     if (!currentUser?.id) return undefined;
 
+    const refreshAfterDelete = () => {
+      void loadConversations();
+    };
+
+    const offMessageDeleted = onRealtimeEvent(
+      REALTIME_EVENTS.CHAT_MESSAGE_DELETED,
+      refreshAfterDelete,
+    );
+    const offConversationDeleted = onRealtimeEvent(
+      REALTIME_EVENTS.CHAT_CONVERSATION_DELETED,
+      refreshAfterDelete,
+    );
+
+    return () => {
+      offMessageDeleted();
+      offConversationDeleted();
+    };
+  }, [currentUser?.id, loadConversations]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return undefined;
+
     const offPresenceUpdate = onRealtimeEvent("presence:update", (payload) => {
       const targetUserId = Number(payload?.user_id);
       if (!Number.isInteger(targetUserId)) return;
@@ -198,13 +222,14 @@ export default function ChatListPage({ currentUser, embedded = false }) {
       >
         <ul className={embedded ? "space-y-2" : "space-y-3"}>
           {conversations.map((conv) => {
-            const messagePreview = conv.last_message?.content || "No messages yet";
+            const messagePreview = truncateAndEscape(conv.last_message?.content || "No messages yet", 80);
             const lastMessageTime = formatTimestamp(conv.last_message?.created_at);
 
-            const displayName =
+            const displayName = sanitizeText(
               conv.other_user.first_name ||
               conv.other_user.username ||
-              `User ${conv.other_user.id}`;
+              `User ${conv.other_user.id}`
+            );
 
             return (
               <li key={conv.conversation_id}>
@@ -239,9 +264,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                       </p>
                     </div>
                     <p className="text-slate-500">
-                      {messagePreview.length > 80
-                        ? `${messagePreview.slice(0, 80)}…`
-                        : messagePreview}
+                      {messagePreview}
                     </p>
                   </div>
                   <div className="flex min-w-[48px] flex-col items-end gap-2 text-right">
