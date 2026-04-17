@@ -1,7 +1,11 @@
 const express = require("express");
 const bcrypt = require("bcrypt"); // bcrypt 是一个流行的密码哈希库，提供了安全的哈希算法和自动加盐功能，适合用于存储用户密码。相比于简单的哈希函数（如 SHA-256），bcrypt 设计上更慢，可以有效抵抗暴力破解攻击。
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const pool = require("../db");
 const { createRealtimeToken } = require("../realtime/authToken");
+const { sendVerificationEmail, sendPasswordResetEmail } = require("../utils/emailService");
 
 const router = express.Router(); //router 是一个独立的 Express 应用实例，可以定义自己的路由和中间件。最后通过 module.exports 导出，供 app.js 挂载使用。
 
@@ -36,14 +40,38 @@ function isAtLeast18YearsOld(birthDate) {
   return age >= 18;
 }
 
+function generateVerificationToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function generateResetToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function getCommonPasswords() {
+  const commonPasswordsPath = path.join(__dirname, "..", "common_passwords.txt");
+  try {
+    const fileContent = fs.readFileSync(commonPasswordsPath, "utf-8");
+    return fileContent
+      .split(/\r?\n/)
+      .map((w) => w.trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 router.post("/auth/register", async (req, res, next) => {
+  const client = await pool.connect();
   try {
     const { email, username, birth_date, password } = req.body;
     const normalizedEmail = typeof email === "string" ? email.trim() : "";
     const normalizedUsername =
       typeof username === "string" ? username.trim() : "";
+    const normalizedPassword =
+      typeof password === "string" ? password.trim() : "";
 
-    if (!normalizedEmail || !normalizedUsername || !birth_date || !password) {
+    if (!normalizedEmail || !normalizedUsername || !birth_date || !normalizedPassword) {
       return res.status(400).json({
         error: "email, username, birth_date and password are required",
       });
@@ -62,25 +90,8 @@ router.post("/auth/register", async (req, res, next) => {
         .json({ error: "You must be at least 18 years old to register" });
     }
 
-    // Load common passwords from file and check if the provided password is too common
-    const fs = require("fs"); // 这是 Node.js 的内置文件系统模块，用于读取 common_passwords.txt 文件，获取常见密码列表。
-    const path = require("path");
-    const commonPasswordsPath = path.join(
-      __dirname,
-      "..",
-      "common_passwords.txt",
-    );
-    let commonPasswords = []; // commonPasswords 是一个数组，存储从 common_passwords.txt 文件中读取的常见密码列表。注册时会检查用户提供的密码是否在这个列表中，如果是，则拒绝注册并提示用户选择更强的密码。
-    try {
-      const fileContent = fs.readFileSync(commonPasswordsPath, "utf-8"); // 读取 common_passwords.txt 文件内容，得到一个包含所有常见密码的字符串。utf-8 参数确保正确解析文本文件。
-      commonPasswords = fileContent
-        .split(/\r?\n/) // 按行分割文件内容，得到一个密码数组。正则 /\r?\n/ 兼容 Windows (\r\n) 和 Unix (\n) 的换行符。? 表示 \r 是可选的，适应不同系统的换行格式。
-        .map((w) => w.trim()) // 去除每个密码的前后空白字符，得到干净的密码列表。trim() 方法移除字符串两端的空格、制表符等空白字符，确保比较时不受额外空格影响。
-        .filter(Boolean); // 过滤掉空字符串，得到最终的常见密码数组。filter(Boolean) 会移除数组中的所有 falsy 值（如空字符串、null、undefined、0 等），确保 commonPasswords 数组只包含有效的密码字符串。
-    } catch (e) {
-      commonPasswords = []; //
-    }
-    if (commonPasswords.includes(password.toLowerCase())) {
+    const commonPasswords = getCommonPasswords();
+    if (commonPasswords.includes(normalizedPassword.toLowerCase())) {
       return res.status(400).json({
         error: "Password is too common. Please choose a stronger password.",
       });
@@ -90,31 +101,73 @@ router.post("/auth/register", async (req, res, next) => {
       return res.status(400).json({ error: "Invalid email format" });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10); // bcrypt.hash() 方法用于将用户提供的密码进行哈希处理，生成一个安全的密码哈希值。第一个参数是要哈希的密码字符串，第二个参数是 saltRounds，表示哈希算法的复杂度（迭代次数）。较高的 saltRounds 会增加哈希计算的时间，从而提高安全性，但也会增加服务器负载。通常建议使用 10 或更高的值。
+    const passwordHash = await bcrypt.hash(normalizedPassword, 10); // bcrypt.hash() 方法用于将用户提供的密码进行哈希处理，生成一个安全的密码哈希值。第一个参数是要哈希的密码字符串，第二个参数是 saltRounds，表示哈希算法的复杂度（迭代次数）。较高的 saltRounds 会增加哈希计算的时间，从而提高安全性，但也会增加服务器负载。通常建议使用 10 或更高的值。
+
+    // Generate verification token
+    const verificationToken = generateVerificationToken();
+    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await client.query("BEGIN");
 
     // Création de l'utilisateur
     const sql = `
-      INSERT INTO users (email, username, first_name, last_name, password_hash)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO users (email, username, first_name, last_name, password_hash, email_verification_token, email_verification_token_expiry)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING id, email, username, first_name, last_name, email_verified, created_at
     `;
-    const values = [normalizedEmail, normalizedUsername, "", "", passwordHash];
-    const result = await pool.query(sql, values);
+    const values = [normalizedEmail, normalizedUsername, "", "", passwordHash, verificationToken, tokenExpiry];
+    const result = await client.query(sql, values);
 
     // Ajout du profil avec uniquement birth_date
     const userId = result.rows[0].id;
-    await pool.query(
+    await client.query(
       `INSERT INTO profiles (user_id, birth_date)
        VALUES ($1, $2)
        ON CONFLICT (user_id) DO UPDATE SET birth_date = EXCLUDED.birth_date`,
       [userId, birth_date],
     );
 
+    await client.query("COMMIT");
+
+    // Send verification email
+    const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+    let emailDelivery = { sent: false, reason: "unknown" };
+    try {
+      const emailResult = await sendVerificationEmail(
+        normalizedEmail,
+        verificationToken,
+        frontendBaseUrl,
+      );
+      emailDelivery = {
+        sent: true,
+        message_id: emailResult.messageId,
+        preview_url: emailResult.previewUrl || null,
+      };
+    } catch (emailError) {
+      console.error("Warning: Could not send verification email:", emailError);
+      emailDelivery = {
+        sent: false,
+        reason: emailError.message,
+      };
+    }
+
     return res.status(201).json({
-      message: "User registered successfully",
+      message:
+        "User registered successfully. Please check your email to verify your account.",
       user: result.rows[0],
+      email_delivery: emailDelivery,
+      dev_verify_url:
+        process.env.NODE_ENV === "production"
+          ? null
+          : `${frontendBaseUrl}/verify-email?token=${verificationToken}`,
     });
   } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("Register rollback failed:", rollbackError);
+    }
+
     if (error.code === "23505") {
       if (error.constraint === "users_email_key") {
         return res.status(409).json({ error: "Email already exists" });
@@ -130,14 +183,19 @@ router.post("/auth/register", async (req, res, next) => {
     }
 
     return next(error);
+  } finally {
+    client.release();
   }
 });
 
 router.post("/auth/login", async (req, res, next) => {
   try {
     const { username, password } = req.body;
+    const identifier = typeof username === "string" ? username.trim() : "";
+    const rawPassword = typeof password === "string" ? password : "";
+    const normalizedPassword = rawPassword.trim();
 
-    if (!username || !password) {
+    if (!identifier || !rawPassword) {
       return res
         .status(400)
         .json({ error: "username and password are required" });
@@ -146,21 +204,32 @@ router.post("/auth/login", async (req, res, next) => {
     const sql = `
       SELECT id, email, username, first_name, last_name, password_hash, email_verified, created_at
       FROM users
-      WHERE username = $1
+      WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)
       LIMIT 1
     `;
 
-    const result = await pool.query(sql, [username]);
+    const result = await pool.query(sql, [identifier]);
 
     if (result.rows.length === 0) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
     const user = result.rows[0];
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    let isPasswordValid = await bcrypt.compare(rawPassword, user.password_hash);
+    if (!isPasswordValid && normalizedPassword !== rawPassword) {
+      // Backward-compatible fallback for users who accidentally typed leading/trailing spaces.
+      isPasswordValid = await bcrypt.compare(normalizedPassword, user.password_hash);
+    }
 
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid username or password" });
+    }
+
+    // Check if email is verified
+    if (!user.email_verified) {
+      return res.status(403).json({ 
+        error: "Email not verified. Please check your email and click the verification link to complete registration." 
+      });
     }
 
     await pool.query(
@@ -215,6 +284,256 @@ router.get("/auth/realtime-token", async (req, res, next) => {
     return res.json({
       realtime_token: createRealtimeToken(userId),
     });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/auth/verify-email", async (req, res, next) => {
+  try {
+    const { token } = req.body;
+
+    if (!token || typeof token !== "string") {
+      return res.status(400).json({ error: "Verification token is required" });
+    }
+
+    // Find user with this token and check expiry
+    const result = await pool.query(
+      `
+      SELECT id, email, email_verified
+      FROM users
+      WHERE email_verification_token = $1
+      AND email_verification_token_expiry > NOW()
+      LIMIT 1
+      `,
+      [token],
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(400).json({ 
+        error: "Invalid or expired verification token" 
+      });
+    }
+
+    const user = result.rows[0];
+
+    if (user.email_verified) {
+      return res.status(400).json({ 
+        error: "Email is already verified" 
+      });
+    }
+
+    // Mark email as verified and clear token
+    await pool.query(
+      `
+      UPDATE users
+      SET email_verified = TRUE,
+          email_verification_token = NULL,
+          email_verification_token_expiry = NULL
+      WHERE id = $1
+      `,
+      [user.id],
+    );
+
+    return res.json({
+      message: "Email verified successfully. You can now log in.",
+      email: user.email,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/auth/resend-verification-email", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const normalizedEmail = email.trim();
+
+    // Find user
+    const result = await pool.query(
+      `
+      SELECT id, email, email_verified
+      FROM users
+      WHERE email = $1
+      LIMIT 1
+      `,
+      [normalizedEmail],
+    );
+
+    if (result.rowCount === 0) {
+      // Don't reveal if email exists or not (security)
+      return res.json({
+        message: "If an account with this email exists, a verification link will be sent.",
+      });
+    }
+
+    const user = result.rows[0];
+
+    if (user.email_verified) {
+      return res.json({
+        message: "Email is already verified.",
+      });
+    }
+
+    // Generate new verification token
+    const verificationToken = generateVerificationToken();
+    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Update token
+    await pool.query(
+      `
+      UPDATE users
+      SET email_verification_token = $1,
+          email_verification_token_expiry = $2
+      WHERE id = $3
+      `,
+      [verificationToken, tokenExpiry, user.id],
+    );
+
+    // Send verification email
+    const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+    try {
+      await sendVerificationEmail(user.email, verificationToken, frontendBaseUrl);
+    } catch (emailError) {
+      console.error('Warning: Could not send verification email:', emailError);
+    }
+
+    return res.json({
+      message: "If an account with this email exists, a verification link will be sent.",
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/auth/forgot-password", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = typeof email === "string" ? email.trim() : "";
+
+    if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ error: "Valid email is required" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT id, email
+      FROM users
+      WHERE LOWER(email) = LOWER($1)
+      LIMIT 1
+      `,
+      [normalizedEmail],
+    );
+
+    if (result.rowCount === 0) {
+      return res.json({
+        message:
+          "If an account with this email exists, a password reset link has been sent.",
+      });
+    }
+
+    const user = result.rows[0];
+    const resetToken = generateResetToken();
+    const resetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await pool.query(
+      `
+      UPDATE users
+      SET password_reset_token = $1,
+          password_reset_token_expiry = $2
+      WHERE id = $3
+      `,
+      [resetToken, resetExpiry, user.id],
+    );
+
+    const frontendBaseUrl = process.env.FRONTEND_BASE_URL || "http://localhost:5173";
+    let emailDelivery = { sent: false, reason: "unknown" };
+    try {
+      const emailResult = await sendPasswordResetEmail(
+        user.email,
+        resetToken,
+        frontendBaseUrl,
+      );
+      emailDelivery = {
+        sent: true,
+        message_id: emailResult.messageId,
+        preview_url: emailResult.previewUrl || null,
+      };
+    } catch (emailError) {
+      console.error("Warning: Could not send password reset email:", emailError);
+      emailDelivery = {
+        sent: false,
+        reason: emailError.message,
+      };
+    }
+
+    return res.json({
+      message:
+        "If an account with this email exists, a password reset link has been sent.",
+      email_delivery: emailDelivery,
+      dev_reset_url:
+        process.env.NODE_ENV === "production"
+          ? null
+          : `${frontendBaseUrl}/reset-password?token=${resetToken}`,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/auth/reset-password", async (req, res, next) => {
+  try {
+    const { token, new_password } = req.body;
+    const normalizedToken = typeof token === "string" ? token.trim() : "";
+    const normalizedPassword =
+      typeof new_password === "string" ? new_password.trim() : "";
+
+    if (!normalizedToken || !normalizedPassword) {
+      return res.status(400).json({
+        error: "token and new_password are required",
+      });
+    }
+
+    const commonPasswords = getCommonPasswords();
+    if (commonPasswords.includes(normalizedPassword.toLowerCase())) {
+      return res.status(400).json({
+        error: "Password is too common. Please choose a stronger password.",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT id
+      FROM users
+      WHERE password_reset_token = $1
+      AND password_reset_token_expiry > NOW()
+      LIMIT 1
+      `,
+      [normalizedToken],
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(400).json({ error: "Invalid or expired reset token" });
+    }
+
+    const passwordHash = await bcrypt.hash(normalizedPassword, 10);
+    await pool.query(
+      `
+      UPDATE users
+      SET password_hash = $1,
+          password_reset_token = NULL,
+          password_reset_token_expiry = NULL
+      WHERE id = $2
+      `,
+      [passwordHash, result.rows[0].id],
+    );
+
+    return res.json({ message: "Password reset successful. You can now log in." });
   } catch (error) {
     return next(error);
   }

@@ -26,6 +26,10 @@ import BlockedUsersPage from "./pages/BlockedUsersPage";
 import PopularityListPage from "./pages/PopularityListPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import MessagesPage from "./pages/MessagesPage.jsx";
+import VerifyEmailPage from "./pages/VerifyEmailPage.jsx";
+import ResendVerificationPage from "./pages/ResendVerificationPage.jsx";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
 import NotificationsBell from "./notifications/NotificationsBell.jsx";
 import { useNotifications } from "./notifications/useNotifications.js";
@@ -208,6 +212,9 @@ function RegisterPage() {
     password: "",
   });
   const [message, setMessage] = useState("");
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [devVerifyUrl, setDevVerifyUrl] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const todayIso = new Date().toISOString().slice(0, 10);
 
   function handleChange(event) {
@@ -218,6 +225,8 @@ function RegisterPage() {
   async function handleSubmit(event) {
     event.preventDefault();
     setMessage("Submitting...");
+    setPreviewUrl("");
+    setDevVerifyUrl("");
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -232,8 +241,23 @@ function RegisterPage() {
         setMessage(`Error: ${data.error || "Register failed"}`);
         return;
       }
-      setMessage("Success: account created, please login.");
-      setTimeout(() => navigate("/login"), 700);
+
+      const delivery = data?.email_delivery;
+      if (data?.dev_verify_url) {
+        setDevVerifyUrl(data.dev_verify_url);
+      }
+      if (delivery?.sent && delivery?.preview_url) {
+        setPreviewUrl(delivery.preview_url);
+        setMessage(
+          "Success: account created. Dev mode uses Ethereal test inbox, open the preview link below to verify your email.",
+        );
+      } else if (delivery?.sent) {
+        setMessage("Success: account created. Please check your email inbox for the verification link.");
+      } else {
+        setMessage(
+          `Success: account created, but verification email could not be sent (${delivery?.reason || "unknown error"}). Use Resend Verification later.`,
+        );
+      }
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     }
@@ -292,14 +316,25 @@ function RegisterPage() {
           <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
             Password
           </label>
-          <input
-            name="password"
-            type="password"
-            placeholder="Create a strong password"
-            value={form.password}
-            onChange={handleChange}
-            className={inputClass}
-          />
+          <div className="relative">
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Create a strong password"
+              value={form.password}
+              onChange={handleChange}
+              className={`${inputClass} pr-12`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 hover:text-slate-700"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              <FiEye size={16} aria-hidden="true" />
+            </button>
+          </div>
           <p className="text-xs text-slate-500">Avoid common passwords and use a secure one.</p>
         </div>
         <button type="submit" className={primaryButtonClass}>
@@ -308,6 +343,41 @@ function RegisterPage() {
         <p className="text-xs text-slate-500">You must be at least 18 years old.</p>
       </form>
       {message && <p className="text-sm text-slate-600">{message}</p>}
+      {previewUrl && (
+        <p className="text-sm text-slate-700">
+          Email preview: {" "}
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-brand-deep underline"
+          >
+            Open verification email
+          </a>
+        </p>
+      )}
+      {devVerifyUrl && (
+        <p className="text-sm text-slate-700">
+          Fallback verify link: {" "}
+          <a
+            href={devVerifyUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-brand-deep underline"
+          >
+            Verify directly on local app
+          </a>
+        </p>
+      )}
+      <div className="pt-2">
+        <button
+          type="button"
+          onClick={() => navigate("/login")}
+          className={secondaryButtonClass}
+        >
+          Go to login
+        </button>
+      </div>
     </section>
   );
 }
@@ -319,6 +389,7 @@ function LoginPage({ onLogin }) {
     password: "",
   });
   const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   function persistUser(user) {
     writeStoredUser(user);
@@ -367,11 +438,11 @@ function LoginPage({ onLogin }) {
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            Username
+            Username or email
           </label>
           <input
             name="username"
-            placeholder="Enter your username"
+            placeholder="Enter username or email"
             value={form.username}
             onChange={handleChange}
             className={inputClass}
@@ -381,18 +452,34 @@ function LoginPage({ onLogin }) {
           <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
             Password
           </label>
-          <input
-            name="password"
-            type="password"
-            placeholder="Enter your password"
-            value={form.password}
-            onChange={handleChange}
-            className={inputClass}
-          />
+          <div className="relative">
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              value={form.password}
+              onChange={handleChange}
+              className={`${inputClass} pr-12`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 hover:text-slate-700"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              <FiEye size={16} aria-hidden="true" />
+            </button>
+          </div>
         </div>
         <button type="submit" className={primaryButtonClass}>
           Login
         </button>
+        <div className="text-right">
+          <NavLink to="/forgot-password" className="text-xs font-semibold text-brand-deep hover:underline">
+            Forgot password?
+          </NavLink>
+        </div>
       </form>
       {message && <p className="text-sm text-slate-600">{message}</p>}
     </section>
@@ -1987,6 +2074,10 @@ function App() {
         />
         <Route path="/login" element={<LoginPage onLogin={setCurrentUser} />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/resend-verification" element={<ResendVerificationPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/profile"
           element={
