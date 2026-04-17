@@ -2,6 +2,7 @@
  * Photo validation utilities for secure file handling
  * Used by both backend routes and frontend components
  */
+const imageType = require("image-type");
 
 // Allowed MIME types for photos (whitelist)
 const ALLOWED_PHOTO_MIMES = new Set([
@@ -66,20 +67,40 @@ function normalizePhotosInput(photos) {
 
     const dataUrl = item.data_url.trim();
 
-    // Validate MIME type
+    // Validate MIME type (data URL)
     const mimeValidation = validatePhotoMimeType(dataUrl);
     if (!mimeValidation.valid) {
       return { error: mimeValidation.error };
     }
 
-    // Check individual photo size
-    if (dataUrl.length > MAX_PHOTO_SIZE_BYTES) {
+    // Decoding base64 to check actual file content and size (security measure)
+    const base64Match = dataUrl.match(/^data:[^;]+;base64,(.*)$/);
+    if (!base64Match) {
+      return { error: "Invalid photo format (base64 missing)" };
+    }
+    let buffer;
+    try {
+      buffer = Buffer.from(base64Match[1], "base64");
+    } catch (e) {
+      return { error: "Photo base64 decoding failed" };
+    }
+
+    // Check actual file type from content (not just MIME type in data URL)
+    const detected = imageType(buffer);
+    if (!detected || !ALLOWED_PHOTO_MIMES.has(`image/${detected.ext}`)) {
       return {
-        error: `Photo is too large (max 300KB). Size: ${Math.round(dataUrl.length / 1024)}KB.`,
+        error: `Le contenu du fichier n'est pas une image valide (${detected ? detected.ext : "inconnu"}).`,
       };
     }
 
-    totalSize += dataUrl.length;
+    // Check individual photo size (en bytes)
+    if (buffer.length > MAX_PHOTO_SIZE_BYTES) {
+      return {
+        error: `Photo is too large (max 300KB). Size: ${Math.round(buffer.length / 1024)}KB.`,
+      };
+    }
+
+    totalSize += buffer.length;
     if (totalSize > MAX_TOTAL_PHOTOS_SIZE_BYTES) {
       return {
         error: `Total photos size exceeds limit (max ${Math.round(MAX_TOTAL_PHOTOS_SIZE_BYTES / 1024)}KB). Current: ${Math.round(totalSize / 1024)}KB.`,
