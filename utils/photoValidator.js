@@ -2,7 +2,16 @@
  * Photo validation utilities for secure file handling
  * Used by both backend routes and frontend components
  */
-const imageType = require("image-type");
+
+let imageType;
+
+async function getImageType(buffer) {
+  if (!imageType) {
+    // Dynamically import image-type (ESM default export)
+    imageType = (await import("image-type")).default;
+  }
+  return imageType(buffer);
+}
 
 // Allowed MIME types for photos (whitelist)
 const ALLOWED_PHOTO_MIMES = new Set([
@@ -48,7 +57,7 @@ function validatePhotoMimeType(dataUrl) {
  * @param {Array} photos - Array of photo objects { data_url, is_primary }
  * @returns {Object} { photos?: Array, error?: string }
  */
-function normalizePhotosInput(photos) {
+async function normalizePhotosInput(photos) {
   if (photos === undefined) return null;
   if (!Array.isArray(photos)) return null;
   if (photos.length > MAX_PHOTOS_COUNT) {
@@ -86,7 +95,7 @@ function normalizePhotosInput(photos) {
     }
 
     // Check actual file type from content (not just MIME type in data URL)
-    const detected = imageType(buffer);
+    const detected = await getImageType(buffer);
     if (!detected || !ALLOWED_PHOTO_MIMES.has(`image/${detected.ext}`)) {
       return {
         error: `Le contenu du fichier n'est pas une image valide (${detected ? detected.ext : "inconnu"}).`,

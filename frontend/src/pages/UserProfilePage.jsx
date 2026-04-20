@@ -18,20 +18,9 @@ function FieldLabel({ icon: Icon, children }) {
   );
 }
 
-// Affichage des photos avec adaptation selon dimensions
+// Affichage des photos avec cadre carré fixe
 function ProfilePhotosGrid({ photos }) {
-  const [dimensions, setDimensions] = useState({});
-  const [mainSize, setMainSize] = useState({ w: 224, h: 224 });
-
-  function handleImgLoad(photoId, e) {
-    const { naturalWidth: w, naturalHeight: h } = e.target;
-    setDimensions((prev) => ({ ...prev, [photoId]: { w, h } }));
-    if (photoId === photos[0]?.id) {
-      const size = Math.max(w, h, 200);
-      setMainSize({ w: size, h: size });
-    }
-  }
-
+  const FRAME_SIZE = 224;
   const [modalIndex, setModalIndex] = useState(null);
   const openModal = (idx) => setModalIndex(idx);
   const closeModal = () => setModalIndex(null);
@@ -57,29 +46,23 @@ function ProfilePhotosGrid({ photos }) {
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        {photos.map((photo, idx) => {
-          const dim = dimensions[photo.id];
-          // Toujours utiliser object-contain pour que l'image soit entièrement visible
-          const objectFit = "object-contain";
-          return (
-            <div
-              key={photo.id}
-              className={`flex items-center justify-center bg-slate-100 overflow-hidden rounded-xl border group ${photo.is_primary ? "border-brand" : "border-slate-200"}`}
-              style={{ width: mainSize.w, height: mainSize.h, minWidth: mainSize.w, minHeight: mainSize.h, maxWidth: mainSize.w, maxHeight: mainSize.h, position: 'relative', zIndex: 1 }}
-            >
-              <div className="relative w-full h-full">
-                <img
-                  src={photo.data_url}
-                  alt="Profile"
-                  className="object-contain w-full h-full transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 group-hover:shadow-2xl cursor-zoom-in"
-                  style={{ background: "#f1f5f9" }}
-                  onLoad={(e) => handleImgLoad(photo.id, e)}
-                  onClick={() => openModal(idx)}
-                />
-              </div>
+        {photos.map((photo, idx) => (
+          <div
+            key={photo.id}
+            className={`flex items-center justify-center bg-slate-100 overflow-hidden rounded-xl border group ${photo.is_primary ? "border-brand" : "border-slate-200"}`}
+            style={{ width: FRAME_SIZE, height: FRAME_SIZE, minWidth: FRAME_SIZE, minHeight: FRAME_SIZE, maxWidth: FRAME_SIZE, maxHeight: FRAME_SIZE, position: 'relative', zIndex: 1 }}
+          >
+            <div className="relative w-full h-full">
+              <img
+                src={photo.data_url}
+                alt="Profile"
+                className="object-contain w-full h-full transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 group-hover:shadow-2xl cursor-zoom-in"
+                style={{ background: "#f1f5f9" }}
+                onClick={() => openModal(idx)}
+              />
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
       {modalIndex !== null && (
         <div

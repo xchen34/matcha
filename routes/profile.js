@@ -550,14 +550,14 @@ router.get("/profile/validate-location", async (req, res, next) => {
       ? Math.max(1, Math.min(rawLimit, 20))
       : 12;
 
-    console.info("[profile/validate-location] request", {
-      userId: currentUserId,
-      city,
-      neighborhood,
-      latitude,
-      longitude,
-      limit,
-    });
+    // console.info("[profile/validate-location] request", {
+    //   userId: currentUserId,
+    //   city,
+    //   neighborhood,
+    //   latitude,
+    //   longitude,
+    //   limit,
+    // });
 
     if (!city && !neighborhood && (latitude === null || longitude === null)) {
       return res.status(400).json({
@@ -631,14 +631,14 @@ router.get("/profile/validate-location", async (req, res, next) => {
 
     const isValid = suggestions.length > 0 && cityExists && neighborhoodExists;
 
-    console.info("[profile/validate-location] result", {
-      city,
-      neighborhood,
-      suggestionsCount: suggestions.length,
-      cityExists,
-      neighborhoodExists,
-      isValid,
-    });
+    // console.info("[profile/validate-location] result", {
+    //   city,
+    //   neighborhood,
+    //   suggestionsCount: suggestions.length,
+    //   cityExists,
+    //   neighborhoodExists,
+    //   isValid,
+    // });
 
     return res.json({
       validation: {
@@ -691,10 +691,10 @@ router.get("/profile/city-suggestions", async (req, res, next) => {
       ? req.query.query.trim()
       : "";
     if (query.length < 2) {
-      console.info("[profile/city-suggestions] short query", {
-        userId: currentUserId,
-        query,
-      });
+      // console.info("[profile/city-suggestions] short query", {
+      //   userId: currentUserId,
+      //   query,
+      // });
       return res.json({ query, suggestions: [] });
     }
 
@@ -1070,8 +1070,7 @@ router.put("/profile/me", async (req, res, next) => {
       return res.status(400).json({ error: "biography must be a string" });
     }
 
-    const safeBiography =
-      typeof biography === "string" ? biography.trim() : "";
+    const safeBiography = typeof biography === "string" ? biography.trim() : "";
     if (safeBiography.length > MAX_BIO_LENGTH) {
       return res.status(400).json({
         error: `biography must be at most ${MAX_BIO_LENGTH} characters`,
@@ -1170,7 +1169,7 @@ router.put("/profile/me", async (req, res, next) => {
 
     let normalizedPhotos = null;
     if (photos !== undefined) {
-      const photoResult = normalizePhotosInput(photos);
+      const photoResult = await normalizePhotosInput(photos);
       if (photoResult && photoResult.error) {
         return res.status(400).json({ error: photoResult.error });
       }
@@ -1244,7 +1243,7 @@ router.put("/profile/me", async (req, res, next) => {
         [
           normalizedFirstName,
           normalizedLastName,
-          safeBiography,
+          normalizedEmail,
           normalizedUsername,
           currentUserId,
         ],
