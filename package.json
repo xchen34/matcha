@@ -6,7 +6,12 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "db:init": "node scripts/initDb.js"
+    "db:init": "node scripts/initDb.js",
+    "backend:check": "node scripts/checkBackendSyntax.js",
+    "security:precheck": "node scripts/securityPrecheck.js",
+    "frontend:lint": "npm run lint --prefix frontend",
+    "frontend:build": "npm run build --prefix frontend",
+    "predefense": "npm run security:precheck && npm run backend:check && npm run frontend:lint && npm run frontend:build"
   },
   "keywords": [],
   "author": "",

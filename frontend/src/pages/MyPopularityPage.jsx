@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { FaFire, FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
 import { buildApiHeaders } from "../utils.js";
+import { sanitizeText } from "../utils/xssEscape.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
 
 const cardClass =
@@ -190,7 +191,7 @@ function MyPopularityPage({ currentUser }) {
                 className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 backdrop-blur"
               >
                 <div>
-                  <p className="font-semibold text-white">@{user.username}</p>
+                  <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>
                   <p className="text-xs text-white/70">Viewed your profile</p>
                 </div>
                 <button
@@ -230,7 +231,7 @@ function MyPopularityPage({ currentUser }) {
                 className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 backdrop-blur"
               >
                 <div>
-                  <p className="font-semibold text-white">@{user.username}</p>
+                  <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>
                   <p className="text-xs text-white/70">Liked your profile</p>
                 </div>
                 <button
@@ -270,7 +271,7 @@ function MyPopularityPage({ currentUser }) {
                 className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 backdrop-blur"
               >
                 <div>
-                  <p className="font-semibold text-white">@{user.username}</p>
+                  <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>
                   <p className="text-xs text-white/70">You matched together</p>
                 </div>
                 <button
@@ -316,7 +317,7 @@ function MyPopularityPage({ currentUser }) {
               className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
             >
               <div>
-                <p className="font-semibold text-slate-900">@{user.username}</p>
+                <p className="font-semibold text-slate-900">@{sanitizeText(user.username)}</p>
                 <p className="text-xs text-slate-500">{user.email}</p>
               </div>
               <button

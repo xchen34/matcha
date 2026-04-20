@@ -77,6 +77,28 @@ export async function sendChatMessage(currentUser, recipientUserId, content) {
   return handleResponse(response, "Unable to send message.");
 }
 
+export async function deleteChatMessage(currentUser, conversationId, messageId) {
+  if (!currentUser?.id) {
+    throw new Error("Not authenticated");
+  }
+  const response = await fetch(`/api/chats/${conversationId}/messages/${messageId}`, {
+    method: "DELETE",
+    headers: buildApiHeaders(currentUser),
+  });
+  return handleResponse(response, "Unable to delete message.");
+}
+
+export async function deleteChatConversation(currentUser, conversationId) {
+  if (!currentUser?.id) {
+    throw new Error("Not authenticated");
+  }
+  const response = await fetch(`/api/chats/${conversationId}`, {
+    method: "DELETE",
+    headers: buildApiHeaders(currentUser),
+  });
+  return handleResponse(response, "Unable to delete conversation.");
+}
+
 export async function ensureConversationExists(currentUser, otherUserId) {
   if (!currentUser?.id) {
     throw new Error("Not authenticated");

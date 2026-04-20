@@ -24,6 +24,21 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: 'dangerouslySetInnerHTML is forbidden to prevent XSS.',
+        },
+      ],
+      'no-restricted-properties': [
+        'error',
+        {
+          property: 'innerHTML',
+          message: 'Direct innerHTML usage is forbidden to prevent XSS.',
+        },
+      ],
+      'no-eval': 'error',
     },
   },
 ])

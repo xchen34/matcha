@@ -2,6 +2,7 @@ import { FaHeart, FaUser, FaMapMarkerAlt, FaTags, FaStar, FaTransgender } from "
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { sanitizeText } from "../utils/xssEscape.js";
 
 
 function UserCard({ user, currentUser, canLikeProfiles = true }) {
@@ -100,11 +101,11 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           <div className="flex flex-wrap gap-2 text-sm text-slate-600 items-center mb-1">
             <span className="inline-flex items-center gap-1">
               <FaTransgender size={13} aria-hidden="true" />
-              <span className="font-semibold text-slate-800">{user.gender || "-"}</span>
+              <span className="font-semibold text-slate-800">{sanitizeText(user.gender) || "-"}</span>
             </span>
             <span className="inline-flex items-center gap-1">
               <span className="font-semibold text-slate-500">Pref:</span>
-              <span className="font-semibold text-slate-800">{user.sexual_preference || "-"}</span>
+              <span className="font-semibold text-slate-800">{sanitizeText(user.sexual_preference) || "-"}</span>
             </span>
             <span className="inline-flex items-center gap-1">
               <FaUser size={13} aria-hidden="true" />
@@ -113,8 +114,8 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
             <span className="inline-flex items-center gap-1">
               <FaMapMarkerAlt size={13} aria-hidden="true" />
               <span className="font-semibold text-slate-800">
-                {user.city || "-"}
-                {user.neighborhood ? ` - ${user.neighborhood}` : ""}
+                {sanitizeText(user.city) || "-"}
+                {user.neighborhood ? ` - ${sanitizeText(user.neighborhood)}` : ""}
               </span>
             </span>
             {typeof user.fame_rating === "number" && (
@@ -132,7 +133,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
                   key={`${user.id}-${tag}`}
                   className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700"
                 >
-                  {tag}
+                  {sanitizeText(tag)}
                 </span>
               ))
             ) : (

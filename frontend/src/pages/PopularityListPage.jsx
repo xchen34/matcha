@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
 import { Navigate, useNavigate } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
+import { sanitizeText } from "../utils/xssEscape.js";
 import { ensureConversationExists } from "../chat/api.js";
 import ChatAvatar from "../chat/ChatAvatar.jsx";
 import { useNotifications } from "../notifications/useNotifications.js";
@@ -356,7 +357,7 @@ function PopularityListPage({ currentUser, mode = "views" }) {
                   <div className="flex items-center gap-3">
                     <div>
                       <p className="inline-flex items-center gap-1 font-semibold text-slate-900">
-                        @{user.username}
+                        @{sanitizeText(user.username)}
                         {unreadUserSet.has(String(user.id)) && (
                           <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New notification" />
                         )}
@@ -382,7 +383,7 @@ function PopularityListPage({ currentUser, mode = "views" }) {
                 {/* Avatar retiré */}
                 <div>
                   <p className="font-semibold text-slate-900">
-                    @{user.username}
+                    @{sanitizeText(user.username)}
                     {unreadUserSet.has(String(user.id)) && (
                       <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New notification" />
                     )}

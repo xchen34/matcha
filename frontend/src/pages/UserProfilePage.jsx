@@ -3,6 +3,7 @@ import { FaHeart } from "react-icons/fa";
 import { FiActivity, FiCalendar, FiCompass, FiInfo, FiMapPin, FiStar, FiTag, FiUser } from "react-icons/fi";
 import { Navigate, useParams } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
+import { sanitizeText } from "../utils/xssEscape.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
 
 const cardClass =
@@ -636,16 +637,16 @@ function UserProfilePage({ currentUser }) {
       <div className="grid sm:grid-cols-2 gap-3 text-sm text-slate-700">
         <div>
           <FieldLabel icon={FiInfo}>Bio</FieldLabel>
-          <p className="mt-1 text-slate-800">{profile.biography || "-"}</p>
+          <p className="mt-1 text-slate-800">{sanitizeText(profile.biography) || "-"}</p>
         </div>
         <div className="space-y-2">
           <div>
             <FieldLabel icon={FiUser}>Gender</FieldLabel>
-            <p className="mt-1 text-slate-800">{profile.gender || "-"}</p>
+            <p className="mt-1 text-slate-800">{sanitizeText(profile.gender) || "-"}</p>
           </div>
           <div>
             <FieldLabel icon={FiCompass}>Sexual preference</FieldLabel>
-            <p className="mt-1 text-slate-800">{profile.sexual_preference || "-"}</p>
+            <p className="mt-1 text-slate-800">{sanitizeText(profile.sexual_preference) || "-"}</p>
           </div>
           <div>
             <FieldLabel icon={FiCalendar}>Age</FieldLabel>
@@ -674,7 +675,7 @@ function UserProfilePage({ currentUser }) {
           <div>
             <FieldLabel icon={FiMapPin}>Location</FieldLabel>
             <p className="mt-1 text-slate-800">
-              {profile.city || "-"} {profile.neighborhood ? `· ${profile.neighborhood}` : ""}
+              {sanitizeText(profile.city) || "-"} {profile.neighborhood ? `· ${sanitizeText(profile.neighborhood)}` : ""}
             </p>
           </div>
           <div>

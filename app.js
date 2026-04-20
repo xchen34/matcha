@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const pool = require("./db");
 const healthRouter = require("./routes/health");
 const dbHealthRouter = require("./routes/dbHealth");
@@ -10,8 +11,30 @@ const likesRouter = require("./routes/likes");
 const notificationsRouter = require("./routes/notifications");
 const chatsRouter = require("./routes/chats");
 const moderationRouter = require("./routes/moderation");
+const { csrfProtection } = require("./middleware/csrfProtection");
+const { globalApiLimiter } = require("./middleware/rateLimit");
 
 const app = express();
+const isProduction = process.env.NODE_ENV === "production";
+
+app.disable("x-powered-by");
+
+app.use(
+  helmet({
+    // API-only backend: disable CSP header here to avoid blocking non-HTML API clients.
+    contentSecurityPolicy: false,
+    // Keep dev/proxy setup simple; COEP is not needed for this API server.
+    crossOriginEmbedderPolicy: false,
+    // Only force HTTPS in production.
+    hsts: isProduction
+      ? {
+          maxAge: 31536000,
+          includeSubDomains: true,
+          preload: true,
+        }
+      : false,
+  }),
+);
 
 const corsOptions = {
   origin: "http://localhost:5173",
@@ -30,6 +53,9 @@ app.use(cors(corsOptions));
  */
 app.use(express.json({ limit: "6mb" }));
 app.use(express.urlencoded({ extended: true, limit: "6mb" }));
+
+app.use(csrfProtection);
+app.use("/api", globalApiLimiter);
 
 app.use((req, res, next) => {
   const rawUserId = req.header("x-user-id");

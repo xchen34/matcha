@@ -1,24 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { FiCheck } from "react-icons/fi";
+import { FiCheck, FiCornerUpLeft, FiTrash2 } from "react-icons/fi";
 import ChatAvatar from "../chat/ChatAvatar.jsx";
 import {
   joinConversationRoom,
   leaveConversationRoom,
   onRealtimeEvent,
 } from "../realtime/socket.js";
-import { REALTIME_EVENTS } from "../realtime/events";
+import { REALTIME_EVENTS } from "../realtime/events.js";
 import { buildApiHeaders } from "../utils.js";
+import { sanitizeText } from "../utils/xssEscape.js";
 import {
+  deleteChatConversation,
+  deleteChatMessage,
   fetchConversationMessages,
   markConversationAsRead,
   sendChatMessage,
 } from "../chat/api.js";
 
 const PAGE_SIZE = 20;
+const MAX_CHAT_MESSAGE_LENGTH = 1200;
 
 const chatBubbleClass =
-  "rounded-2xl border border-slate-200 px-3 py-1 text-sm leading-tight shadow-sm";
+  "rounded-2xl border border-slate-200 px-3 py-1 text-sm leading-tight shadow-sm cursor-default";
 const chatInputClass =
   "w-full rounded-2xl border border-slate-200 px-4 py-2 text-base text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition min-h-[72px]";
 const chatButtonClass = (isDisabled) =>
@@ -126,6 +130,95 @@ function dedupeMessages(items) {
   return deduped;
 }
 
+function getMessageAuthorLabel(message, currentUser, conversation) {
+  if (!message) return "Someone";
+  if (Number(message.sender_user_id) === Number(currentUser?.id)) {
+    return "You";
+  }
+
+  return (
+    conversation?.other_user?.first_name ||
+    conversation?.other_user?.username ||
+    `User ${message.sender_user_id}`
+  );
+}
+
+function buildQuoteText(message, currentUser, conversation) {
+  const author = getMessageAuthorLabel(message, currentUser, conversation);
+  const lines = String(message?.content || "")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .slice(0, 8)
+    .map((line) => `> ${line}`)
+    .join("\n");
+
+  return `${author} wrote:\n${lines}`.trim();
+}
+
+function parseQuotedMessageContent(content) {
+  const text = String(content || "");
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  if (!lines.length) {
+    return { quoteHeader: null, quoteLines: [], replyText: text };
+  }
+
+  const headerMatch = lines[0].match(/^(.*) wrote:\s*$/i);
+  if (!headerMatch) {
+    return { quoteHeader: null, quoteLines: [], replyText: text };
+  }
+
+  const quoteLines = [];
+  let index = 1;
+  while (index < lines.length) {
+    const line = lines[index];
+    if (!/^>\s?/.test(line)) break;
+    quoteLines.push(line.replace(/^>\s?/, ""));
+    index += 1;
+  }
+
+  while (index < lines.length && lines[index].trim() === "") {
+    index += 1;
+  }
+
+  return {
+    quoteHeader: headerMatch[1].trim(),
+    quoteLines,
+    replyText: lines.slice(index).join("\n").trim(),
+  };
+}
+
+function MessageBody({ content, isMine }) {
+  const parsed = parseQuotedMessageContent(content);
+
+  if (!parsed.quoteHeader) {
+    return (
+      <p className="text-sm leading-relaxed whitespace-normal break-normal">
+        {sanitizeText(content)}
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div
+        className={`rounded-2xl border px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap break-words ${
+          isMine
+            ? "border-white/25 bg-white/10 text-white/90"
+            : "border-slate-200 bg-slate-50 text-slate-600"
+        }`}
+      >
+        <p className="mb-1 font-semibold">{sanitizeText(parsed.quoteHeader)} wrote:</p>
+        <p>{parsed.quoteLines.join("\n")}</p>
+      </div>
+      {parsed.replyText && (
+        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+          {sanitizeText(parsed.replyText)}
+        </p>
+      )}
+    </div>
+  );
+}
+
 
 export default function ChatConversationPage({ currentUser, embedded = false }) {
   const { conversationId } = useParams();
@@ -141,7 +234,10 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
     error &&
     (error === "You must be matched to send messages");
   const [body, setBody] = useState("");
+  const [quotedMessage, setQuotedMessage] = useState(null);
   const [isSending, setIsSending] = useState(false);
+  const [isDeletingMessageId, setIsDeletingMessageId] = useState(null);
+  const [isDeletingConversation, setIsDeletingConversation] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [messagesOffset, setMessagesOffset] = useState(0);
@@ -150,7 +246,34 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
   const initialLoadRef = useRef(true);
   const lastReadMarkerRef = useRef("");
   const [openedTimestampId, setOpenedTimestampId] = useState(null);
+  const [selectedMessageId, setSelectedMessageId] = useState(null);
   const prependingScrollRef = useRef(null);
+
+  useEffect(() => {
+    if (!selectedMessageId) return undefined;
+
+    function handlePointerDown(event) {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        setSelectedMessageId(null);
+        return;
+      }
+
+      const clickedMessage = target.closest("[data-message-id]");
+      if (clickedMessage?.getAttribute("data-message-id") === String(selectedMessageId)) {
+        return;
+      }
+
+      setSelectedMessageId(null);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [selectedMessageId]);
 
   const markCurrentConversationAsRead = useCallback(async () => {
     if (!currentUser?.id || !conversationId) return;
@@ -325,6 +448,8 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
     setHasMoreMessages(false);
     setMessagesOffset(0);
     prependingScrollRef.current = null;
+    setQuotedMessage(null);
+    setSelectedMessageId(null);
   }, [conversationId]);
 
   useEffect(() => {
@@ -392,6 +517,43 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       }
     });
 
+    const offMessageDeleted = onRealtimeEvent(
+      REALTIME_EVENTS.CHAT_MESSAGE_DELETED,
+      (payload) => {
+        if (Number(payload?.conversation_id) !== Number(conversation.id)) {
+          return;
+        }
+
+        const deletedMessageId = Number(payload?.message_id);
+        if (!Number.isInteger(deletedMessageId)) return;
+
+        setMessages((prev) =>
+          prev.filter((msg) => Number(msg.id) !== deletedMessageId),
+        );
+        setMessagesOffset((prev) => Math.max(0, prev - 1));
+        setQuotedMessage((prev) =>
+          Number(prev?.id) === deletedMessageId ? null : prev,
+        );
+        setOpenedTimestampId((prev) =>
+          Number(prev) === deletedMessageId ? null : prev,
+        );
+        setSelectedMessageId((prev) =>
+          Number(prev) === deletedMessageId ? null : prev,
+        );
+      },
+    );
+
+    const offConversationDeleted = onRealtimeEvent(
+      REALTIME_EVENTS.CHAT_CONVERSATION_DELETED,
+      (payload) => {
+        if (Number(payload?.conversation_id) !== Number(conversation.id)) {
+          return;
+        }
+
+        navigate("/messages", { replace: true });
+      },
+    );
+
     const offReadUpdate = onRealtimeEvent(
       "chat:conversation:read",
       (payload) => {
@@ -451,10 +613,12 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
 
     return () => {
       offMessage();
+      offMessageDeleted();
+      offConversationDeleted();
       offReadUpdate();
       offMatchStatus();
     };
-  }, [currentUser?.id, conversation?.id, loadConversation, markCurrentConversationAsRead]);
+  }, [currentUser?.id, conversation?.id, loadConversation, markCurrentConversationAsRead, navigate]);
 
   useEffect(() => {
     if (!currentUser?.id || !conversationId) return undefined;
@@ -531,8 +695,11 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         return;
       }
 
-      const sanitized = body.trim();
-      if (!sanitized) return;
+      const quoteText = quotedMessage
+        ? buildQuoteText(quotedMessage, currentUser, conversation)
+        : "";
+      const composedContent = [quoteText, body.trim()].filter(Boolean).join("\n\n").trim();
+      if (!composedContent) return;
 
       setIsSending(true);
       setError("");
@@ -540,9 +707,10 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         const payload = await sendChatMessage(
           currentUser,
           conversation.other_user.id,
-          sanitized,
+          composedContent,
         );
         setBody("");
+        setQuotedMessage(null);
         setConversation((prev) => ({
           ...prev,
           id: payload.conversation_id,
@@ -554,23 +722,89 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         setIsSending(false);
       }
     },
-    [body, conversation, currentUser],
+    [body, conversation, currentUser, quotedMessage],
   );
+
+  const handleQuoteMessage = useCallback(
+    (message) => {
+      if (!message) return;
+      setQuotedMessage(message);
+      setError("");
+    },
+    [conversation, currentUser],
+  );
+
+  const handleOpenMessageActions = useCallback((messageId) => {
+    setSelectedMessageId(String(messageId));
+  }, []);
+
+  const handleDeleteMessage = useCallback(
+    async (message) => {
+      if (!currentUser?.id || !conversation?.id || !message?.id) return;
+
+      const confirmed = window.confirm("Delete this message?");
+      if (!confirmed) return;
+
+      setIsDeletingMessageId(message.id);
+      setError("");
+      try {
+        await deleteChatMessage(currentUser, conversation.id, message.id);
+        setMessages((prev) => prev.filter((item) => Number(item.id) !== Number(message.id)));
+        setMessagesOffset((prev) => Math.max(0, prev - 1));
+        setQuotedMessage((prev) => (Number(prev?.id) === Number(message.id) ? null : prev));
+        setOpenedTimestampId((prev) => (Number(prev) === Number(message.id) ? null : prev));
+        setSelectedMessageId((prev) => (Number(prev) === Number(message.id) ? null : prev));
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsDeletingMessageId(null);
+      }
+    },
+    [conversation?.id, currentUser],
+  );
+
+  const handleDeleteConversation = useCallback(async () => {
+    if (!currentUser?.id || !conversation?.id) return;
+
+    const confirmed = window.confirm(
+      "Delete the entire chat? This will remove the conversation for both users.",
+    );
+    if (!confirmed) return;
+
+    setIsDeletingConversation(true);
+    setError("");
+    try {
+      await deleteChatConversation(currentUser, conversation.id);
+      navigate("/messages", { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsDeletingConversation(false);
+    }
+  }, [conversation?.id, currentUser, navigate]);
 
   if (!currentUser?.id) {
     return <Navigate to="/login" replace />;
   }
 
-  const displayName =
+  const displayName = sanitizeText(
     conversation?.other_user?.first_name ||
     conversation?.other_user?.username ||
-    "Conversation";
+    "Conversation"
+  );
   const otherUserPhotoUrl =
     conversation?.other_user?.primary_photo_url ||
     conversation?.other_user?.photo_url ||
     conversation?.other_user?.profile_photo_url ||
     "";
   const currentUserId = Number(currentUser.id);
+  const quoteDraftText = quotedMessage
+    ? buildQuoteText(quotedMessage, currentUser, conversation)
+    : "";
+  const composedMessageLength = [quoteDraftText, body.trim()]
+    .filter(Boolean)
+    .join("\n\n")
+    .trim().length;
 
   return (
     <section className={embedded ? "w-full space-y-5" : "mx-auto max-w-xl w-full space-y-5 px-3 sm:px-4"}>
@@ -615,8 +849,8 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
             </p>
           </div>
         </div>
-        {!embedded && (
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          {!embedded && (
             <button
               type="button"
               onClick={() =>
@@ -628,8 +862,17 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
             >
               Back to inbox
             </button>
-          </div>
-        )}
+          )}
+          <button
+            type="button"
+            onClick={handleDeleteConversation}
+            disabled={isDeletingConversation}
+            className="inline-flex items-center gap-2 rounded-full border border-red-200 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <FiTrash2 size={14} aria-hidden="true" />
+            <span>{isDeletingConversation ? "Deleting…" : "Delete chat"}</span>
+          </button>
+        </div>
       </header>
 
       {matchError && (
@@ -742,6 +985,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                         ? `msg-${msg.id}`
                         : `msg-${index}-${msg.created_at ?? ""}`
                     }
+                    data-message-id={messageId}
                     className="space-y-1"
                   >
                     {startsNewDay && (
@@ -752,18 +996,44 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                       </div>
                     )}
                     <div className={`flex w-full ${isMine ? "justify-end" : "justify-start"}`}>
-                      <div className={`group flex max-w-[62%] flex-col ${isMine ? "items-end" : "items-start"}`}>
+                      <div className={`group relative flex max-w-[62%] flex-col ${isMine ? "items-end" : "items-start"}`}>
                         <button
                           type="button"
-                          onClick={() => setOpenedTimestampId(messageId)}
-                          className={`${chatBubbleClass} text-left ${
+                          onClick={() => {
+                            setOpenedTimestampId(messageId);
+                            handleOpenMessageActions(messageId);
+                          }}
+                          className={`${chatBubbleClass} cursor-pointer text-left ${
                             isMine
                               ? "from-brand to-brand-deep bg-gradient-to-r border-transparent text-white shadow-lg"
                               : "border-slate-200 bg-slate-100 text-slate-900"
                           }`}
                         >
-                          <p className="text-sm leading-relaxed whitespace-normal break-normal">{msg.content}</p>
+                          <MessageBody content={msg.content} isMine={isMine} />
                         </button>
+                        <div
+                          className={`absolute top-full z-10 mt-2 flex flex-wrap gap-2 text-[0.65rem] text-slate-500 transition-all duration-150 ${selectedMessageId === messageId ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"} ${isMine ? "right-0 justify-end" : "left-0 justify-start"}`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleQuoteMessage(msg)}
+                            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 font-semibold hover:border-slate-300 hover:text-slate-700"
+                          >
+                            <FiCornerUpLeft size={10} aria-hidden="true" />
+                            <span>Quote</span>
+                          </button>
+                          {isMine && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMessage(msg)}
+                              disabled={isDeletingMessageId === msg.id}
+                              className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-white px-2 py-0.5 font-semibold text-red-700 hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <FiTrash2 size={10} aria-hidden="true" />
+                              <span>{isDeletingMessageId === msg.id ? "Deleting…" : "Delete"}</span>
+                            </button>
+                          )}
+                        </div>
                         {isMine ? (
                           <div
                             className={`inline-flex items-center gap-1 overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
@@ -795,7 +1065,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                 ...filteredMessages,
                 <li key="unmatched-badge-immediate" className="py-2 text-center">
                   <span className="inline-flex rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-[0.9rem] font-semibold text-yellow-800">
-                    You unmatched{dateStr ? ` on ${dateStr}` : ''}
+                    You unmatched{dateStr ? ` on ${sanitizeText(dateStr)}` : ''}
                   </span>
                 </li>
               ];
@@ -845,6 +1115,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                       ? `msg-${msg.id}`
                       : `msg-${index}-${msg.created_at ?? ""}`
                   }
+                  data-message-id={messageId}
                   className="space-y-1"
                 >
                   {startsNewDay && (
@@ -855,18 +1126,44 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                     </div>
                   )}
                   <div className={`flex w-full ${isMine ? "justify-end" : "justify-start"}`}>
-                    <div className={`group flex max-w-[62%] flex-col ${isMine ? "items-end" : "items-start"}`}>
+                    <div className={`group relative flex max-w-[62%] flex-col ${isMine ? "items-end" : "items-start"}`}>
                       <button
                         type="button"
-                        onClick={() => setOpenedTimestampId(messageId)}
-                        className={`${chatBubbleClass} text-left ${
+                        onClick={() => {
+                          setOpenedTimestampId(messageId);
+                          handleOpenMessageActions(messageId);
+                        }}
+                        className={`${chatBubbleClass} cursor-pointer text-left ${
                           isMine
                             ? "from-brand to-brand-deep bg-gradient-to-r border-transparent text-white shadow-lg"
                             : "border-slate-200 bg-slate-100 text-slate-900"
                         }`}
                       >
-                        <p className="text-sm leading-relaxed whitespace-normal break-normal">{msg.content}</p>
+                        <MessageBody content={msg.content} isMine={isMine} />
                       </button>
+                      <div
+                        className={`absolute top-full z-10 mt-2 flex flex-wrap gap-2 text-[0.65rem] text-slate-500 transition-all duration-150 ${selectedMessageId === messageId ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"} ${isMine ? "right-0 justify-end" : "left-0 justify-start"}`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleQuoteMessage(msg)}
+                          className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 font-semibold hover:border-slate-300 hover:text-slate-700"
+                        >
+                          <FiCornerUpLeft size={10} aria-hidden="true" />
+                          <span>Quote</span>
+                        </button>
+                        {isMine && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMessage(msg)}
+                            disabled={isDeletingMessageId === msg.id}
+                            className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-white px-2 py-0.5 font-semibold text-red-700 hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <FiTrash2 size={10} aria-hidden="true" />
+                            <span>{isDeletingMessageId === msg.id ? "Deleting…" : "Delete"}</span>
+                          </button>
+                        )}
+                      </div>
                       {isMine ? (
                         <div
                           className={`inline-flex items-center gap-1 overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
@@ -900,6 +1197,25 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
 
       {isMatch && (
         <form onSubmit={handleSend} className="space-y-2">
+          {quotedMessage && (
+            <div className="rounded-2xl border border-brand/20 bg-brand/5 px-3 py-2 text-sm text-slate-700">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold text-brand-deep">
+                  Quoting {getMessageAuthorLabel(quotedMessage, currentUser, conversation)}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setQuotedMessage(null)}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                >
+                  Clear
+                </button>
+              </div>
+              <p className="mt-1 whitespace-pre-wrap break-words text-slate-600">
+                {buildQuoteText(quotedMessage, currentUser, conversation)}
+              </p>
+            </div>
+          )}
           <textarea
             rows={2}
             value={body}
@@ -907,12 +1223,16 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
             className={chatInputClass}
             placeholder="Write a message..."
             disabled={isSending}
+            maxLength={MAX_CHAT_MESSAGE_LENGTH}
           />
+          <p className="text-xs text-slate-500 text-right">
+            {composedMessageLength}/{MAX_CHAT_MESSAGE_LENGTH}
+          </p>
           <div className="flex justify-end">
             <button
               type="submit"
-              className={chatButtonClass(isSending || !body.trim())}
-              disabled={isSending || !body.trim()}
+              className={chatButtonClass(isSending || !composedMessageLength || composedMessageLength > MAX_CHAT_MESSAGE_LENGTH)}
+              disabled={isSending || !composedMessageLength || composedMessageLength > MAX_CHAT_MESSAGE_LENGTH}
             >
               {isSending ? "Sending…" : "Send message"}
             </button>
