@@ -817,11 +817,20 @@ router.get("/profile/me", async (req, res, next) => {
           p.gps_consent,
           p.latitude,
           p.longitude,
-          LEAST(
-            COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric * 2 +
-            COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric * 3 +
-            COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric,
-            100
+          GREATEST(
+            LEAST(
+              FLOOR(
+                COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id), 0)::numeric / 20
+              ) + FLOOR(
+                COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric / 5
+              ) + CASE
+                WHEN COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0) = 0
+                  THEN -1
+                ELSE 0
+              END,
+              100
+            ),
+            0
           )::int AS fame_rating
         FROM users AS u
         LEFT JOIN profiles AS p ON p.user_id = u.id
@@ -933,11 +942,20 @@ router.get("/profile/:id", async (req, res, next) => {
           p.birth_date,
           p.city,
           p.neighborhood,
-          LEAST(
-            COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric * 2 +
-            COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric * 3 +
-            COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric,
-            100
+          GREATEST(
+            LEAST(
+              FLOOR(
+                COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id), 0)::numeric / 20
+              ) + FLOOR(
+                COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric / 5
+              ) + CASE
+                WHEN COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0) = 0
+                  THEN -1
+                ELSE 0
+              END,
+              100
+            ),
+            0
           )::int AS fame_rating
         FROM users AS u
         LEFT JOIN profiles AS p ON p.user_id = u.id

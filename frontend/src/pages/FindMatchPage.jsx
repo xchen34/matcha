@@ -15,7 +15,7 @@ function FindMatchPage({ currentUser }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState("");
+  const [filterError, setFilterError] = useState("");
   const [fameRating, setFameRating] = useState(0);
   const [canLikeProfiles, setCanLikeProfiles] = useState(false);
   const [tagOptions, setTagOptions] = useState([]);
@@ -54,9 +54,6 @@ function FindMatchPage({ currentUser }) {
     } else if (!silent) {
       setLoading(true);
     }
-    if (!silent) {
-      setError("");
-    }
 
     try {
       const params = new URLSearchParams();
@@ -91,12 +88,8 @@ function FindMatchPage({ currentUser }) {
         setUsers([]);
         setOffset(0);
         setHasMore(false);
-        setError("No matches found.");
       }
     } catch {
-      if (!silent) {
-        setError("Failed to load matches");
-      }
       if (!options.append) {
         setUsers([]);
         setOffset(0);
@@ -317,21 +310,7 @@ function FindMatchPage({ currentUser }) {
 
   function handleFilterChange(e) {
     const { name, value } = e.target;
-
-    function clampNumberInput(rawValue, min, max) {
-      if (rawValue === "") return "";
-      const parsed = Number(rawValue);
-      if (!Number.isFinite(parsed)) return "";
-      return String(Math.min(Math.max(parsed, min), max));
-    }
-
-    function clampIntegerInput(rawValue, min, max) {
-      if (rawValue === "") return "";
-      const parsed = Number(rawValue);
-      if (!Number.isFinite(parsed)) return "";
-      const normalized = Math.trunc(parsed);
-      return String(Math.min(Math.max(normalized, min), max));
-    }
+    setFilterError("");
 
     if (name === "city") {
       setDraftFilters((prev) => ({ ...prev, city: value }));
@@ -340,14 +319,27 @@ function FindMatchPage({ currentUser }) {
     }
 
     if (name === "min_age" || name === "max_age") {
-      const normalized = clampIntegerInput(value, 18, 150);
-      setDraftFilters((prev) => ({ ...prev, [name]: normalized }));
+      // Allow any valid number input, validation happens on apply
+      if (value === "") {
+        setDraftFilters((prev) => ({ ...prev, [name]: "" }));
+        return;
+      }
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return;
+      const normalized = Math.trunc(parsed);
+      setDraftFilters((prev) => ({ ...prev, [name]: String(normalized) }));
       return;
     }
 
     if (name === "min_fame" || name === "max_fame") {
-      const normalized = clampNumberInput(value, 0, 100);
-      setDraftFilters((prev) => ({ ...prev, [name]: normalized }));
+      // Allow any valid number input, validation happens on apply
+      if (value === "") {
+        setDraftFilters((prev) => ({ ...prev, [name]: "" }));
+        return;
+      }
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return;
+      setDraftFilters((prev) => ({ ...prev, [name]: String(parsed) }));
       return;
     }
 
@@ -373,6 +365,44 @@ function FindMatchPage({ currentUser }) {
   }
 
   async function applyFilters() {
+    // Validate age range
+    const minAge = draftFilters.min_age ? Number(draftFilters.min_age) : null;
+    const maxAge = draftFilters.max_age ? Number(draftFilters.max_age) : null;
+    
+    if (minAge !== null && maxAge !== null && minAge > maxAge) {
+      setFilterError("Min age cannot be greater than max age");
+      return;
+    }
+    
+    if (minAge !== null && (minAge < 18 || minAge > 150)) {
+      setFilterError("Min age must be between 18 and 150");
+      return;
+    }
+    
+    if (maxAge !== null && (maxAge < 18 || maxAge > 150)) {
+      setFilterError("Max age must be between 18 and 150");
+      return;
+    }
+    
+    // Validate fame range
+    const minFame = draftFilters.min_fame ? Number(draftFilters.min_fame) : null;
+    const maxFame = draftFilters.max_fame ? Number(draftFilters.max_fame) : null;
+    
+    if (minFame !== null && maxFame !== null && minFame > maxFame) {
+      setFilterError("Min fame cannot be greater than max fame");
+      return;
+    }
+    
+    if (minFame !== null && (minFame < 0 || minFame > 100)) {
+      setFilterError("Min fame must be between 0 and 100");
+      return;
+    }
+    
+    if (maxFame !== null && (maxFame < 0 || maxFame > 100)) {
+      setFilterError("Max fame must be between 0 and 100");
+      return;
+    }
+
     const nextFilters = {
       ...draftFilters,
     };
@@ -395,7 +425,7 @@ function FindMatchPage({ currentUser }) {
           );
           const data = await response.json();
           if (!response.ok || !data?.validation?.city_exists) {
-            setError("Please select a valid city suggestion before searching.");
+            setFilterError("Please select a valid city suggestion before searching.");
             return;
           }
 
@@ -410,9 +440,10 @@ function FindMatchPage({ currentUser }) {
           setCityConfirmed(true);
           setCitySuggestions([]);
           setOffset(0);
+          setFilterError("");
           return;
         } catch {
-          setError("Failed to validate city. Please try again.");
+          setFilterError("Failed to validate city. Please try again.");
           return;
         }
       }
@@ -420,6 +451,7 @@ function FindMatchPage({ currentUser }) {
 
     setAppliedFilters(nextFilters);
     setOffset(0);
+    setFilterError("");
   }
 
   function resetFilters() {
@@ -443,7 +475,6 @@ function FindMatchPage({ currentUser }) {
 
   if (!currentUser) return <Navigate to="/login" replace />;
   if (loading) return <p className="text-sm text-slate-600">Loading matches...</p>;
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
 
   return (
     <section className={cardClass}>
@@ -566,7 +597,7 @@ function FindMatchPage({ currentUser }) {
           </label>
           <input
             type="number"
-            step="0.1"
+            step="1"
             min="0"
             max="100"
             name="min_fame"
@@ -583,7 +614,7 @@ function FindMatchPage({ currentUser }) {
           </label>
           <input
             type="number"
-            step="0.1"
+            step="1"
             min="0"
             max="100"
             name="max_fame"
@@ -666,6 +697,12 @@ function FindMatchPage({ currentUser }) {
           Reset
         </button>
       </div>
+
+      {filterError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {filterError}
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         {(!Array.isArray(users) || users.length === 0) && <p>No users found.</p>}

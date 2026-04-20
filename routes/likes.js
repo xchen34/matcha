@@ -315,7 +315,7 @@ router.get("/matches", async (req, res, next) => {
     let orderBySql = `
       (me.city IS NOT NULL AND p.city IS NOT NULL AND p.city = me.city) DESC,
       common_tags_count DESC,
-      p.fame_rating DESC NULLS LAST,
+      fame_rating DESC NULLS LAST,
       u.id ASC
     `;
 
@@ -335,13 +335,13 @@ router.get("/matches", async (req, res, next) => {
       normalizedSortBy === "fame_rating"
     ) {
       orderBySql = `
-        p.fame_rating ${normalizedSortDir} NULLS LAST,
+        fame_rating ${normalizedSortDir} NULLS LAST,
         u.id ASC
       `;
     } else if (normalizedSortBy === "tags") {
       orderBySql = `
         common_tags_count ${normalizedSortDir} NULLS LAST,
-        p.fame_rating DESC NULLS LAST,
+        fame_rating DESC NULLS LAST,
         u.id ASC
       `;
     }
@@ -379,6 +379,26 @@ router.get("/matches", async (req, res, next) => {
         SELECT tag_id
         FROM user_profile_tags
         WHERE user_id = $1
+      ),
+      user_fame AS (
+        SELECT
+          u.id,
+          GREATEST(
+            LEAST(
+              FLOOR(
+                COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id), 0)::numeric / 20
+              ) + FLOOR(
+                COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric / 5
+              ) + CASE
+                WHEN COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0) = 0
+                  THEN -1
+                ELSE 0
+              END,
+              100
+            ),
+            0
+          )::int AS fame_rating
+        FROM users u
       )
       SELECT
         u.id,
@@ -389,12 +409,7 @@ router.get("/matches", async (req, res, next) => {
         p.sexual_preference,
         p.city,
         p.neighborhood,
-        LEAST(
-          COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric * 2 +
-          COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric * 3 +
-          COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0)::numeric,
-          100
-        )::int AS fame_rating,
+        uf.fame_rating,
         p.birth_date,
         ph.primary_photo_url,
         EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.birth_date))::int AS age_value,
@@ -405,6 +420,7 @@ router.get("/matches", async (req, res, next) => {
           ARRAY[]::varchar[]
         ) AS tags
       FROM users u
+      LEFT JOIN user_fame uf ON uf.id = u.id
       LEFT JOIN profiles p ON p.user_id = u.id
       LEFT JOIN LATERAL (
         SELECT up.data_url AS primary_photo_url
@@ -440,10 +456,10 @@ router.get("/matches", async (req, res, next) => {
           OR (p.birth_date IS NOT NULL AND p.birth_date >= CURRENT_DATE - ($3::text || ' years')::interval)
         ) -- 至多 max_age
         AND (
-          $4::numeric IS NULL OR p.fame_rating >= $4::numeric
+          $4::numeric IS NULL OR uf.fame_rating >= $4::numeric
         )
         AND (
-          $5::numeric IS NULL OR p.fame_rating <= $5::numeric
+          $5::numeric IS NULL OR uf.fame_rating <= $5::numeric
         )
         AND (
           $6::text IS NULL OR u.username ILIKE ('%' || $6::text || '%')
@@ -476,7 +492,7 @@ router.get("/matches", async (req, res, next) => {
           OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'female' AND me.gender = 'female')
           OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'other' AND me.gender IN ('non_binary', 'other'))
         )
-      GROUP BY u.id, u.username, u.email, u.last_seen_at, p.gender, p.sexual_preference, p.city, p.neighborhood, p.fame_rating, p.birth_date, ph.primary_photo_url, me.city
+      GROUP BY u.id, u.username, u.email, u.last_seen_at, p.gender, p.sexual_preference, p.city, p.neighborhood, uf.fame_rating, p.birth_date, ph.primary_photo_url, me.city
       ORDER BY
         ${orderBySql}
       LIMIT $9::int
