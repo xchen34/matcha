@@ -3,8 +3,9 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ChatAvatar from "../chat/ChatAvatar.jsx";
 import { onRealtimeEvent } from "../realtime/socket.js";
 import { REALTIME_EVENTS } from "../realtime/events.js";
-import { truncateAndEscape, sanitizeText } from "../utils/xssEscape.js";
+import { sanitizeText } from "../utils/xssEscape.js";
 import { fetchChatConversations } from "../chat/api.js";
+import { formatQuotedMessagePreview } from "../chat/quoteUtils.js";
 
 function formatTimestamp(value) {
   if (!value) return "";
@@ -222,7 +223,10 @@ export default function ChatListPage({ currentUser, embedded = false }) {
       >
         <ul className={embedded ? "space-y-2" : "space-y-3"}>
           {conversations.map((conv) => {
-            const messagePreview = truncateAndEscape(conv.last_message?.content || "No messages yet", 80);
+            const messagePreview = formatQuotedMessagePreview(
+              conv.last_message?.content || "No messages yet",
+              80,
+            );
             const lastMessageTime = formatTimestamp(conv.last_message?.created_at);
 
             const displayName = sanitizeText(

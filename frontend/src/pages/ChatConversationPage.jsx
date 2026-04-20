@@ -10,6 +10,7 @@ import {
 import { REALTIME_EVENTS } from "../realtime/events.js";
 import { buildApiHeaders } from "../utils.js";
 import { sanitizeText } from "../utils/xssEscape.js";
+import { parseQuotedMessageContent } from "../chat/quoteUtils.js";
 import {
   deleteChatConversation,
   deleteChatMessage,
@@ -143,48 +144,77 @@ function getMessageAuthorLabel(message, currentUser, conversation) {
   );
 }
 
+function normalizeQuoteLine(text) {
+  return String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractLatestQuoteText(rawContent) {
+  let candidate = String(rawContent || "").trim();
+  let lastMeaningful = normalizeQuoteLine(candidate);
+
+  for (let depth = 0; depth < 5; depth += 1) {
+    const parsed = parseQuotedMessageContent(candidate);
+    if (!parsed.quoteHeader) {
+      break;
+    }
+
+    if (parsed.replyText) {
+      const reply = normalizeQuoteLine(parsed.replyText);
+      if (reply) {
+        lastMeaningful = reply;
+        break;
+      }
+    }
+
+    const nestedQuote = parsed.quoteLines.join("\n").trim();
+    if (!nestedQuote) {
+      break;
+    }
+    candidate = nestedQuote;
+    const normalizedNested = normalizeQuoteLine(nestedQuote);
+    if (normalizedNested) {
+      lastMeaningful = normalizedNested;
+    }
+  }
+
+  return lastMeaningful;
+}
+
 function buildQuoteText(message, currentUser, conversation) {
   const author = getMessageAuthorLabel(message, currentUser, conversation);
-  const lines = String(message?.content || "")
-    .replace(/\r\n/g, "\n")
+  const latestQuote = extractLatestQuoteText(message?.content || "");
+  const lines = String(latestQuote || "")
     .split("\n")
-    .slice(0, 8)
+    .filter(Boolean)
+    .slice(0, 3)
     .map((line) => `> ${line}`)
     .join("\n");
 
   return `${author} wrote:\n${lines}`.trim();
 }
 
-function parseQuotedMessageContent(content) {
-  const text = String(content || "");
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
-  if (!lines.length) {
-    return { quoteHeader: null, quoteLines: [], replyText: text };
+function buildQuotePreviewText(message, currentUser, conversation) {
+  const author = getMessageAuthorLabel(message, currentUser, conversation);
+  const parsed = parseQuotedMessageContent(message?.content);
+  const sourceText = parsed.replyText || parsed.quoteLines.join(" ") || message?.content || "";
+  const previewText = String(sourceText)
+    .replace(/\r\n/g, "\n")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!previewText) {
+    return `Replying to ${author}`;
   }
 
-  const headerMatch = lines[0].match(/^(.*) wrote:\s*$/i);
-  if (!headerMatch) {
-    return { quoteHeader: null, quoteLines: [], replyText: text };
-  }
+  const shortened = previewText.length > 96 ? `${previewText.slice(0, 96).trimEnd()}…` : previewText;
+  return `${author}: ${shortened}`;
+}
 
-  const quoteLines = [];
-  let index = 1;
-  while (index < lines.length) {
-    const line = lines[index];
-    if (!/^>\s?/.test(line)) break;
-    quoteLines.push(line.replace(/^>\s?/, ""));
-    index += 1;
-  }
-
-  while (index < lines.length && lines[index].trim() === "") {
-    index += 1;
-  }
-
-  return {
-    quoteHeader: headerMatch[1].trim(),
-    quoteLines,
-    replyText: lines.slice(index).join("\n").trim(),
-  };
+function isQuotedMessageContent(content) {
+  return Boolean(parseQuotedMessageContent(content).quoteHeader);
 }
 
 function MessageBody({ content, isMine }) {
@@ -199,19 +229,26 @@ function MessageBody({ content, isMine }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div
-        className={`rounded-2xl border px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap break-words ${
+        className={`max-w-full overflow-hidden rounded-xl border-l-4 px-2.5 py-1.5 text-[0.78rem] leading-snug shadow-sm ${
           isMine
-            ? "border-white/25 bg-white/10 text-white/90"
-            : "border-slate-200 bg-slate-50 text-slate-600"
+            ? "border-orange-200 border-l-brand bg-orange-50 text-slate-700"
+            : "border-slate-200 border-l-brand/60 bg-slate-50 text-slate-600"
         }`}
       >
-        <p className="mb-1 font-semibold">{sanitizeText(parsed.quoteHeader)} wrote:</p>
-        <p>{parsed.quoteLines.join("\n")}</p>
+        <p className="truncate font-medium leading-tight">
+          {sanitizeText(parsed.quoteHeader)}: {sanitizeText(extractLatestQuoteText(parsed.quoteLines.join("\n")))}
+        </p>
       </div>
       {parsed.replyText && (
-        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+        <p
+          className={`inline-block max-w-full rounded-2xl px-3 py-1.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+            isMine
+              ? "bg-brand text-white shadow-sm"
+              : "border border-slate-200 bg-white text-slate-900 shadow-sm"
+          }`}
+        >
           {sanitizeText(parsed.replyText)}
         </p>
       )}
@@ -245,7 +282,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
   const seenMessageIdsRef = useRef(new Set());
   const initialLoadRef = useRef(true);
   const lastReadMarkerRef = useRef("");
-  const [openedTimestampId, setOpenedTimestampId] = useState(null);
+  const [, setOpenedTimestampId] = useState(null);
   const [selectedMessageId, setSelectedMessageId] = useState(null);
   const prependingScrollRef = useRef(null);
 
@@ -901,7 +938,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
             Start the dialog by sending your first message.
           </p>
         )}
-        <ul className="space-y-1">
+        <ul className="space-y-2">
           {(() => {
             let lastMatchedIdx = -1;
             let lastUnmatchedIdx = -1;
@@ -975,9 +1012,8 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                 const startsNewDay =
                   !prevMsg ||
                   getMessageDateKey(prevMsg.created_at) !== getMessageDateKey(msg.created_at);
-                const isLastInGroup = !nextMsg || !areMessagesInSameGroup(msg, nextMsg);
+                const hasQuotedContent = isQuotedMessageContent(msg.content);
                 const messageId = msg.id != null ? String(msg.id) : `idx-${index}`;
-                const showTimestamp = isLastInGroup || openedTimestampId === messageId;
                 return (
                   <li
                     key={
@@ -1003,11 +1039,15 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                             setOpenedTimestampId(messageId);
                             handleOpenMessageActions(messageId);
                           }}
-                          className={`${chatBubbleClass} cursor-pointer text-left ${
-                            isMine
-                              ? "from-brand to-brand-deep bg-gradient-to-r border-transparent text-white shadow-lg"
-                              : "border-slate-200 bg-slate-100 text-slate-900"
-                          }`}
+                          className={
+                            hasQuotedContent
+                              ? "cursor-pointer text-left"
+                              : `${chatBubbleClass} cursor-pointer text-left ${
+                                  isMine
+                                    ? "from-brand to-brand-deep bg-gradient-to-r border-transparent text-white shadow-lg"
+                                    : "border-slate-200 bg-slate-100 text-slate-900"
+                                }`
+                          }
                         >
                           <MessageBody content={msg.content} isMine={isMine} />
                         </button>
@@ -1036,22 +1076,14 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                         </div>
                         {isMine ? (
                           <div
-                            className={`inline-flex items-center gap-1 overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
-                              showTimestamp
-                                ? "mt-0.5 max-h-6 opacity-100"
-                                : "max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
-                            }`}
+                            className="inline-flex items-center gap-1 overflow-hidden text-[0.65rem] text-slate-500 transition-all max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
                           >
                             <span>{formatTime(msg.created_at)}</span>
                             <MessageStatus isRead={Boolean(msg.is_read)} />
                           </div>
                         ) : (
                           <p
-                            className={`overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
-                              showTimestamp
-                                ? "mt-0.5 max-h-6 opacity-100"
-                                : "max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
-                            }`}
+                            className="overflow-hidden text-[0.65rem] text-slate-500 transition-all max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
                           >
                             {formatTime(msg.created_at)}
                           </p>
@@ -1078,9 +1110,8 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
               const startsNewDay =
                 !prevMsg ||
                 getMessageDateKey(prevMsg.created_at) !== getMessageDateKey(msg.created_at);
-              const isLastInGroup = !nextMsg || !areMessagesInSameGroup(msg, nextMsg);
+              const hasQuotedContent = isQuotedMessageContent(msg.content);
               const messageId = msg.id != null ? String(msg.id) : `idx-${index}`;
-              const showTimestamp = isLastInGroup || openedTimestampId === messageId;
 
               if (index === showIdx && showType === 'matched') {
                 return (
@@ -1133,11 +1164,15 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                           setOpenedTimestampId(messageId);
                           handleOpenMessageActions(messageId);
                         }}
-                        className={`${chatBubbleClass} cursor-pointer text-left ${
-                          isMine
-                            ? "from-brand to-brand-deep bg-gradient-to-r border-transparent text-white shadow-lg"
-                            : "border-slate-200 bg-slate-100 text-slate-900"
-                        }`}
+                        className={
+                          hasQuotedContent
+                            ? "cursor-pointer text-left"
+                            : `${chatBubbleClass} cursor-pointer text-left ${
+                                isMine
+                                  ? "from-brand to-brand-deep bg-gradient-to-r border-transparent text-white shadow-lg"
+                                  : "border-slate-200 bg-slate-100 text-slate-900"
+                              }`
+                        }
                       >
                         <MessageBody content={msg.content} isMine={isMine} />
                       </button>
@@ -1166,22 +1201,14 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                       </div>
                       {isMine ? (
                         <div
-                          className={`inline-flex items-center gap-1 overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
-                            showTimestamp
-                              ? "mt-0.5 max-h-6 opacity-100"
-                              : "max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
-                          }`}
+                          className="inline-flex items-center gap-1 overflow-hidden text-[0.65rem] text-slate-500 transition-all max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
                         >
                           <span>{formatTime(msg.created_at)}</span>
                           <MessageStatus isRead={Boolean(msg.is_read)} />
                         </div>
                       ) : (
                         <p
-                          className={`overflow-hidden text-[0.65rem] text-slate-500 transition-all ${
-                            showTimestamp
-                              ? "mt-0.5 max-h-6 opacity-100"
-                              : "max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
-                          }`}
+                          className="overflow-hidden text-[0.65rem] text-slate-500 transition-all max-h-0 opacity-0 group-hover:mt-0.5 group-hover:max-h-6 group-hover:opacity-100 group-focus-within:mt-0.5 group-focus-within:max-h-6 group-focus-within:opacity-100"
                         >
                           {formatTime(msg.created_at)}
                         </p>
@@ -1198,9 +1225,9 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       {isMatch && (
         <form onSubmit={handleSend} className="space-y-2">
           {quotedMessage && (
-            <div className="rounded-2xl border border-brand/20 bg-brand/5 px-3 py-2 text-sm text-slate-700">
+            <div className="rounded-2xl border border-brand/20 bg-white/90 px-3 py-2 text-sm text-slate-700 shadow-sm">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-semibold text-brand-deep">
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-deep/80">
                   Quoting {getMessageAuthorLabel(quotedMessage, currentUser, conversation)}
                 </p>
                 <button
@@ -1211,8 +1238,8 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                   Clear
                 </button>
               </div>
-              <p className="mt-1 whitespace-pre-wrap break-words text-slate-600">
-                {buildQuoteText(quotedMessage, currentUser, conversation)}
+              <p className="mt-1 max-h-10 overflow-hidden whitespace-pre-wrap break-words text-sm leading-snug text-slate-600">
+                {buildQuotePreviewText(quotedMessage, currentUser, conversation)}
               </p>
             </div>
           )}
