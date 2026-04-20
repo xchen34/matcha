@@ -124,6 +124,48 @@ export default function ChatListPage({ currentUser, embedded = false }) {
   useEffect(() => {
     if (!currentUser?.id) return undefined;
 
+    const offRead = onRealtimeEvent(
+      REALTIME_EVENTS.CHAT_CONVERSATION_READ,
+      (payload) => {
+        const conversationId = Number(payload?.conversation_id);
+        const readerUserId = Number(payload?.reader_user_id);
+        if (!Number.isInteger(conversationId) || conversationId <= 0) return;
+        if (Number(readerUserId) !== Number(currentUser.id)) return;
+
+        setConversations((prev) =>
+          prev.map((conv) =>
+            Number(conv.conversation_id) === conversationId
+              ? { ...conv, unread_count: 0 }
+              : conv,
+          ),
+        );
+      },
+    );
+
+    const offBlockStatusChanged = onRealtimeEvent(
+      REALTIME_EVENTS.CHAT_BLOCK_STATUS_CHANGED,
+      (payload) => {
+        const userA = Number(payload?.user_a_id);
+        const userB = Number(payload?.user_b_id);
+        if (!Number.isInteger(userA) || !Number.isInteger(userB)) return;
+        if (Number(currentUser.id) !== userA && Number(currentUser.id) !== userB) {
+          return;
+        }
+
+        // Source of truth comes from API flags (blocked_by_you/blocked_you).
+        void loadConversations();
+      },
+    );
+
+    return () => {
+      offRead();
+      offBlockStatusChanged();
+    };
+  }, [currentUser?.id, loadConversations]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return undefined;
+
     const refreshAfterDelete = () => {
       void loadConversations();
     };

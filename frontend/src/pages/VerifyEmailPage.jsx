@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+
+const STORAGE_KEY = "matcha.currentUser";
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
@@ -7,8 +9,15 @@ export default function VerifyEmailPage() {
   const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
   const [message, setMessage] = useState('Verifying your email...');
   const [email, setEmail] = useState('');
+  const [successRedirectPath, setSuccessRedirectPath] = useState('/login');
+  const didVerifyRef = useRef(false);
 
   useEffect(() => {
+    if (didVerifyRef.current) {
+      return;
+    }
+    didVerifyRef.current = true;
+
     const verifyToken = async () => {
       const token = searchParams.get('token');
 
@@ -19,7 +28,7 @@ export default function VerifyEmailPage() {
       }
 
       try {
-        const response = await fetch('http://localhost:3000/api/auth/verify-email', {
+        const response = await fetch('/api/auth/verify-email', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -31,13 +40,45 @@ export default function VerifyEmailPage() {
 
         if (response.ok) {
           setStatus('success');
-          setMessage('Email verified successfully!');
+          setMessage(data.message || 'Email verified successfully!');
           setEmail(data.email);
-          // Redirect to login after 3 seconds
+
+          if (data?.user_id && data?.email) {
+            try {
+              const raw = localStorage.getItem(STORAGE_KEY);
+              const parsed = raw ? JSON.parse(raw) : null;
+              if (parsed && Number(parsed.id) === Number(data.user_id)) {
+                localStorage.setItem(
+                  STORAGE_KEY,
+                  JSON.stringify({
+                    ...parsed,
+                    email: data.email,
+                    email_verified: true,
+                  }),
+                );
+                window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));
+              }
+            } catch {
+              // Keep verification UX working even if local storage parsing fails.
+            }
+          }
+
+          const targetPath = data?.redirect_to === '/profile' ? '/profile' : '/login';
+          setSuccessRedirectPath(targetPath);
           setTimeout(() => {
-            navigate('/login');
+            navigate(targetPath);
           }, 3000);
         } else {
+          if (data?.error === 'Email is already verified') {
+            setStatus('success');
+            setMessage('Email is already verified.');
+            setEmail(data.email || '');
+            setSuccessRedirectPath('/login');
+            setTimeout(() => {
+              navigate('/login');
+            }, 3000);
+            return;
+          }
           setStatus('error');
           setMessage(data.error || 'Failed to verify email');
         }
@@ -72,12 +113,12 @@ export default function VerifyEmailPage() {
             <h1 className="text-2xl font-bold text-green-600 mb-2">Success!</h1>
             <p className="text-gray-700 mb-4">{message}</p>
             <p className="text-gray-600 mb-6">Email: <strong>{email}</strong></p>
-            <p className="text-gray-600 mb-4">Redirecting to login in 3 seconds...</p>
+            <p className="text-gray-600 mb-4">Redirecting in 3 seconds...</p>
             <Link 
-              to="/login" 
+              to={successRedirectPath}
               className="inline-block bg-rose-500 text-white px-6 py-2 rounded-lg hover:bg-rose-600 transition"
             >
-              Go to Login
+              Continue
             </Link>
           </div>
         )}

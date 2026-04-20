@@ -115,27 +115,45 @@ async function fetchConnectionStatus(userA, userB) {
       EXISTS(
         SELECT 1
         FROM user_blocks
-        WHERE (blocker_user_id = $1 AND blocked_user_id = $2)
-           OR (blocker_user_id = $2 AND blocked_user_id = $1)
-      ) AS blocked
+        WHERE blocker_user_id = $1 AND blocked_user_id = $2
+      ) AS blocked_by_a,
+      EXISTS(
+        SELECT 1
+        FROM user_blocks
+        WHERE blocker_user_id = $2 AND blocked_user_id = $1
+      ) AS blocked_by_b
     `,
     [userA, userB],
   );
 
   const row = result.rows[0];
   if (!row) {
-    return { is_match: false, is_blocked: false };
+    return {
+      is_match: false,
+      is_blocked: false,
+      blocked_by_you: false,
+      blocked_you: false,
+    };
   }
+
+  const blockedByYou = Boolean(row.blocked_by_a);
+  const blockedYou = Boolean(row.blocked_by_b);
 
   return {
     is_match: Boolean(row.liked_a && row.liked_b),
-    is_blocked: Boolean(row.blocked),
+    is_blocked: blockedByYou || blockedYou,
+    blocked_by_you: blockedByYou,
+    blocked_you: blockedYou,
   };
 }
 
 function ensureConnectionAllowed(status) {
   if (status.is_blocked) {
-    const err = new Error("Chat is blocked between these users");
+    const err = new Error(
+      status.blocked_by_you
+        ? "Cannot interact with a user you blocked."
+        : "你已被对方拉黑",
+    );
     err.status = 403;
     throw err;
   }
@@ -143,7 +161,11 @@ function ensureConnectionAllowed(status) {
 
 function ensureMatchRequired(status) {
   if (status.is_blocked) {
-    const err = new Error("Chat is blocked between these users.");
+    const err = new Error(
+      status.blocked_by_you
+        ? "Cannot interact with a user you blocked."
+        : "你已被对方拉黑",
+    );
     err.status = 403;
     throw err;
   }
@@ -293,9 +315,14 @@ router.get("/chats", async (req, res, next) => {
         ) AS is_match,
         EXISTS (
           SELECT 1 FROM user_blocks ub
-          WHERE (ub.blocker_user_id = $1 AND ub.blocked_user_id = uc.other_user_id)
-             OR (ub.blocker_user_id = uc.other_user_id AND ub.blocked_user_id = $1)
-        ) AS is_blocked
+          WHERE ub.blocker_user_id = $1
+            AND ub.blocked_user_id = uc.other_user_id
+        ) AS blocked_by_you,
+        EXISTS (
+          SELECT 1 FROM user_blocks ub
+          WHERE ub.blocker_user_id = uc.other_user_id
+            AND ub.blocked_user_id = $1
+        ) AS blocked_you
       FROM user_conversations uc
       JOIN chat_conversations c ON c.id = uc.conversation_id
       JOIN users u ON u.id = uc.other_user_id
@@ -317,9 +344,7 @@ router.get("/chats", async (req, res, next) => {
 
     const result = await pool.query(sql, [currentUserId]);
 
-    const conversations = result.rows
-      .filter((row) => !row.is_blocked)
-      .map((row) => ({
+    const conversations = result.rows.map((row) => ({
         conversation_id: row.conversation_id,
         other_user: {
           id: row.other_user_id,
@@ -338,7 +363,9 @@ router.get("/chats", async (req, res, next) => {
           : null,
         unread_count: Number(row.unread_count ?? 0),
         is_match: !!row.is_match,
-      }));
+          blocked_by_you: Boolean(row.blocked_by_you),
+          blocked_you: Boolean(row.blocked_you),
+        }));
 
     return res.json({ conversations });
   } catch (error) {
@@ -386,7 +413,6 @@ router.get("/chats/:conversationId/messages", async (req, res, next) => {
     const conversationRow = conversationResult.rows[0];
     const otherUserId = conversationRow.other_user_id;
     const status = await fetchConnectionStatus(currentUserId, otherUserId);
-    ensureConnectionAllowed(status);
 
     const otherUserResult = await pool.query(
       `
@@ -450,6 +476,8 @@ router.get("/chats/:conversationId/messages", async (req, res, next) => {
           is_online: isUserOnline(otherUserId),
         },
         is_match: !!status.is_match,
+        blocked_by_you: Boolean(status.blocked_by_you),
+        blocked_you: Boolean(status.blocked_you),
       },
       messages,
       paging: {

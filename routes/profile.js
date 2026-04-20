@@ -1204,17 +1204,12 @@ router.put("/profile/me", async (req, res, next) => {
     const normalizedLastName = isNonEmptyString(last_name)
       ? last_name.trim()
       : null;
-    const normalizedEmail = isNonEmptyString(email) ? email.trim() : null;
     const normalizedUsername = isNonEmptyString(username)
       ? username.trim()
       : null;
     const normalizedBirthDate = isNonEmptyString(birth_date)
       ? birth_date.trim()
       : null;
-
-    if (normalizedEmail && !isValidEmail(normalizedEmail)) {
-      return res.status(400).json({ error: "Invalid email format" });
-    }
 
     if (
       normalizedUsername &&
@@ -1249,7 +1244,6 @@ router.put("/profile/me", async (req, res, next) => {
     if (
       normalizedFirstName ||
       normalizedLastName ||
-      normalizedEmail ||
       normalizedUsername
     ) {
       await client.query(
@@ -1258,14 +1252,12 @@ router.put("/profile/me", async (req, res, next) => {
         SET
           first_name = COALESCE($1, first_name),
           last_name = COALESCE($2, last_name),
-          email = COALESCE($3, email),
-          username = COALESCE($4, username)
-        WHERE id = $5
+          username = COALESCE($3, username)
+        WHERE id = $4
         `,
         [
           normalizedFirstName,
           normalizedLastName,
-          normalizedEmail,
           normalizedUsername,
           currentUserId,
         ],

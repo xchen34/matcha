@@ -1,5 +1,6 @@
 const express = require("express");
 const pool = require("../db");
+const { getIO, REALTIME_EVENTS } = require("../realtime");
 
 const router = express.Router();
 
@@ -175,6 +176,25 @@ router.post("/users/:id/block", async (req, res, next) => {
       [blockerUserId, blockedUserId],
     );
 
+    const io = getIO();
+    if (io) {
+      const payload = {
+        user_a_id: blockerUserId,
+        user_b_id: blockedUserId,
+        blocked_by_user_id: blockerUserId,
+        blocked_user_id: blockedUserId,
+        is_blocked: true,
+      };
+      io.to(`user:${blockerUserId}`).emit(
+        REALTIME_EVENTS.CHAT_BLOCK_STATUS_CHANGED,
+        payload,
+      );
+      io.to(`user:${blockedUserId}`).emit(
+        REALTIME_EVENTS.CHAT_BLOCK_STATUS_CHANGED,
+        payload,
+      );
+    }
+
     return res.status(200).json({
       message: "User blocked successfully",
     });
@@ -206,6 +226,25 @@ router.delete("/users/:id/block", async (req, res, next) => {
 
     if (result.rowCount === 0) {
       return res.status(200).json({ message: "User was not blocked" });
+    }
+
+    const io = getIO();
+    if (io) {
+      const payload = {
+        user_a_id: blockerUserId,
+        user_b_id: blockedUserId,
+        blocked_by_user_id: blockerUserId,
+        blocked_user_id: blockedUserId,
+        is_blocked: false,
+      };
+      io.to(`user:${blockerUserId}`).emit(
+        REALTIME_EVENTS.CHAT_BLOCK_STATUS_CHANGED,
+        payload,
+      );
+      io.to(`user:${blockedUserId}`).emit(
+        REALTIME_EVENTS.CHAT_BLOCK_STATUS_CHANGED,
+        payload,
+      );
     }
 
     return res.status(200).json({ message: "User unblocked successfully" });

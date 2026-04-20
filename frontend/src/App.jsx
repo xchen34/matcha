@@ -515,6 +515,14 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   const [cityNeighborhoodOptions, setCityNeighborhoodOptions] = useState([]);
   const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
   const [message, setMessage] = useState("");
+  const [emailChangePreviewUrl, setEmailChangePreviewUrl] = useState("");
+  const [emailChangeDevVerifyUrl, setEmailChangeDevVerifyUrl] = useState("");
+  const [emailChangeOpen, setEmailChangeOpen] = useState(false);
+  const [emailChangeLoading, setEmailChangeLoading] = useState(false);
+  const [emailChangeForm, setEmailChangeForm] = useState({
+    new_email: "",
+    password: "",
+  });
   const [loading, setLoading] = useState(true);
   const [loadingGeo, setLoadingGeo] = useState(false);
   const [validatingLocation, setValidatingLocation] = useState(false);
@@ -525,14 +533,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   const validationCacheRef = useRef(new Map());
   const cityNeighborhoodCacheRef = useRef(new Map());
   const latestValidationRequestRef = useRef(0);
-  const hasManualLocationInput =
-    (form.city || "").trim().length > 0 ||
-    (form.neighborhood || "").trim().length > 0;
   const hasCityInput = (form.city || "").trim().length > 0;
   const hasNeighborhoodInput = (form.neighborhood || "").trim().length > 0;
-  const hasBiography = (form.biography || "").trim().length > 0;
-  const hasProfilePhoto = form.photos.length > 0;
-  const hasPrimaryProfilePhoto = form.photos.some((photo) => photo.is_primary);
   // Required fields logic
   const hasUsername = (form.username || "").trim().length > 0;
   const hasFirstName = (form.first_name || "").trim().length > 0;
@@ -686,7 +688,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         if (!cancelled) {
           setCitySearchSuggestions(suggestions);
         }
-      } catch (error) {
+      } catch {
 
         if (!cancelled) {
           setCitySearchSuggestions([]);
@@ -836,6 +838,64 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     if (name === "latitude" || name === "longitude" || name === "gps_consent") {
       setLocationValidation(null);
       setLocationSuggestions([]);
+    }
+  }
+
+  function handleEmailChangeInput(event) {
+    const { name, value } = event.target;
+    setEmailChangeForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  async function handleEmailChangeSubmit() {
+    if (!userId) {
+      setMessage("Please login first.");
+      return;
+    }
+
+    const newEmail = (emailChangeForm.new_email || "").trim();
+    const password = emailChangeForm.password || "";
+    if (!newEmail || !password) {
+      setMessage("Error: new email and password are required.");
+      return;
+    }
+
+    setEmailChangeLoading(true);
+    setEmailChangePreviewUrl("");
+    setEmailChangeDevVerifyUrl("");
+    try {
+      const response = await fetch("/api/auth/request-email-change", {
+        method: "POST",
+        headers: buildApiHeaders(
+          { id: userId },
+          { "Content-Type": "application/json" },
+        ),
+        body: JSON.stringify({ new_email: newEmail, password }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setMessage(`Error: ${data.error || "Unable to request email change"}`);
+        return;
+      }
+
+      let successMessage =
+        data.message ||
+        "A verification email has been sent. Your email will change only after verification.";
+
+      if (data?.email_delivery?.preview_url) {
+        setEmailChangePreviewUrl(data.email_delivery.preview_url);
+      }
+      if (data?.dev_verify_url) {
+        setEmailChangeDevVerifyUrl(data.dev_verify_url);
+      }
+
+      setMessage(successMessage);
+      setEmailChangeForm({ new_email: "", password: "" });
+      setEmailChangeOpen(false);
+    } catch (error) {
+      setMessage(`Error: ${error.message}`);
+    } finally {
+      setEmailChangeLoading(false);
     }
   }
 
@@ -1486,14 +1546,67 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 <span>Email address<span className="text-red-600">*</span></span>
               </span>
             </label>
-            <input
-              name="email"
-              type="email"
-              placeholder="Email address"
-              value={form.email}
-              onChange={handleChange}
-              className={inputClass}
-            />
+            <div className="flex gap-2">
+              <input
+                name="email"
+                type="email"
+                placeholder="Email address"
+                value={form.email}
+                readOnly
+                className={`${inputClass} bg-slate-50 text-slate-600`}
+              />
+              <button
+                type="button"
+                onClick={() => setEmailChangeOpen((prev) => !prev)}
+                className={secondaryButtonClass}
+              >
+                Modify
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">
+              Email can only be changed after password confirmation and new-email verification.
+            </p>
+            {emailChangeOpen && (
+              <div className="mt-2 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <input
+                  name="new_email"
+                  type="email"
+                  placeholder="New email"
+                  value={emailChangeForm.new_email}
+                  onChange={handleEmailChangeInput}
+                  className={inputClass}
+                />
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="Current password"
+                  value={emailChangeForm.password}
+                  onChange={handleEmailChangeInput}
+                  className={inputClass}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleEmailChangeSubmit}
+                    className={primaryButtonClass}
+                    disabled={emailChangeLoading}
+                  >
+                    {emailChangeLoading ? "Sending..." : "Send verification email"}
+                  </button>
+                  <button
+                    type="button"
+                    className={secondaryButtonClass}
+                    onClick={() => {
+                      setEmailChangeOpen(false);
+                      setEmailChangeForm({ new_email: "", password: "" });
+                    }}
+                    disabled={emailChangeLoading}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -1854,6 +1967,36 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       )}
 
       {message && <p className="text-sm text-slate-600">{message}</p>}
+      {(emailChangePreviewUrl || emailChangeDevVerifyUrl) && (
+        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          {emailChangePreviewUrl && (
+            <p>
+              Ethereal preview: {' '}
+              <a
+                href={emailChangePreviewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-brand-deep underline"
+              >
+                Open verification email
+              </a>
+            </p>
+          )}
+          {emailChangeDevVerifyUrl && (
+            <p>
+              Fallback verify link: {' '}
+              <a
+                href={emailChangeDevVerifyUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-brand-deep underline"
+              >
+                Verify directly in app
+              </a>
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }

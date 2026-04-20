@@ -6,6 +6,7 @@ const REALTIME_EVENTS = {
   CHAT_MESSAGE_CREATED: "chat:message:created",
   CHAT_MESSAGE_DELETED: "chat:message:deleted",
   CHAT_CONVERSATION_READ: "chat:conversation:read",
+  CHAT_BLOCK_STATUS_CHANGED: "chat:block-status:changed",
   CHAT_CONVERSATION_DELETED: "chat:conversation:deleted",
   CHAT_CONVERSATION_JOIN: "chat:conversation:join",
   CHAT_CONVERSATION_LEAVE: "chat:conversation:leave",

@@ -1,5 +1,6 @@
 const rateLimit = require("express-rate-limit");
 const { ipKeyGenerator } = require("express-rate-limit");
+const isProduction = process.env.NODE_ENV === "production";
 
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -21,23 +22,29 @@ function getClientKey(req) {
 
 const globalWindowMs = parsePositiveInt(
   process.env.RATE_LIMIT_GLOBAL_WINDOW_MS,
-  15 * 60 * 1000,
+  isProduction ? 15 * 60 * 1000 : 5 * 60 * 1000,
 );
-const globalMax = parsePositiveInt(process.env.RATE_LIMIT_GLOBAL_MAX, 600);
+const globalMax = parsePositiveInt(
+  process.env.RATE_LIMIT_GLOBAL_MAX,
+  isProduction ? 600 : 5000,
+);
 
 const authWindowMs = parsePositiveInt(
   process.env.RATE_LIMIT_AUTH_WINDOW_MS,
   15 * 60 * 1000,
 );
-const authMax = parsePositiveInt(process.env.RATE_LIMIT_AUTH_MAX, 20);
+const authMax = parsePositiveInt(
+  process.env.RATE_LIMIT_AUTH_MAX,
+  isProduction ? 20 : 200,
+);
 
 const authSensitiveWindowMs = parsePositiveInt(
   process.env.RATE_LIMIT_AUTH_SENSITIVE_WINDOW_MS,
-  15 * 60 * 1000,
+  isProduction ? 15 * 60 * 1000 : 5 * 60 * 1000,
 );
 const authSensitiveMax = parsePositiveInt(
   process.env.RATE_LIMIT_AUTH_SENSITIVE_MAX,
-  8,
+  isProduction ? 8 : 100,
 );
 
 const globalApiLimiter = rateLimit({
@@ -63,6 +70,8 @@ const authLimiter = rateLimit({
 const authSensitiveLimiter = rateLimit({
   windowMs: authSensitiveWindowMs,
   max: authSensitiveMax,
+  // Count only failed attempts to avoid locking out users after successful logins.
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: getClientKey,

@@ -268,9 +268,6 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
   const [blockStatus, setBlockStatus] = useState(null); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const isMatchError =
-    error &&
-    (error === "You must be matched to send messages");
   const [body, setBody] = useState("");
   const [quotedMessage, setQuotedMessage] = useState(null);
   const [isSending, setIsSending] = useState(false);
@@ -337,23 +334,31 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
           : [],
       );
       setConversation(data.conversation || null);
-      // Gestion du match
-      if (data.conversation && typeof data.conversation.is_match !== "undefined") {
-        setIsMatch(Boolean(data.conversation.is_match));
-        if (!data.conversation.is_match) {
-          setBlockStatus("unmatched");
-        } else {
-          setBlockStatus(null);
-        }
-      } else {
-        setIsMatch(true); // fallback
-        setBlockStatus(null);
-      }
-      // Gestion du blocage (si info présente dans la conversation)
-      if (data.conversation?.blocked_by_you) {
+      const blockedByYou = Boolean(data.conversation?.blocked_by_you);
+      const blockedYou = Boolean(data.conversation?.blocked_you);
+      const matched =
+        data.conversation && typeof data.conversation.is_match !== "undefined"
+          ? Boolean(data.conversation.is_match)
+          : true;
+
+      if (blockedByYou) {
         setBlockStatus("blocked_by_you");
-      } else if (data.conversation?.blocked_you) {
+        setIsMatch(false);
+        setMatchError("Cannot interact with a user you blocked.");
+      } else if (blockedYou) {
         setBlockStatus("blocked_you");
+        setIsMatch(false);
+        setMatchError("你已被对方拉黑");
+      } else if (!matched) {
+        setBlockStatus("unmatched");
+        setIsMatch(false);
+        setMatchError(
+          "Le match a été annulé. Vous ne pouvez plus envoyer de messages à cet utilisateur.",
+        );
+      } else {
+        setBlockStatus(null);
+        setIsMatch(true);
+        setMatchError("");
       }
       setMessagesOffset(Array.isArray(data.messages) ? data.messages.length : 0);
       setHasMoreMessages(Boolean(data?.paging?.has_more));
@@ -641,13 +646,34 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         if (payload.matched === false) {
           setIsMatch(false);
           setMatchError("Le match a été annulé. Vous ne pouvez plus envoyer de messages à cet utilisateur.");
+            setBlockStatus("unmatched");
         } else {
           setIsMatch(true);
+          setBlockStatus(null);
           setMatchError("");
         }
         void loadConversation();
       }
     });
+
+    const offBlockStatusChanged = onRealtimeEvent(
+      REALTIME_EVENTS.CHAT_BLOCK_STATUS_CHANGED,
+      (payload) => {
+        if (!conversation?.other_user?.id || !currentUser?.id) return;
+        const userA = Number(payload?.user_a_id);
+        const userB = Number(payload?.user_b_id);
+        const me = Number(currentUser.id);
+        const other = Number(conversation.other_user.id);
+        if (!Number.isInteger(userA) || !Number.isInteger(userB)) return;
+
+        const related =
+          (userA === me && userB === other) ||
+          (userA === other && userB === me);
+        if (!related) return;
+
+        void loadConversation();
+      },
+    );
 
     return () => {
       offMessage();
@@ -655,6 +681,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       offConversationDeleted();
       offReadUpdate();
       offMatchStatus();
+      offBlockStatusChanged();
     };
   }, [currentUser?.id, conversation?.id, loadConversation, markCurrentConversationAsRead, navigate]);
 
@@ -756,6 +783,15 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         setMessages((prev) => dedupeMessages([...prev, payload.message]));
       } catch (err) {
         setError(err.message);
+        if (err?.message === "你已被对方拉黑") {
+          setBlockStatus("blocked_you");
+          setIsMatch(false);
+          setMatchError("你已被对方拉黑");
+        } else if (err?.message === "Cannot interact with a user you blocked.") {
+          setBlockStatus("blocked_by_you");
+          setIsMatch(false);
+          setMatchError("Cannot interact with a user you blocked.");
+        }
       } finally {
         setIsSending(false);
       }
@@ -844,6 +880,9 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
     .join("\n\n")
     .trim().length;
 
+  const canSendMessages =
+    isMatch && blockStatus !== "blocked_by_you" && blockStatus !== "blocked_you";
+
   return (
     <section className={embedded ? "w-full space-y-5" : "mx-auto max-w-xl w-full space-y-5 px-3 sm:px-4"}>
       <header className="flex items-center justify-between gap-3">
@@ -919,7 +958,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         </div>
       )}
 
-      {error && isMatch && (
+      {error && (
         <div className="mt-2">
           <p className="text-sm text-amber-600">{error}</p>
         </div>
@@ -1223,7 +1262,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         </ul>
       </div>
 
-      {isMatch && (
+      {canSendMessages && (
         <form onSubmit={handleSend} className="space-y-2">
           {quotedMessage && (
             <div className="rounded-2xl border border-brand/20 bg-white/90 px-3 py-2 text-sm text-slate-700 shadow-sm">

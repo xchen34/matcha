@@ -85,6 +85,7 @@ async function initDb() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS pending_email VARCHAR(255);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token VARCHAR(255);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token_expiry TIMESTAMPTZ;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR(255);
@@ -128,6 +129,7 @@ async function initDb() {
       CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users (email);
       CREATE UNIQUE INDEX IF NOT EXISTS users_username_key ON users (username);
       CREATE INDEX IF NOT EXISTS idx_email_verification_token ON users(email_verification_token);
+      CREATE INDEX IF NOT EXISTS idx_users_pending_email ON users(pending_email);
       CREATE INDEX IF NOT EXISTS idx_password_reset_token ON users(password_reset_token);
 
       ALTER TABLE profiles ADD COLUMN IF NOT EXISTS neighborhood VARCHAR(120) NOT NULL DEFAULT '';
