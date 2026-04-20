@@ -229,13 +229,14 @@ function MessageBody({ content, isMine }) {
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className={`space-y-1.5 w-full ${isMine ? 'flex flex-col items-end' : ''}`}>
       <div
         className={`max-w-full overflow-hidden rounded-xl border-l-4 px-2.5 py-1.5 text-[0.78rem] leading-snug shadow-sm ${
           isMine
             ? "border-orange-200 border-l-brand bg-orange-50 text-slate-700"
             : "border-slate-200 border-l-brand/60 bg-slate-50 text-slate-600"
         }`}
+        style={isMine ? { alignSelf: 'flex-end' } : {}}
       >
         <p className="truncate font-medium leading-tight">
           {sanitizeText(parsed.quoteHeader)}: {sanitizeText(extractLatestQuoteText(parsed.quoteLines.join("\n")))}
@@ -245,7 +246,7 @@ function MessageBody({ content, isMine }) {
         <p
           className={`inline-block max-w-full rounded-2xl px-3 py-1.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
             isMine
-              ? "bg-brand text-white shadow-sm"
+              ? "bg-brand text-white shadow-sm ml-auto text-right"
               : "border border-slate-200 bg-white text-slate-900 shadow-sm"
           }`}
         >
@@ -1040,13 +1041,11 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                             handleOpenMessageActions(messageId);
                           }}
                           className={
-                            hasQuotedContent
-                              ? "cursor-pointer text-left"
-                              : `${chatBubbleClass} cursor-pointer text-left ${
-                                  isMine
-                                    ? "from-brand to-brand-deep bg-gradient-to-r border-transparent text-white shadow-lg"
-                                    : "border-slate-200 bg-slate-100 text-slate-900"
-                                }`
+                            `${chatBubbleClass} cursor-pointer text-left ` +
+                            (isMine
+                              ? "from-brand to-brand-deep bg-gradient-to-r border-transparent text-white shadow-lg"
+                              : "border-slate-200 bg-slate-100 text-slate-900"
+                            )
                           }
                         >
                           <MessageBody content={msg.content} isMine={isMine} />
