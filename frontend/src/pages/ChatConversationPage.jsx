@@ -259,8 +259,8 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         return;
       }
 
-      const clickedMessage = target.closest("[data-message-id]");
-      if (clickedMessage?.getAttribute("data-message-id") === String(selectedMessageId)) {
+      const bubbleButton = target.closest('[data-message-id] button');
+      if (bubbleButton && bubbleButton.closest('[data-message-id]')?.getAttribute('data-message-id') === String(selectedMessageId)) {
         return;
       }
 
@@ -1012,10 +1012,11 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                           <MessageBody content={msg.content} isMine={isMine} />
                         </button>
                         <div
-                          className={`absolute top-full z-10 mt-2 flex flex-wrap gap-2 text-[0.65rem] text-slate-500 transition-all duration-150 ${selectedMessageId === messageId ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"} ${isMine ? "right-0 justify-end" : "left-0 justify-start"}`}
+                          className={`absolute top-full z-10 mt-2 flex gap-2 text-[0.65rem] text-slate-500 transition-all duration-150 ${selectedMessageId === messageId ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"} ${isMine ? "right-0 justify-end" : "left-0 justify-start"}`}
                         >
                           <button
                             type="button"
+                            data-message-action
                             onClick={() => handleQuoteMessage(msg)}
                             className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 font-semibold hover:border-slate-300 hover:text-slate-700"
                           >
@@ -1025,6 +1026,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                           {isMine && (
                             <button
                               type="button"
+                              data-message-action
                               onClick={() => handleDeleteMessage(msg)}
                               disabled={isDeletingMessageId === msg.id}
                               className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-white px-2 py-0.5 font-semibold text-red-700 hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1142,7 +1144,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                         <MessageBody content={msg.content} isMine={isMine} />
                       </button>
                       <div
-                        className={`absolute top-full z-10 mt-2 flex flex-wrap gap-2 text-[0.65rem] text-slate-500 transition-all duration-150 ${selectedMessageId === messageId ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"} ${isMine ? "right-0 justify-end" : "left-0 justify-start"}`}
+                        className={`absolute top-full z-10 mt-2 flex gap-2 text-[0.65rem] text-slate-500 transition-all duration-150 ${selectedMessageId === messageId ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"} ${isMine ? "right-0 justify-end" : "left-0 justify-start"}`}
                       >
                         <button
                           type="button"
