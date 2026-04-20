@@ -1098,7 +1098,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                 ...filteredMessages,
                 <li key="unmatched-badge-immediate" className="py-2 text-center">
                   <span className="inline-flex rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-[0.9rem] font-semibold text-yellow-800">
-                    You unmatched{dateStr ? ` on ${sanitizeText(dateStr)}` : ''}
+                    You unmatched{dateStr ? ` on ${dateStr}` : ''}
                   </span>
                 </li>
               ];

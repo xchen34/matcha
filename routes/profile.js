@@ -1082,6 +1082,7 @@ router.put("/profile/me", async (req, res, next) => {
         allowed_values: allowedGenders,
       });
     }
+    const safeGender = isNonEmptyString(gender) ? gender.trim() : null;
     let safeSexualPreference = sexual_preference;
     if (
       !safeSexualPreference ||
@@ -1281,8 +1282,8 @@ router.put("/profile/me", async (req, res, next) => {
       ON CONFLICT (user_id)
       DO UPDATE SET
         biography = EXCLUDED.biography,
-        gender = EXCLUDED.gender,
-        sexual_preference = EXCLUDED.sexual_preference,
+        gender = COALESCE(EXCLUDED.gender, profiles.gender),
+        sexual_preference = COALESCE(EXCLUDED.sexual_preference, profiles.sexual_preference),
         city = EXCLUDED.city,
         neighborhood = EXCLUDED.neighborhood,
         gps_consent = EXCLUDED.gps_consent,
@@ -1304,8 +1305,8 @@ router.put("/profile/me", async (req, res, next) => {
       `,
       [
         currentUserId,
-        gender,
-        sexual_preference,
+        safeGender,
+        safeSexualPreference,
         biography.trim(),
         normalizedBirthDate,
         safeCity,

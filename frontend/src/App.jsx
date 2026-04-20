@@ -494,6 +494,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     first_name: "",
     last_name: "",
     email: "",
+    gender: "",
+    sexual_preference: "",
     biography: "",
     birth_date: "",
     city: "",
@@ -729,6 +731,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         first_name: data.user?.first_name || "",
         last_name: data.user?.last_name || "",
         email: data.user?.email || "",
+        gender: data.profile.gender || "",
+        sexual_preference: data.profile.sexual_preference || "",
         biography: data.profile.biography || "",
         birth_date: data.profile.birth_date
           ? String(data.profile.birth_date).slice(0, 10)
@@ -1294,6 +1298,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       first_name: form.first_name,
       last_name: form.last_name,
       email: form.email,
+      gender: form.gender,
+      sexual_preference: form.sexual_preference,
       biography: form.biography,
       birth_date: form.birth_date || null,
       city: form.city,
@@ -1302,8 +1308,19 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       latitude: form.latitude,
       longitude: form.longitude,
       tags: form.tags,
-      photos: form.photos,
     };
+
+    const photosAreBase64DataUrls =
+      Array.isArray(form.photos) &&
+      form.photos.every((photo) => {
+        const dataUrl = String(photo?.data_url || "").trim();
+        return /^data:image\/[a-z0-9.+-]+;base64,/i.test(dataUrl);
+      });
+
+    // Preserve existing backend photos when current form photo URLs are not base64 data URLs.
+    if (photosAreBase64DataUrls) {
+      payload.photos = form.photos;
+    }
 
     try {
       const response = await fetch("/api/profile/me", {
@@ -1330,6 +1347,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         first_name: data.user?.first_name || prev.first_name,
         last_name: data.user?.last_name || prev.last_name,
         email: data.user?.email || prev.email,
+        gender: data.profile.gender || "",
+        sexual_preference: data.profile.sexual_preference || "",
         biography: data.profile.biography || "",
         birth_date: data.profile.birth_date
           ? String(data.profile.birth_date).slice(0, 10)

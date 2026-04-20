@@ -617,12 +617,8 @@ function UserProfilePage({ currentUser }) {
         </p>
       )}
 
-      <div className="grid sm:grid-cols-2 gap-3 text-sm text-slate-700">
-        <div>
-          <FieldLabel icon={FiInfo}>Bio</FieldLabel>
-          <p className="mt-1 text-slate-800">{sanitizeText(profile.biography) || "-"}</p>
-        </div>
-        <div className="space-y-2">
+      <div className="grid items-stretch gap-4 text-sm text-slate-700 sm:grid-cols-2">
+        <div className="h-full space-y-3 rounded-xl bg-white/70 p-4">
           <div>
             <FieldLabel icon={FiUser}>Gender</FieldLabel>
             <p className="mt-1 text-slate-800">{sanitizeText(profile.gender) || "-"}</p>
@@ -637,24 +633,26 @@ function UserProfilePage({ currentUser }) {
               {profile.age !== undefined && profile.age !== null ? profile.age : "-"}
             </p>
           </div>
-          <div>
-            <FieldLabel icon={FiCalendar}>Birth date</FieldLabel>
-            <p className="mt-1 text-slate-800">
-              {profile.birth_date
-                ? (() => {
-                    // Parse as local date to avoid timezone shift
-                    const [y, m, d] = profile.birth_date.split('-');
-                    if (!y || !m || !d) return "-";
-                    const date = new Date(Number(y), Number(m) - 1, Number(d));
-                    return date.toLocaleDateString("en-GB", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                    });
-                  })()
-                : "-"}
-            </p>
-          </div>
+          {isOwnProfile && (
+            <div>
+              <FieldLabel icon={FiCalendar}>Birth date</FieldLabel>
+              <p className="mt-1 text-slate-800">
+                {profile.birth_date
+                  ? (() => {
+                      // Parse as local date to avoid timezone shift
+                      const [y, m, d] = profile.birth_date.split('-');
+                      if (!y || !m || !d) return "-";
+                      const date = new Date(Number(y), Number(m) - 1, Number(d));
+                      return date.toLocaleDateString("en-GB", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                      });
+                    })()
+                  : "-"}
+              </p>
+            </div>
+          )}
           <div>
             <FieldLabel icon={FiMapPin}>Location</FieldLabel>
             <p className="mt-1 text-slate-800">
@@ -663,39 +661,45 @@ function UserProfilePage({ currentUser }) {
           </div>
           <div>
             <FieldLabel icon={FiActivity}>Status</FieldLabel>
-            <div className="mt-1 space-y-1">
+            <div className="mt-1 flex flex-wrap items-center gap-[2rem]">
               <span
                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${user.is_online ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"}`}
               >
                 {user.is_online ? "Online" : "Offline"}
               </span>
-              {!user.is_online && (
-                <p className="text-sm text-slate-800">
-                  Last connection: {formatLastSeen(user.last_seen_at)}
-                </p>
+              <span className="text-sm text-slate-800">
+                Last connection: {user.is_online ? "Now" : formatLastSeen(user.last_seen_at)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-full space-y-3 rounded-xl bg-white/70 p-4">
+          <div>
+            <FieldLabel icon={FiInfo}>Bio</FieldLabel>
+            <div className="mt-1 max-h-32 overflow-y-auto rounded-lg border border-slate-100 bg-white/70 p-2 text-slate-800">
+              {sanitizeText(profile.biography) || "-"}
+            </div>
+          </div>
+          <div>
+            <FieldLabel icon={FiTag}>Tags</FieldLabel>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {Array.isArray(profile.tags) && profile.tags.length > 0 ? (
+                profile.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center rounded-full bg-slate-900 px-2.5 py-1 text-xs text-white"
+                  >
+                    {tag}
+                  </span>
+                ))
+              ) : (
+                <p className="text-slate-800">-</p>
               )}
             </div>
           </div>
         </div>
       </div>
-
-      {Array.isArray(profile.tags) && profile.tags.length > 0 && (
-        <div className="space-y-2">
-          <p>
-            <FieldLabel icon={FiTag}>Tags</FieldLabel>
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {profile.tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center rounded-full bg-slate-900 text-white text-xs px-2.5 py-1"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand via-brand/90 to-brand-deep p-5 text-white shadow-lg shadow-orange-200/50">
         <div className="flex items-start justify-between gap-4">
