@@ -1076,13 +1076,16 @@ router.put("/profile/me", async (req, res, next) => {
         error: `biography must be at most ${MAX_BIO_LENGTH} characters`,
       });
     }
-    if (gender && !allowedGenders.includes(gender)) {
+    const safeGender = isNonEmptyString(gender) ? gender.trim() : null;
+    if (!safeGender) {
+      return res.status(400).json({ error: "gender is required" });
+    }
+    if (!allowedGenders.includes(safeGender)) {
       return res.status(400).json({
         error: "gender must be valid",
         allowed_values: allowedGenders,
       });
     }
-    const safeGender = isNonEmptyString(gender) ? gender.trim() : null;
     let safeSexualPreference = sexual_preference;
     if (
       !safeSexualPreference ||

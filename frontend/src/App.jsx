@@ -538,6 +538,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   const hasFirstName = (form.first_name || "").trim().length > 0;
   const hasLastName = (form.last_name || "").trim().length > 0;
   const hasEmail = (form.email || "").trim().length > 0;
+  const hasGender = (form.gender || "").trim().length > 0;
   const hasAge = (form.birth_date || "").trim().length > 0;
   const hasCity = (form.city || "").trim().length > 0;
 
@@ -546,6 +547,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     hasFirstName &&
     hasLastName &&
     hasEmail &&
+    hasGender &&
     hasAge &&
     hasCity;
 
@@ -554,6 +556,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     !hasFirstName ? "first name" : null,
     !hasLastName ? "last name" : null,
     !hasEmail ? "email" : null,
+    !hasGender ? "gender" : null,
     !hasAge ? "age" : null,
     !hasCity ? "city" : null,
   ].filter(Boolean);
@@ -1279,6 +1282,11 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   async function handleSubmit(event) {
     event.preventDefault();
 
+    if (!hasGender) {
+      setMessage("Error: please select your gender.");
+      return;
+    }
+
     if (!isLocationAccepted) {
       setMessage("Error: location is not verified. Please choose a valid city/neighborhood.");
       return;
@@ -1299,7 +1307,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       last_name: form.last_name,
       email: form.email,
       gender: form.gender,
-      sexual_preference: form.sexual_preference,
+      sexual_preference: (form.sexual_preference || "both").trim(),
       biography: form.biography,
       birth_date: form.birth_date || null,
       city: form.city,
@@ -1491,29 +1499,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
               <span className="inline-flex items-center gap-1.5">
-                <FiInfo size={13} aria-hidden="true" />
-                <span>Biography</span>
-              </span>
-            </label>
-            <textarea
-              name="biography"
-              placeholder="Biography"
-              value={form.biography}
-              onChange={handleChange}
-              className={textareaClass}
-              rows={4}
-              maxLength={MAX_BIO_LENGTH}
-            />
-            <p className="text-xs text-slate-500 text-right">
-              {(form.biography || "").length}/{MAX_BIO_LENGTH}
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              <span className="inline-flex items-center gap-1.5">
                 <FiUser size={13} aria-hidden="true" />
-                <span>Gender</span>
+                <span>Gender<span className="text-red-600">*</span></span>
               </span>
             </label>
             <select
@@ -1549,6 +1536,27 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               <option value="both">both</option>
               <option value="other">other</option>
             </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              <span className="inline-flex items-center gap-1.5">
+                <FiInfo size={13} aria-hidden="true" />
+                <span>Biography</span>
+              </span>
+            </label>
+            <textarea
+              name="biography"
+              placeholder="Biography"
+              value={form.biography}
+              onChange={handleChange}
+              className={textareaClass}
+              rows={4}
+              maxLength={MAX_BIO_LENGTH}
+            />
+            <p className="text-xs text-slate-500 text-right">
+              {(form.biography || "").length}/{MAX_BIO_LENGTH}
+            </p>
           </div>
 
           <div className="space-y-2">
