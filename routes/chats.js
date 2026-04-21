@@ -6,8 +6,72 @@ const { authSensitiveLimiter } = require("../middleware/rateLimit");
 
 const router = express.Router();
 const MAX_CHAT_MESSAGE_LENGTH = 1200;
-router.delete("/:conversationId", async (req, res, next) => {
+let chatVisibilityTablesReady = false;
+
+async function ensureChatVisibilityTables() {
+  if (chatVisibilityTablesReady) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS chat_deleted_conversations (
+      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      conversation_id INT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+      deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, conversation_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS chat_deleted_messages (
+      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      message_id INT NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+      conversation_id INT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+      deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, message_id)
+    )
+  `);
+
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS chat_deleted_conversations_user_idx ON chat_deleted_conversations(user_id)",
+  );
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS chat_deleted_messages_user_conversation_idx ON chat_deleted_messages(user_id, conversation_id)",
+  );
+
+  chatVisibilityTablesReady = true;
+}
+
+function parseQuotedReplyText(content) {
+  const text = String(content || "");
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  if (!lines.length) return null;
+
+  const headerMatch = lines[0].match(/^(.*) wrote:\s*$/i);
+  if (!headerMatch) return null;
+
+  let index = 1;
+  while (index < lines.length) {
+    if (!/^>\s?/.test(lines[index])) break;
+    index += 1;
+  }
+
+  while (index < lines.length && lines[index].trim() === "") {
+    index += 1;
+  }
+
+  return lines.slice(index).join("\n").trim();
+}
+
+function getMessageLengthForLimit(content) {
+  const parsedReply = parseQuotedReplyText(content);
+  if (parsedReply !== null) {
+    return parsedReply.length;
+  }
+  return String(content || "").trim().length;
+}
+async function deleteConversationHandler(req, res, next) {
   try {
+    await ensureChatVisibilityTables();
+
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const conversationId = parsePositiveInt(req.params.conversationId);
     if (!currentUserId || !conversationId) {
@@ -33,32 +97,52 @@ router.delete("/:conversationId", async (req, res, next) => {
         .json({ error: "Accès refusé à cette conversation" });
     }
 
+    await pool.query("BEGIN");
+    await pool.query(
+      `
+      INSERT INTO chat_deleted_conversations (user_id, conversation_id, deleted_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (user_id, conversation_id)
+      DO UPDATE SET deleted_at = EXCLUDED.deleted_at
+      `,
+      [currentUserId, conversationId],
+    );
+    await pool.query(
+      `
+      INSERT INTO chat_deleted_messages (user_id, message_id, conversation_id, deleted_at)
+      SELECT $1, m.id, m.conversation_id, NOW()
+      FROM chat_messages m
+      WHERE m.conversation_id = $2
+      ON CONFLICT (user_id, message_id)
+      DO UPDATE SET deleted_at = EXCLUDED.deleted_at
+      `,
+      [currentUserId, conversationId],
+    );
+    await pool.query("COMMIT");
+
     const io = getIO();
     if (io) {
-      const payload = { conversation_id: conversationId };
-      io.to(`conversation:${conversationId}`).emit(
+      io.to(`user:${currentUserId}`).emit(
         REALTIME_EVENTS.CHAT_CONVERSATION_DELETED,
-        payload,
-      );
-      io.to(`user:${user_a_id}`).emit(
-        REALTIME_EVENTS.CHAT_CONVERSATION_DELETED,
-        payload,
-      );
-      io.to(`user:${user_b_id}`).emit(
-        REALTIME_EVENTS.CHAT_CONVERSATION_DELETED,
-        payload,
+        { conversation_id: conversationId, user_id: currentUserId },
       );
     }
 
-    await pool.query(`DELETE FROM chat_conversations WHERE id = $1`, [
-      conversationId,
-    ]);
-
-    return res.json({ success: true });
+    return res.json({ success: true, conversation_id: conversationId });
   } catch (error) {
+    try {
+      await pool.query("ROLLBACK");
+    } catch {
+      // no-op
+    }
     return next(error);
   }
-});
+}
+
+// Canonical route used by frontend API client.
+router.delete("/chats/:conversationId", authSensitiveLimiter, deleteConversationHandler);
+// Backward compatibility for older clients that used /api/:conversationId.
+router.delete("/:conversationId", authSensitiveLimiter, deleteConversationHandler);
 
 function getConversationRoomName(conversationId) {
   return `conversation:${conversationId}`;
@@ -181,6 +265,8 @@ router.delete(
   authSensitiveLimiter,
   async (req, res, next) => {
     try {
+      await ensureChatVisibilityTables();
+
       const currentUserId = parsePositiveInt(req.header("x-user-id"));
       const conversationId = parsePositiveInt(req.params.conversationId);
       const messageId = parsePositiveInt(req.params.messageId);
@@ -220,18 +306,14 @@ router.delete(
         return res.status(404).json({ error: "Message not found" });
       }
 
-      const message = messageResult.rows[0];
-      if (Number(message.sender_user_id) !== Number(currentUserId)) {
-        return res.status(403).json({ error: "You can only delete your own messages" });
-      }
-
       await pool.query(
         `
-        DELETE FROM chat_messages
-        WHERE id = $1
-          AND conversation_id = $2
+        INSERT INTO chat_deleted_messages (user_id, message_id, conversation_id, deleted_at)
+        VALUES ($1, $2, $3, NOW())
+        ON CONFLICT (user_id, message_id)
+        DO UPDATE SET deleted_at = EXCLUDED.deleted_at
         `,
-        [messageId, conversationId],
+        [currentUserId, messageId, conversationId],
       );
 
       const io = getIO();
@@ -239,20 +321,9 @@ router.delete(
         const payload = {
           conversation_id: conversationId,
           message_id: messageId,
-          sender_user_id: message.sender_user_id,
+          user_id: currentUserId,
         };
-        io.to(`conversation:${conversationId}`).emit(
-          REALTIME_EVENTS.CHAT_MESSAGE_DELETED,
-          payload,
-        );
-        io.to(`user:${message.sender_user_id}`).emit(
-          REALTIME_EVENTS.CHAT_MESSAGE_DELETED,
-          payload,
-        );
-        io.to(`user:${message.recipient_user_id}`).emit(
-          REALTIME_EVENTS.CHAT_MESSAGE_DELETED,
-          payload,
-        );
+        io.to(`user:${currentUserId}`).emit(REALTIME_EVENTS.CHAT_MESSAGE_DELETED, payload);
       }
 
       return res.json({ success: true, conversation_id: conversationId, message_id: messageId });
@@ -272,6 +343,8 @@ router.delete(
 
 router.get("/chats", async (req, res, next) => {
   try {
+    await ensureChatVisibilityTables();
+
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     if (!currentUserId) {
       return res.status(400).json({ error: "x-user-id header is required" });
@@ -290,6 +363,12 @@ router.get("/chats", async (req, res, next) => {
           END AS other_user_id
         FROM chat_conversations c
         WHERE $1 IN (c.user_a_id, c.user_b_id)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM chat_deleted_conversations cdc
+            WHERE cdc.user_id = $1
+              AND cdc.conversation_id = c.id
+          )
       )
       SELECT
         uc.conversation_id,
@@ -330,6 +409,12 @@ router.get("/chats", async (req, res, next) => {
         SELECT cm.sender_user_id, cm.content, cm.created_at
         FROM chat_messages cm
         WHERE cm.conversation_id = uc.conversation_id
+          AND NOT EXISTS (
+            SELECT 1
+            FROM chat_deleted_messages cdm
+            WHERE cdm.user_id = $1
+              AND cdm.message_id = cm.id
+          )
         ORDER BY cm.created_at DESC, cm.id DESC
         LIMIT 1
       ) lm ON TRUE
@@ -337,6 +422,12 @@ router.get("/chats", async (req, res, next) => {
         SELECT conversation_id, COUNT(*) AS unread_count
         FROM chat_messages
         WHERE recipient_user_id = $1 AND NOT is_read
+          AND NOT EXISTS (
+            SELECT 1
+            FROM chat_deleted_messages cdm
+            WHERE cdm.user_id = $1
+              AND cdm.message_id = chat_messages.id
+          )
         GROUP BY conversation_id
       ) unread_counts ON unread_counts.conversation_id = uc.conversation_id
       ORDER BY c.last_message_at DESC NULLS LAST, uc.conversation_id ASC
@@ -378,6 +469,8 @@ router.get("/chats", async (req, res, next) => {
 
 router.get("/chats/:conversationId/messages", async (req, res, next) => {
   try {
+    await ensureChatVisibilityTables();
+
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const conversationId = parsePositiveInt(req.params.conversationId);
     const limit = Math.min(
@@ -401,6 +494,12 @@ router.get("/chats/:conversationId/messages", async (req, res, next) => {
       FROM chat_conversations
       WHERE id = $2
         AND $1 IN (user_a_id, user_b_id)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM chat_deleted_conversations cdc
+          WHERE cdc.user_id = $1
+            AND cdc.conversation_id = chat_conversations.id
+        )
       LIMIT 1
       `,
       [currentUserId, conversationId],
@@ -442,6 +541,12 @@ router.get("/chats/:conversationId/messages", async (req, res, next) => {
       WHERE conversation_id = $1
         AND recipient_user_id = $2
         AND NOT is_read
+        AND NOT EXISTS (
+          SELECT 1
+          FROM chat_deleted_messages cdm
+          WHERE cdm.user_id = $2
+            AND cdm.message_id = chat_messages.id
+        )
       `,
       [conversationId, currentUserId],
     );
@@ -451,11 +556,17 @@ router.get("/chats/:conversationId/messages", async (req, res, next) => {
       SELECT id, sender_user_id, recipient_user_id, content, created_at, is_read
       FROM chat_messages
       WHERE conversation_id = $1
+        AND NOT EXISTS (
+          SELECT 1
+          FROM chat_deleted_messages cdm
+          WHERE cdm.user_id = $4
+            AND cdm.message_id = chat_messages.id
+        )
       ORDER BY created_at DESC, id DESC
       LIMIT $2
       OFFSET $3
       `,
-      [conversationId, limit + 1, offset],
+      [conversationId, limit + 1, offset, currentUserId],
     );
 
     const hasMore = historyResult.rows.length > limit;
@@ -499,6 +610,8 @@ router.get("/chats/:conversationId/messages", async (req, res, next) => {
 
 router.post("/chats/:conversationId/read", async (req, res, next) => {
   try {
+    await ensureChatVisibilityTables();
+
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const conversationId = parsePositiveInt(req.params.conversationId);
     if (!currentUserId || !conversationId) {
@@ -513,6 +626,12 @@ router.post("/chats/:conversationId/read", async (req, res, next) => {
       FROM chat_conversations
       WHERE id = $1
         AND $2 IN (user_a_id, user_b_id)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM chat_deleted_conversations cdc
+          WHERE cdc.user_id = $2
+            AND cdc.conversation_id = chat_conversations.id
+        )
       LIMIT 1
       `,
       [conversationId, currentUserId],
@@ -529,6 +648,12 @@ router.post("/chats/:conversationId/read", async (req, res, next) => {
       WHERE conversation_id = $1
         AND recipient_user_id = $2
         AND NOT is_read
+        AND NOT EXISTS (
+          SELECT 1
+          FROM chat_deleted_messages cdm
+          WHERE cdm.user_id = $2
+            AND cdm.message_id = chat_messages.id
+        )
       `,
       [conversationId, currentUserId],
     );
@@ -582,6 +707,8 @@ router.post("/chats/:conversationId/read", async (req, res, next) => {
 
 router.post("/chats/messages", async (req, res, next) => {
   try {
+    await ensureChatVisibilityTables();
+
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const recipientUserId = parsePositiveInt(req.body?.recipient_user_id);
     if (!currentUserId || !recipientUserId) {
@@ -599,9 +726,9 @@ router.post("/chats/messages", async (req, res, next) => {
       return res.status(400).json({ error: "Message cannot be empty" });
     }
 
-    if (safeContent.length > MAX_CHAT_MESSAGE_LENGTH) {
+    if (getMessageLengthForLimit(safeContent) > MAX_CHAT_MESSAGE_LENGTH) {
       return res.status(400).json({
-        error: `Message cannot exceed ${MAX_CHAT_MESSAGE_LENGTH} characters`,
+        error: `Message text cannot exceed ${MAX_CHAT_MESSAGE_LENGTH} characters`,
       });
     }
 
@@ -638,6 +765,15 @@ router.post("/chats/messages", async (req, res, next) => {
     );
 
     const conversationId = conversationResult.rows[0].id;
+
+    await pool.query(
+      `
+      DELETE FROM chat_deleted_conversations
+      WHERE conversation_id = $1
+        AND user_id IN ($2, $3)
+      `,
+      [conversationId, currentUserId, recipientUserId],
+    );
 
     const insertResult = await pool.query(
       `
@@ -717,6 +853,8 @@ router.post("/chats/messages", async (req, res, next) => {
 
 router.post("/chats/conversations", async (req, res, next) => {
   try {
+    await ensureChatVisibilityTables();
+
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const otherUserId = parsePositiveInt(req.body?.other_user_id);
 

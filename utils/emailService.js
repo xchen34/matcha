@@ -11,9 +11,14 @@ const SMTP_PLACEHOLDERS = new Set([
 
 let cachedDevMailer = null;
 
+function getSmtpAuthConfig() {
+  const smtpUser = (process.env.SMTP_USER || process.env.ETHEREAL_USER || "").trim();
+  const smtpPass = (process.env.SMTP_PASSWORD || process.env.ETHEREAL_PASSWORD || "").trim();
+  return { smtpUser, smtpPass };
+}
+
 function hasExplicitSmtpConfig() {
-  const smtpUser = (process.env.SMTP_USER || '').trim();
-  const smtpPass = (process.env.SMTP_PASSWORD || '').trim();
+  const { smtpUser, smtpPass } = getSmtpAuthConfig();
   if (!smtpUser || !smtpPass) {
     return false;
   }
@@ -36,8 +41,7 @@ function isSmtpConfigured() {
 async function createMailer() {
   const smtpHost = process.env.SMTP_HOST || 'smtp.ethereal.email';
   const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASSWORD;
+  const { smtpUser, smtpPass } = getSmtpAuthConfig();
   const smtpFromEmail = process.env.SMTP_FROM_EMAIL || 'noreply@matcha.local';
 
   if (hasExplicitSmtpConfig()) {

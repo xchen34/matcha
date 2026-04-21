@@ -143,6 +143,26 @@ function getAge(birthDate) {
   return age;
 }
 
+function isProfileCompleted(user, profile) {
+  const hasUsername = typeof user?.username === "string" && user.username.trim().length > 0;
+  const hasFirstName = typeof user?.first_name === "string" && user.first_name.trim().length > 0;
+  const hasLastName = typeof user?.last_name === "string" && user.last_name.trim().length > 0;
+  const hasEmail = typeof user?.email === "string" && user.email.trim().length > 0;
+  const hasGender = typeof profile?.gender === "string" && profile.gender.trim().length > 0;
+  const hasBirthDate = Boolean(profile?.birth_date);
+  const hasCity = typeof profile?.city === "string" && profile.city.trim().length > 0;
+
+  return (
+    hasUsername &&
+    hasFirstName &&
+    hasLastName &&
+    hasEmail &&
+    hasGender &&
+    hasBirthDate &&
+    hasCity
+  );
+}
+
 async function reverseGeocode(latitude, longitude) {
   const cacheKey = `reverse:${latitude}:${longitude}`;
   const cached = getCachedValue(cacheKey);
@@ -865,6 +885,25 @@ router.get("/profile/me", async (req, res, next) => {
     }
 
     const row = profileResult.rows[0];
+    const profilePayload = {
+      gender: row.gender || "",
+      sexual_preference: row.sexual_preference || "",
+      biography: row.biography || "",
+      birth_date: row.birth_date,
+      age: getAge(row.birth_date),
+      city: row.city || "",
+      neighborhood: row.neighborhood || "",
+      gps_consent: Boolean(row.gps_consent),
+      latitude: row.latitude,
+      longitude: row.longitude,
+      tags: tagsResult.rows.map((entry) => entry.name),
+      fame_rating: row.fame_rating ?? 0,
+      photos: photosResult.rows.map((item) => ({
+        id: item.id,
+        data_url: item.data_url,
+        is_primary: item.is_primary,
+      })),
+    };
     return res.json({
       user: {
         id: row.user_id,
@@ -873,27 +912,18 @@ router.get("/profile/me", async (req, res, next) => {
         first_name: row.first_name,
         last_name: row.last_name,
         email_verified: row.email_verified,
+        profile_completed: isProfileCompleted(
+          {
+            username: row.username,
+            first_name: row.first_name,
+            last_name: row.last_name,
+            email: row.email,
+          },
+          profilePayload,
+        ),
         created_at: row.created_at,
       },
-      profile: {
-        gender: row.gender || "",
-        sexual_preference: row.sexual_preference || "",
-        biography: row.biography || "",
-        birth_date: row.birth_date,
-        age: getAge(row.birth_date),
-        city: row.city || "",
-        neighborhood: row.neighborhood || "",
-        gps_consent: Boolean(row.gps_consent),
-        latitude: row.latitude,
-        longitude: row.longitude,
-        tags: tagsResult.rows.map((entry) => entry.name),
-        fame_rating: row.fame_rating ?? 0,
-        photos: photosResult.rows.map((item) => ({
-          id: item.id,
-          data_url: item.data_url,
-          is_primary: item.is_primary,
-        })),
-      },
+      profile: profilePayload,
     });
   } catch (error) {
     return next(error);
@@ -909,22 +939,6 @@ router.get("/profile/:id", async (req, res, next) => {
     }
 
     const currentUserId = parseUserIdFromRequest(req);
-    if (currentUserId && currentUserId !== requestedId) {
-      const hiddenByReport = await pool.query(
-        `
-        SELECT 1
-        FROM fake_account_reports
-        WHERE reporter_user_id = $1
-          AND reported_user_id = $2
-        LIMIT 1
-        `,
-        [currentUserId, requestedId],
-      );
-
-      if (hiddenByReport.rowCount > 0) {
-        return res.status(404).json({ error: "User not found" });
-      }
-    }
 
     const [profileResult, tagsResult, photosResult, relationResult] =
       await Promise.all([
@@ -996,11 +1010,39 @@ router.get("/profile/:id", async (req, res, next) => {
                 SELECT 1
                 FROM likes
                 WHERE liker_user_id = $2 AND liked_user_id = $1
-              ) AS liked_me
+              ) AS liked_me,
+              EXISTS(
+                SELECT 1
+                FROM fake_account_reports
+                WHERE reporter_user_id = $1
+                  AND reported_user_id = $2
+              ) AS reported_fake_by_me,
+              EXISTS(
+                SELECT 1
+                FROM user_blocks
+                WHERE blocker_user_id = $1
+                  AND blocked_user_id = $2
+              ) AS blocked_by_you,
+              EXISTS(
+                SELECT 1
+                FROM user_blocks
+                WHERE blocker_user_id = $2
+                  AND blocked_user_id = $1
+              ) AS blocked_you
             `,
               [currentUserId, requestedId],
             )
-          : Promise.resolve({ rows: [{ i_liked: false, liked_me: false }] }),
+          : Promise.resolve({
+              rows: [
+                {
+                  i_liked: false,
+                  liked_me: false,
+                  reported_fake_by_me: false,
+                  blocked_by_you: false,
+                  blocked_you: false,
+                },
+              ],
+            }),
       ]);
 
     if (profileResult.rows.length === 0) {
@@ -1011,6 +1053,9 @@ router.get("/profile/:id", async (req, res, next) => {
     const relation = relationResult.rows[0] || {
       i_liked: false,
       liked_me: false,
+      reported_fake_by_me: false,
+      blocked_by_you: false,
+      blocked_you: false,
     };
     const iLiked = Boolean(relation.i_liked);
     const likedMe = Boolean(relation.liked_me);
@@ -1043,6 +1088,9 @@ router.get("/profile/:id", async (req, res, next) => {
         i_liked: iLiked,
         liked_me: likedMe,
         is_match: iLiked && likedMe,
+        reported_fake_by_me: Boolean(relation.reported_fake_by_me),
+        blocked_by_you: Boolean(relation.blocked_by_you),
+        blocked_you: Boolean(relation.blocked_you),
       },
     });
   } catch (error) {
@@ -1425,6 +1473,25 @@ router.put("/profile/me", async (req, res, next) => {
       });
     }
 
+    const profilePayload = {
+      gender: profile.gender,
+      sexual_preference: profile.sexual_preference,
+      biography: profile.biography,
+      birth_date: profile.birth_date,
+      city: profile.city,
+      neighborhood: profile.neighborhood,
+      gps_consent: Boolean(profile.gps_consent),
+      latitude: profile.latitude,
+      longitude: profile.longitude,
+      tags: tagsResult.rows.map((entry) => entry.name),
+      fame_rating: profile.fame_rating,
+      photos: photosResult.rows.map((item) => ({
+        id: item.id,
+        data_url: item.data_url,
+        is_primary: item.is_primary,
+      })),
+    };
+
     return res.json({
       message: "Profile updated successfully",
       user: updatedUser
@@ -1435,27 +1502,19 @@ router.put("/profile/me", async (req, res, next) => {
             first_name: updatedUser.first_name,
             last_name: updatedUser.last_name,
             email_verified: updatedUser.email_verified,
+            profile_completed: isProfileCompleted(
+              {
+                username: updatedUser.username,
+                first_name: updatedUser.first_name,
+                last_name: updatedUser.last_name,
+                email: updatedUser.email,
+              },
+              profilePayload,
+            ),
             created_at: updatedUser.created_at,
           }
         : undefined,
-      profile: {
-        gender: profile.gender,
-        sexual_preference: profile.sexual_preference,
-        biography: profile.biography,
-        birth_date: profile.birth_date,
-        city: profile.city,
-        neighborhood: profile.neighborhood,
-        gps_consent: Boolean(profile.gps_consent),
-        latitude: profile.latitude,
-        longitude: profile.longitude,
-        tags: tagsResult.rows.map((entry) => entry.name),
-        fame_rating: profile.fame_rating,
-        photos: photosResult.rows.map((item) => ({
-          id: item.id,
-          data_url: item.data_url,
-          is_primary: item.is_primary,
-        })),
-      },
+      profile: profilePayload,
     });
   } catch (error) {
     if (inTransaction) {

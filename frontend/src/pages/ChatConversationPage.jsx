@@ -219,6 +219,7 @@ function isQuotedMessageContent(content) {
 
 function MessageBody({ content, isMine }) {
   const parsed = parseQuotedMessageContent(content);
+  const [isQuoteExpanded, setIsQuoteExpanded] = useState(false);
 
   if (!parsed.quoteHeader) {
     return (
@@ -238,9 +239,31 @@ function MessageBody({ content, isMine }) {
         }`}
         style={isMine ? { alignSelf: 'flex-end' } : {}}
       >
-        <p className="truncate font-medium leading-tight">
-          {sanitizeText(parsed.quoteHeader)}: {sanitizeText(extractLatestQuoteText(parsed.quoteLines.join("\n")))}
-        </p>
+        {(() => {
+          const fullQuoteText = extractLatestQuoteText(parsed.quoteLines.join("\n"));
+          const trimmedQuoteText = String(fullQuoteText || "").trim();
+          const shouldCollapse = trimmedQuoteText.length > 140;
+          const displayedQuoteText =
+            shouldCollapse && !isQuoteExpanded
+              ? `${trimmedQuoteText.slice(0, 140).trimEnd()}...`
+              : trimmedQuoteText;
+          return (
+            <div className="space-y-1">
+              <p className="font-medium leading-tight break-words">
+                {sanitizeText(parsed.quoteHeader)}: {sanitizeText(displayedQuoteText)}
+              </p>
+              {shouldCollapse && (
+                <button
+                  type="button"
+                  onClick={() => setIsQuoteExpanded((prev) => !prev)}
+                  className="text-[0.68rem] font-semibold text-brand-deep hover:underline"
+                >
+                  {isQuoteExpanded ? "Show less" : "Show full"}
+                </button>
+              )}
+            </div>
+          );
+        })()}
       </div>
       {parsed.replyText && (
         <p
@@ -261,8 +284,10 @@ function MessageBody({ content, isMine }) {
 export default function ChatConversationPage({ currentUser, embedded = false }) {
   const { conversationId } = useParams();
   const navigate = useNavigate();
+  const currentUserId = Number(currentUser?.id) || null;
   const [messages, setMessages] = useState([]);
   const [conversation, setConversation] = useState(null);
+  const activeConversationId = Number(conversation?.id) || null;
   const [isMatch, setIsMatch] = useState(true);
   const [matchError, setMatchError] = useState("");
   const [blockStatus, setBlockStatus] = useState(null); 
@@ -805,7 +830,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       setQuotedMessage(message);
       setError("");
     },
-    [conversation, currentUser],
+    [],
   );
 
   const handleOpenMessageActions = useCallback((messageId) => {
@@ -814,7 +839,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
 
   const handleDeleteMessage = useCallback(
     async (message) => {
-      if (!currentUser?.id || !conversation?.id || !message?.id) return;
+      if (!currentUserId || !activeConversationId || !message?.id) return;
 
       const confirmed = window.confirm("Delete this message?");
       if (!confirmed) return;
@@ -822,7 +847,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       setIsDeletingMessageId(message.id);
       setError("");
       try {
-        await deleteChatMessage(currentUser, conversation.id, message.id);
+        await deleteChatMessage({ id: currentUserId }, activeConversationId, message.id);
         setMessages((prev) => prev.filter((item) => Number(item.id) !== Number(message.id)));
         setMessagesOffset((prev) => Math.max(0, prev - 1));
         setQuotedMessage((prev) => (Number(prev?.id) === Number(message.id) ? null : prev));
@@ -834,28 +859,31 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         setIsDeletingMessageId(null);
       }
     },
-    [conversation?.id, currentUser],
+    [activeConversationId, currentUserId],
   );
 
   const handleDeleteConversation = useCallback(async () => {
-    if (!currentUser?.id || !conversation?.id) return;
+    if (!currentUserId || !activeConversationId) return;
 
     const confirmed = window.confirm(
-      "Delete the entire chat? This will remove the conversation for both users.",
+      "Delete this chat from your inbox only?",
     );
     if (!confirmed) return;
 
     setIsDeletingConversation(true);
     setError("");
     try {
-      await deleteChatConversation(currentUser, conversation.id);
-      navigate("/messages", { replace: true });
+      await deleteChatConversation({ id: currentUserId }, activeConversationId);
+      navigate("/messages", {
+        replace: true,
+        state: { removedConversationId: activeConversationId },
+      });
     } catch (err) {
       setError(err.message);
     } finally {
       setIsDeletingConversation(false);
     }
-  }, [conversation?.id, currentUser, navigate]);
+  }, [activeConversationId, currentUserId, navigate]);
 
   if (!currentUser?.id) {
     return <Navigate to="/login" replace />;
@@ -871,14 +899,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
     conversation?.other_user?.photo_url ||
     conversation?.other_user?.profile_photo_url ||
     "";
-  const currentUserId = Number(currentUser.id);
-  const quoteDraftText = quotedMessage
-    ? buildQuoteText(quotedMessage, currentUser, conversation)
-    : "";
-  const composedMessageLength = [quoteDraftText, body.trim()]
-    .filter(Boolean)
-    .join("\n\n")
-    .trim().length;
+  const composedMessageLength = body.trim().length;
 
   const canSendMessages =
     isMatch && blockStatus !== "blocked_by_you" && blockStatus !== "blocked_you";

@@ -14,6 +14,7 @@ const {
 const router = express.Router(); //router 是一个独立的 Express 应用实例，可以定义自己的路由和中间件。最后通过 module.exports 导出，供 app.js 挂载使用。
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72;
+const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,50}$/;
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); // 简单的邮箱格式验证，确保包含一个 @ 和一个 .，且没有空格。实际项目中可以使用更复杂的验证库，如 validator.js。
@@ -52,6 +53,26 @@ function generateVerificationToken() {
 
 function generateResetToken() {
   return crypto.randomBytes(32).toString("hex");
+}
+
+function isProfileCompleted(user) {
+  const hasUsername = typeof user?.username === "string" && user.username.trim().length > 0;
+  const hasFirstName = typeof user?.first_name === "string" && user.first_name.trim().length > 0;
+  const hasLastName = typeof user?.last_name === "string" && user.last_name.trim().length > 0;
+  const hasEmail = typeof user?.email === "string" && user.email.trim().length > 0;
+  const hasGender = typeof user?.gender === "string" && user.gender.trim().length > 0;
+  const hasBirthDate = Boolean(user?.birth_date);
+  const hasCity = typeof user?.city === "string" && user.city.trim().length > 0;
+
+  return (
+    hasUsername &&
+    hasFirstName &&
+    hasLastName &&
+    hasEmail &&
+    hasGender &&
+    hasBirthDate &&
+    hasCity
+  );
 }
 
 let pendingEmailColumnReady = false;
@@ -131,16 +152,28 @@ function validatePasswordStrength(password, commonPasswords) {
 router.post("/auth/register", authLimiter, async (req, res, next) => {
   const client = await pool.connect();
   try {
-    const { email, username, birth_date, password } = req.body;
+    const { email, username, first_name, last_name, birth_date, password } = req.body;
     const normalizedEmail = typeof email === "string" ? email.trim() : "";
     const normalizedUsername =
       typeof username === "string" ? username.trim() : "";
+    const normalizedFirstName =
+      typeof first_name === "string" ? first_name.trim() : "";
+    const normalizedLastName =
+      typeof last_name === "string" ? last_name.trim() : "";
     const normalizedPassword =
       typeof password === "string" ? password.trim() : "";
 
-    if (!normalizedEmail || !normalizedUsername || !birth_date || !normalizedPassword) {
+    if (
+      !normalizedEmail ||
+      !normalizedUsername ||
+      !normalizedFirstName ||
+      !normalizedLastName ||
+      !birth_date ||
+      !normalizedPassword
+    ) {
       return res.status(400).json({
-        error: "email, username, birth_date and password are required",
+        error:
+          "email, username, first_name, last_name, birth_date and password are required",
       });
     }
 
@@ -170,6 +203,13 @@ router.post("/auth/register", authLimiter, async (req, res, next) => {
       return res.status(400).json({ error: "Invalid email format" });
     }
 
+    if (!USERNAME_PATTERN.test(normalizedUsername)) {
+      return res.status(400).json({
+        error:
+          "username is invalid (use 3-50 characters: letters, numbers, underscore)",
+      });
+    }
+
     const passwordHash = await bcrypt.hash(normalizedPassword, 10); // bcrypt.hash() 方法用于将用户提供的密码进行哈希处理，生成一个安全的密码哈希值。第一个参数是要哈希的密码字符串，第二个参数是 saltRounds，表示哈希算法的复杂度（迭代次数）。较高的 saltRounds 会增加哈希计算的时间，从而提高安全性，但也会增加服务器负载。通常建议使用 10 或更高的值。
 
     // Generate verification token
@@ -184,7 +224,15 @@ router.post("/auth/register", authLimiter, async (req, res, next) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING id, email, username, first_name, last_name, email_verified, created_at
     `;
-    const values = [normalizedEmail, normalizedUsername, "", "", passwordHash, verificationToken, tokenExpiry];
+    const values = [
+      normalizedEmail,
+      normalizedUsername,
+      normalizedFirstName,
+      normalizedLastName,
+      passwordHash,
+      verificationToken,
+      tokenExpiry,
+    ];
     const result = await client.query(sql, values);
 
     // Ajout du profil avec uniquement birth_date
@@ -224,7 +272,9 @@ router.post("/auth/register", authLimiter, async (req, res, next) => {
       message:
         "User registered successfully. Please check your email to verify your account.",
       user: result.rows[0],
+      profile_completed: false,
       email_delivery: emailDelivery,
+      next_step: "verify_email",
       dev_verify_url:
         process.env.NODE_ENV === "production"
           ? null
@@ -271,9 +321,21 @@ router.post("/auth/login", authSensitiveLimiter, async (req, res, next) => {
     }
 
     const sql = `
-      SELECT id, email, username, first_name, last_name, password_hash, email_verified, created_at
-      FROM users
-      WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)
+      SELECT
+        u.id,
+        u.email,
+        u.username,
+        u.first_name,
+        u.last_name,
+        u.password_hash,
+        u.email_verified,
+        u.created_at,
+        p.gender,
+        p.birth_date,
+        p.city
+      FROM users u
+      LEFT JOIN profiles p ON p.user_id = u.id
+      WHERE LOWER(u.username) = LOWER($1) OR LOWER(u.email) = LOWER($1)
       LIMIT 1
     `;
 
@@ -297,7 +359,9 @@ router.post("/auth/login", authSensitiveLimiter, async (req, res, next) => {
     // Check if email is verified
     if (!user.email_verified) {
       return res.status(403).json({ 
-        error: "Email not verified. Please check your email and click the verification link to complete registration." 
+        error: "Email not verified. Please check your email and click the verification link to complete registration.",
+        requires_email_verification: true,
+        email: user.email,
       });
     }
 
@@ -319,6 +383,7 @@ router.post("/auth/login", authSensitiveLimiter, async (req, res, next) => {
         first_name: user.first_name,
         last_name: user.last_name,
         email_verified: user.email_verified,
+        profile_completed: isProfileCompleted(user),
         created_at: user.created_at,
         realtime_token: createRealtimeToken(user.id),
       },
@@ -699,6 +764,8 @@ router.post("/auth/resend-verification-email", authSensitiveLimiter, async (req,
       // Don't reveal if email exists or not (security)
       return res.json({
         message: "If an account with this email exists, a verification link will be sent.",
+        email_delivery: { sent: false, reason: "unknown_account" },
+        dev_verify_url: null,
       });
     }
 
@@ -707,6 +774,8 @@ router.post("/auth/resend-verification-email", authSensitiveLimiter, async (req,
     if (user.email_verified) {
       return res.json({
         message: "Email is already verified.",
+        email_delivery: { sent: false, reason: "already_verified" },
+        dev_verify_url: null,
       });
     }
 
@@ -727,14 +796,33 @@ router.post("/auth/resend-verification-email", authSensitiveLimiter, async (req,
 
     // Send verification email
     const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+    let emailDelivery = { sent: false, reason: "unknown" };
     try {
-      await sendVerificationEmail(user.email, verificationToken, frontendBaseUrl);
+      const emailResult = await sendVerificationEmail(
+        user.email,
+        verificationToken,
+        frontendBaseUrl,
+      );
+      emailDelivery = {
+        sent: true,
+        message_id: emailResult.messageId,
+        preview_url: emailResult.previewUrl || null,
+      };
     } catch (emailError) {
-      console.error('Warning: Could not send verification email:', emailError);
+      console.error("Warning: Could not send verification email:", emailError);
+      emailDelivery = {
+        sent: false,
+        reason: emailError.message,
+      };
     }
 
     return res.json({
       message: "If an account with this email exists, a verification link will be sent.",
+      email_delivery: emailDelivery,
+      dev_verify_url:
+        process.env.NODE_ENV === "production"
+          ? null
+          : `${frontendBaseUrl}/verify-email?token=${verificationToken}`,
     });
   } catch (error) {
     return next(error);

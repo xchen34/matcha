@@ -175,6 +175,8 @@ function UserProfilePage({ currentUser }) {
           setLiked(Boolean(payload.relation.i_liked));
           setLikedByProfile(Boolean(payload.relation.liked_me));
           setIsMatch(Boolean(payload.relation.is_match));
+          setReportedFake(Boolean(payload.relation.reported_fake_by_me));
+          setBlockedUser(Boolean(payload.relation.blocked_by_you));
         }
       } catch {
         setError("Failed to load profile");
@@ -598,6 +600,17 @@ function UserProfilePage({ currentUser }) {
 
       {moderationMessage && (
         <p className="text-sm text-red-600">{moderationMessage}</p>
+      )}
+
+      {!isOwnProfile && reportedFake && (
+        <p className="text-sm text-amber-700">
+          You already reported this user as fake account.
+        </p>
+      )}
+      {!isOwnProfile && blockedUser && (
+        <p className="text-sm text-amber-700">
+          You already blocked this user.
+        </p>
       )}
 
       {likeError && <p className="text-sm text-red-600">{likeError}</p>}
