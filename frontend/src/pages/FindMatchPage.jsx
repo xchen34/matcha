@@ -1,7 +1,9 @@
 // Moved to pages/FindMatchPage.jsx
 import { useCallback, useEffect, useState } from "react";
+import Slider from "rc-slider";
+import "rc-slider/assets/index.css";
 import { Navigate } from "react-router-dom";
-import { FaFire, FaSearch, FaUserFriends, FaFilter, FaSort, FaMapMarkerAlt, FaTags, FaUser, FaStar, FaArrowDown, FaArrowUp } from "react-icons/fa";
+import { FaFire, FaCheck, FaRedo, FaSearch, FaUserFriends, FaFilter, FaSort, FaMapMarkerAlt, FaTag, FaUser, FaStar, FaArrowDown, FaArrowUp } from "react-icons/fa";
 import UserCard from "../components/UserCard.jsx";
 import { buildApiHeaders } from "../utils.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
@@ -23,10 +25,10 @@ function FindMatchPage({ currentUser }) {
   const [cityConfirmed, setCityConfirmed] = useState(false);
   const [draftFilters, setDraftFilters] = useState({
     username: "",
-    min_age: "",
-    max_age: "",
-    min_fame: "",
-    max_fame: "",
+    min_age: 18,
+    max_age: 150,
+    min_fame: 0,
+    max_fame: 100,
     city: "",
     tags: [],
     sort_by: "",
@@ -318,21 +320,7 @@ function FindMatchPage({ currentUser }) {
       return;
     }
 
-    if (name === "min_age" || name === "max_age") {
-      // Allow any valid number input, validation happens on apply
-      if (value === "") {
-        setDraftFilters((prev) => ({ ...prev, [name]: "" }));
-        return;
-      }
-      const parsed = Number(value);
-      if (!Number.isFinite(parsed)) return;
-      const normalized = Math.trunc(parsed);
-      setDraftFilters((prev) => ({ ...prev, [name]: String(normalized) }));
-      return;
-    }
-
     if (name === "min_fame" || name === "max_fame") {
-      // Allow any valid number input, validation happens on apply
       if (value === "") {
         setDraftFilters((prev) => ({ ...prev, [name]: "" }));
         return;
@@ -344,6 +332,16 @@ function FindMatchPage({ currentUser }) {
     }
 
     setDraftFilters((prev) => ({ ...prev, [name]: value }));
+  }
+
+  // Handler for double slider (age)
+  function handleAgeSliderChange([min, max]) {
+    setDraftFilters((prev) => ({ ...prev, min_age: min, max_age: max }));
+  }
+
+  // Handler for double slider (fame)
+  function handleFameSliderChange([min, max]) {
+    setDraftFilters((prev) => ({ ...prev, min_fame: min, max_fame: max }));
   }
 
   function toggleTag(tagName) {
@@ -478,40 +476,55 @@ function FindMatchPage({ currentUser }) {
 
   return (
     <section className={cardClass}>
-      <div className="space-y-1">
-        <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-900">
-          <FaUserFriends size={22} aria-hidden="true" />
-          <span>Find your match</span>
-        </h2>
-        <p className="text-sm text-slate-500">
-          Suggested results are ranked intelligently by compatibility,
-          proximity, shared tags, and fame rating.
-        </p>
-      </div>
+      <div className="flex flex-col gap-1 mb-12">
 
-      <div className="space-y-3">
-        <div className="inline-flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-brand-deep text-white shadow-md shadow-orange-200/60">
-            <FaFire size={22} aria-hidden="true" />
-          </div>
-          <div className="leading-tight">
-            <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-              <FaStar size={11} className="text-amber-400" aria-hidden="true" />
-              <span>Fame note</span>
+        <div className="flex items-start justify-between gap-4">
+
+          {/* LEFT */}
+          <div className="space-y-1">
+            <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-900">
+              <FaUserFriends size={22} aria-hidden="true" />
+              <span>Find your match</span>
+            </h2>
+
+            <p className="text-sm text-slate-500">
+              Suggested results are ranked intelligently by compatibility,
+              proximity, shared tags, and fame rating.
             </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{fameRating}</p>
-            <p className="text-xs text-slate-500">hot score (recent activity)</p>
+
+            {!canLikeProfiles && (
+              <p className="text-[11px] text-amber-700 leading-snug max-w-md">
+                Add a primary profile photo in your profile to enable likes.
+              </p>
+            )}
           </div>
+
+          {/* RIGHT */}
+          <div className="shrink-0">
+            <div className="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 to-brand-deep text-white shadow-md shadow-orange-200/60">
+                <FaFire size={16} aria-hidden="true" />
+              </div>
+
+              <div className="leading-tight">
+                <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <span>My fame</span>
+                </p>
+
+                <p className="text-lg font-bold text-slate-900 leading-none">
+                  {fameRating}
+                </p>
+              </div>
+
+            </div>
+          </div>
+
         </div>
-        {!canLikeProfiles && (
-          <p className="text-xs text-amber-700">
-            Add a primary profile photo in your profile to enable likes.
-          </p>
-        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-4">
+        <div className="relative flex flex-col gap-1 sm:col-span-2 lg:col-span-2">
           <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
             <FaSearch size={12} aria-hidden="true" />
             <span>Search username</span>
@@ -525,106 +538,87 @@ function FindMatchPage({ currentUser }) {
             placeholder="Search by username"
           />
         </div>
-        <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-2 relative">
+        <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-2">
           <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
             <FaMapMarkerAlt size={12} aria-hidden="true" />
             <span>City</span>
           </label>
-          <input
-            type="text"
-            name="city"
-            value={draftFilters.city}
-            onChange={handleFilterChange}
-            className={`rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand ${cityConfirmed ? "border-green-500" : "border-slate-200"}`}
-            placeholder="Type and choose a city"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              name="city"
+              value={draftFilters.city}
+              onChange={handleFilterChange}
+              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand ${cityConfirmed ? "border-green-500" : "border-slate-200"}`}
+              placeholder="Type and choose a city"
+            />
+            {!cityConfirmed && citySuggestions.length > 0 ? (
+              <div className="absolute top-full z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+                {citySuggestions.map((item) => (
+                  <button
+                    key={`${item.city}-${item.label}`}
+                    type="button"
+                    onClick={() => applyCitySuggestion(item.city)}
+                    className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-100"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
           {cityConfirmed && draftFilters.city.trim() ? (
             <p className="text-[11px] text-green-700">City validated.</p>
           ) : null}
-          {!cityConfirmed && citySuggestions.length > 0 ? (
-            <div className="absolute top-full z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
-              {citySuggestions.map((item) => (
-                <button
-                  key={`${item.city}-${item.label}`}
-                  type="button"
-                  onClick={() => applyCitySuggestion(item.city)}
-                  className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-100"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+        <div className="flex flex-col gap-1 col-span-2">
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1">
             <FaUser size={12} aria-hidden="true" />
-            <span>Min age</span>
+            <span>Age</span>
+            <span className="ml-2 font-bold text-brand">{draftFilters.min_age} - {draftFilters.max_age}</span>
           </label>
-          <input
-            type="number"
-            name="min_age"
-            value={draftFilters.min_age}
-            onChange={handleFilterChange}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
-            placeholder="e.g. 18"
-            min="18"
-            max="150"
-            step="1"
-          />
+          <div className="px-2">
+            <Slider
+              range
+              min={18}
+              max={150}
+              allowCross={false}
+              value={[draftFilters.min_age, draftFilters.max_age]}
+              onChange={handleAgeSliderChange}
+              trackStyle={[{ backgroundColor: '#f59e42' }]}
+              handleStyle={[
+                { borderColor: '#f59e42', backgroundColor: '#fff' },
+                { borderColor: '#f59e42', backgroundColor: '#fff' },
+              ]}
+              railStyle={{ backgroundColor: '#e5e7eb' }}
+            />
+          </div>
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            <FaUser size={12} aria-hidden="true" />
-            <span>Max age</span>
-          </label>
-          <input
-            type="number"
-            name="max_age"
-            value={draftFilters.max_age}
-            onChange={handleFilterChange}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
-            placeholder="e.g. 40"
-            min="18"
-            max="150"
-            step="1"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+
+        <div className="flex flex-col gap-1 col-span-2">
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1">
             <FaStar size={12} aria-hidden="true" />
-            <span>Min fame</span>
+            <span>Popularity</span>
+            <span className="ml-2 font-bold text-brand">{draftFilters.min_fame} - {draftFilters.max_fame}</span>
           </label>
-          <input
-            type="number"
-            step="1"
-            min="0"
-            max="100"
-            name="min_fame"
-            value={draftFilters.min_fame}
-            onChange={handleFilterChange}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
-            placeholder="0 - 100"
-          />
+          <div className="px-2">
+            <Slider
+              range
+              min={0}
+              max={100}
+              allowCross={false}
+              value={[draftFilters.min_fame, draftFilters.max_fame]}
+              onChange={handleFameSliderChange}
+              trackStyle={[{ backgroundColor: '#f59e42' }]}
+              handleStyle={[
+                { borderColor: '#f59e42', backgroundColor: '#fff' },
+                { borderColor: '#f59e42', backgroundColor: '#fff' },
+              ]}
+              railStyle={{ backgroundColor: '#e5e7eb' }}
+              />
+          </div>
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            <FaStar size={12} aria-hidden="true" />
-            <span>Max fame</span>
-          </label>
-          <input
-            type="number"
-            step="1"
-            min="0"
-            max="100"
-            name="max_fame"
-            value={draftFilters.max_fame}
-            onChange={handleFilterChange}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
-            placeholder="0 - 100"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 col-span-2">
           <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
             <FaSort size={12} aria-hidden="true" />
             <span>Sort by</span>
@@ -642,7 +636,7 @@ function FindMatchPage({ currentUser }) {
             <option value="tags">Tags</option>
           </select>
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 col-span-2">
           <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
             <FaArrowDown size={12} aria-hidden="true" />
             <span>Order</span>
@@ -658,7 +652,10 @@ function FindMatchPage({ currentUser }) {
           </select>
         </div>
         <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-4">
-          <label className="text-xs font-semibold text-slate-500">Interest tags</label>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <FaTag size={12} aria-hidden="true" />
+            <span>Interest tags</span>
+          </label>
           <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-2">
             {tagOptions.length === 0 ? (
               <span className="text-xs text-slate-500">No tags available.</span>
@@ -687,14 +684,20 @@ function FindMatchPage({ currentUser }) {
           onClick={applyFilters}
           className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-4 py-2 text-sm font-semibold text-white shadow-md shadow-orange-200 hover:-translate-y-0.5 transition"
         >
-          Apply filters
+          <FaCheck size={12}  aria-hidden="true" />
+          <span className="ml-1">
+            Apply filters
+          </span>
         </button>
         <button
           type="button"
           onClick={resetFilters}
           className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition"
         >
-          Reset
+          <FaRedo size={12}  aria-hidden="true" />
+          <span className="ml-1">
+            Reset
+          </span>
         </button>
       </div>
 
@@ -704,7 +707,7 @@ function FindMatchPage({ currentUser }) {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 mt-12">
         {(!Array.isArray(users) || users.length === 0) && <p>No users found.</p>}
         {Array.isArray(users) &&
           users.map((user) => (

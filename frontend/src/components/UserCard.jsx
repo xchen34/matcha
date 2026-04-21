@@ -12,8 +12,13 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const profilePhotoUrl = useMemo(
-    () => user?.primary_photo_url || user?.photo_url || null,
-    [user?.primary_photo_url, user?.photo_url],
+    () =>
+      user?.profile_photo_url ||
+      user?.avatarUrl ||
+      user?.primary_photo_url ||
+      user?.photo_url ||
+      null,
+    [user?.profile_photo_url, user?.avatarUrl, user?.primary_photo_url, user?.photo_url],
   );
 
   useEffect(() => {
