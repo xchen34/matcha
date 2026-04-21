@@ -39,10 +39,29 @@ if [[ "$MODE" != "dev" && "$MODE" != "prod" ]]; then
   exit 1
 fi
 
-if [[ ! -x "$(command -v nginx || true)" ]]; then
+NGINX_BIN="$(command -v nginx || true)"
+BREW_BIN="$(command -v brew || true)"
+
+install_nginx_if_needed() {
+  if [[ -n "$NGINX_BIN" ]]; then
+    return 0
+  fi
+
+  if [[ "$(uname -s)" == "Darwin" && -n "$BREW_BIN" ]]; then
+    echo "nginx not found, installing via Homebrew..."
+    brew install nginx
+    NGINX_BIN="$(command -v nginx || true)"
+    return 0
+  fi
+
   echo "nginx is not installed or not in PATH"
+  echo "Install it first, then re-run this script."
+  echo "macOS: brew install nginx"
+  echo "Ubuntu/Debian: sudo apt-get install nginx"
   exit 1
-fi
+}
+
+install_nginx_if_needed
 
 if [[ "$MODE" == "dev" ]]; then
   SRC_CONF="$REPO_ROOT/nginx/matcha.dev.conf"
@@ -56,12 +75,14 @@ if [[ ! -f "$SRC_CONF" ]]; then
 fi
 
 # Homebrew nginx (macOS)
-if [[ -d "/opt/homebrew/etc/nginx/servers" ]]; then
-  TARGET_DIR="/opt/homebrew/etc/nginx/servers"
+if [[ "$(uname -s)" == "Darwin" && -n "$BREW_BIN" ]]; then
+  BREW_PREFIX="$(brew --prefix)"
+  TARGET_DIR="$BREW_PREFIX/etc/nginx/servers"
+  mkdir -p "$TARGET_DIR"
   TARGET_CONF="$TARGET_DIR/matcha.conf"
   ln -sf "$SRC_CONF" "$TARGET_CONF"
-  nginx -t
-  nginx -s reload || true
+  "$NGINX_BIN" -t
+  "$NGINX_BIN" -s reload || true
   echo "Linked $SRC_CONF -> $TARGET_CONF"
   echo "Done. Active mode: $MODE"
   exit 0
@@ -80,8 +101,8 @@ if [[ -d "/etc/nginx/sites-available" && -d "/etc/nginx/sites-enabled" ]]; then
 
   cp "$SRC_CONF" "$TARGET_AVAILABLE"
   ln -sf "$TARGET_AVAILABLE" "$TARGET_ENABLED"
-  nginx -t
-  systemctl reload nginx || nginx -s reload || true
+  "$NGINX_BIN" -t
+  systemctl reload nginx || "$NGINX_BIN" -s reload || true
   echo "Installed $TARGET_AVAILABLE and enabled site"
   echo "Done. Active mode: $MODE"
   exit 0

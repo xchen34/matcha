@@ -163,3 +163,4 @@ Notes:
 - `prod` mode uses `nginx/matcha.conf` and serves `frontend/dist`.
 - On macOS Homebrew, the script links into `/opt/homebrew/etc/nginx/servers/matcha.conf`.
 - On Linux with `/etc/nginx/sites-*`, run the script with `sudo`.
+- If nginx is missing on macOS and Homebrew exists, the script can install nginx automatically.
