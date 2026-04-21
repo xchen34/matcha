@@ -310,97 +310,134 @@ function PopularityListPage({ currentUser, mode = "views" }) {
   if (error) return <p className="text-sm text-red-600">{error}</p>;
 
   return (
-    <section className={cardClass}>
+  <section className={cardClass}>
+    
+    {/* ✅ HEADER FLEX */}
+    <div className="flex items-start justify-between gap-4">
+
+      {/* LEFT: title + subtitle */}
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
-          {mode === "views" && <FaEye className="inline text-slate-900" size={22} title="Viewed you" />}
-          {mode === "likes" && <FaHeart className="inline text-slate-900" size={20} title="Liked you" />}
+          {mode === "views" && <FaEye size={22} />}
+          {mode === "likes" && <FaHeart size={20} />}
           {mode === "matches" && (
-            <span className="relative inline-flex h-6 w-8 items-center justify-center text-slate-900 align-middle">
+            <span className="relative inline-flex h-6 w-8 items-center justify-center">
               <FaHeart className="absolute left-0" size={18} />
               <FaHeart className="absolute right-0" size={18} />
             </span>
           )}
           {config.title}
         </h2>
-        <p className="text-sm text-slate-500">{config.subtitle}</p>
-      </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-slate-900 p-4 text-white shadow-sm w-full">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
-          {mode === "views" && "My total views"}
-          {mode === "likes" && "My total likes"}
-          {mode === "matches" && "My total matches"}
-        </p>
-        <p className="mt-2 text-3xl font-bold">
-          {mode === "views" && counts.views}
-          {mode === "likes" && counts.likes}
-          {mode === "matches" && counts.matches}
+        <p className="text-sm text-slate-500">
+          {config.subtitle}
         </p>
       </div>
 
-      <div className="space-y-2">
-        {displayedUsers.length === 0 && (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-slate-600">
-            {config.emptyText}
+      {/* RIGHT: compact stats */}
+      <div className="shrink-0">
+        <div className="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+
+          {/* icon */}
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 to-brand-deep text-white shadow-md shadow-orange-200/60">
+            {mode === "views" && <FaEye size={14} />}
+            {mode === "likes" && <FaHeart size={14} />}
+            {mode === "matches" && <FaHeart size={14} />}
           </div>
-        )}
 
-        {mode === "views" && displayedUsers.length > ROLLING_THRESHOLD ? (
-          <div className="popularity-rolling-shell">
-            <div className="popularity-rolling-track">
-              {[...displayedUsers, ...displayedUsers].map((user, index) => (
-                <div
-                  key={`${user.id}-${index}`}
-                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <p className="inline-flex items-center gap-1 font-semibold text-slate-900">
-                        @{sanitizeText(user.username)}
-                        {unreadUserSet.has(String(user.id)) && (
-                          <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New notification" />
-                        )}
-                      </p>
-                      <p className="text-xs text-slate-500">{config.helperText}</p>
-                      <p className="text-[11px] text-slate-400">
-                        {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
-                      </p>
-                    </div>
+          {/* text */}
+          <div className="leading-tight">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              {mode === "views" && "Total views"}
+              {mode === "likes" && "Total likes"}
+              {mode === "matches" && "Total matches"}
+            </p>
+
+            <p className="text-lg font-bold text-slate-900 leading-none">
+              {mode === "views" && counts.views}
+              {mode === "likes" && counts.likes}
+              {mode === "matches" && counts.matches}
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    {/* ✅ LIST */}
+    <div className="space-y-2 mt-3">
+      {displayedUsers.length === 0 && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-slate-600">
+          {config.emptyText}
+        </div>
+      )}
+
+      {mode === "views" && displayedUsers.length > ROLLING_THRESHOLD ? (
+        <div className="popularity-rolling-shell">
+          <div className="popularity-rolling-track">
+            {[...displayedUsers, ...displayedUsers].map((user, index) => (
+              <div
+                key={`${user.id}-${index}`}
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
+              >
+                <div className="flex items-center gap-3">
+                  <ChatAvatar
+                    name={user.username}
+                    photoUrl={user.primary_photo_url || user.photo_url || user.profile_photo_url || user.avatarUrl }
+                    sizeClass="h-10 w-10"
+                  />
+                  <div>
+                    <p className="inline-flex items-center gap-2 font-semibold text-slate-900">
+                      @{sanitizeText(user.username)}
+                      {unreadUserSet.has(String(user.id)) && (
+                        <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold uppercase">NEW</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-slate-500">{config.helperText}</p>
+                    <p className="text-[11px] text-slate-400">
+                      {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
+                    </p>
                   </div>
-                  {renderActionButtons(user)}
                 </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          displayedUsers.map((user) => (
-            <div
-              key={`${user.id}-${user.created_at ?? user.matched_at ?? mode}`}
-              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
-            >
-              <div className="flex items-center gap-3">
-                {/* Avatar retiré */}
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    @{sanitizeText(user.username)}
-                    {unreadUserSet.has(String(user.id)) && (
-                      <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New notification" />
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-500">{config.helperText}</p>
-                  <p className="text-[11px] text-slate-400">
-                    {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
-                  </p>
-                </div>
+                {renderActionButtons(user)}
               </div>
-              {renderActionButtons(user)}
+            ))}
+          </div>
+        </div>
+      ) : (
+        displayedUsers.map((user) => (
+          <div
+            key={`${user.id}-${user.created_at ?? user.matched_at ?? mode}`}
+            className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
+          >
+            <div className="flex items-center gap-3">
+              <ChatAvatar
+                name={user.username}
+                photoUrl={user.primary_photo_url || user.photo_url || user.profile_photo_url || user.avatarUrl}
+                sizeClass="h-10 w-10"
+              />
+              <div>
+                <p className="inline-flex items-center gap-2 font-semibold text-slate-900">
+                  @{sanitizeText(user.username)}
+                  {unreadUserSet.has(String(user.id)) && (
+                    <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold uppercase">NEW</span>
+                  )}
+                </p>
+                <p className="text-xs text-slate-500">{config.helperText}</p>
+                <p className="text-[11px] text-slate-400">
+                  {formatDateTime(mode === "matches" ? user.matched_at : user.created_at)}
+                </p>
+              </div>
             </div>
-          ))
-        )}
-      </div>
-    </section>
-  );
+            {renderActionButtons(user)}
+          </div>
+        ))
+      )}
+    </div>
+
+  </section>
+);
 }
 
 export default PopularityListPage;
