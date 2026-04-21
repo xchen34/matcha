@@ -550,6 +550,15 @@ router.get("/profile/validate-location", async (req, res, next) => {
       ? Math.max(1, Math.min(rawLimit, 20))
       : 12;
 
+    // console.info("[profile/validate-location] request", {
+    //   userId: currentUserId,
+    //   city,
+    //   neighborhood,
+    //   latitude,
+    //   longitude,
+    //   limit,
+    // });
+
     if (!city && !neighborhood && (latitude === null || longitude === null)) {
       return res.status(400).json({
         error:
@@ -622,6 +631,15 @@ router.get("/profile/validate-location", async (req, res, next) => {
 
     const isValid = suggestions.length > 0 && cityExists && neighborhoodExists;
 
+    // console.info("[profile/validate-location] result", {
+    //   city,
+    //   neighborhood,
+    //   suggestionsCount: suggestions.length,
+    //   cityExists,
+    //   neighborhoodExists,
+    //   isValid,
+    // });
+
     return res.json({
       validation: {
         is_valid: isValid,
@@ -673,6 +691,10 @@ router.get("/profile/city-suggestions", async (req, res, next) => {
       ? req.query.query.trim()
       : "";
     if (query.length < 2) {
+      // console.info("[profile/city-suggestions] short query", {
+      //   userId: currentUserId,
+      //   query,
+      // });
       return res.json({ query, suggestions: [] });
     }
 
@@ -748,6 +770,16 @@ router.get("/profile/city-suggestions", async (req, res, next) => {
         city: item.city,
         display_name: item.display_name,
       }));
+
+    console.info("[profile/city-suggestions] result", {
+      userId: currentUserId,
+      query,
+      searchLimit,
+      rawResults: results.length,
+      primaryRawResults: primaryResults.length,
+      suggestionsCount: suggestions.length,
+      sample: suggestions.slice(0, 3).map((item) => item.city),
+    });
 
     return res.json({ query, suggestions });
   } catch (error) {
