@@ -29,6 +29,7 @@ import UserProfilePage from "./pages/UserProfilePage";
 import MessagesPage from "./pages/MessagesPage.jsx";
 import VerifyEmailPage from "./pages/VerifyEmailPage.jsx";
 import ResendVerificationPage from "./pages/ResendVerificationPage.jsx";
+import VerificationSentPage from "./pages/VerificationSentPage.jsx";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
@@ -59,7 +60,7 @@ const primaryButtonClass =
 const secondaryButtonClass =
   "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition";
 
-function TopNav({ currentUser }) {
+function TopNav({ currentUser, profileLocked }) {
   const location = useLocation();
   const { attentionBadges = {}, clearAttentionMode } = useNotifications();
   const previousPathRef = useRef(location.pathname);
@@ -119,7 +120,17 @@ function TopNav({ currentUser }) {
           </span>
         </NavLink>
       )}
-      {currentUser && (
+      {currentUser && profileLocked && (
+        <NavLink to="/profile" className={({ isActive }) =>
+          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+        }>
+          <span className="inline-flex items-center gap-1.5">
+            <FiUser size={15} aria-hidden="true" />
+            <span>Complete Profile</span>
+          </span>
+        </NavLink>
+      )}
+      {currentUser && !profileLocked && (
         <>
           <NavLink to="/find-match" className={({ isActive }) =>
             `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
@@ -155,6 +166,16 @@ function TopNav({ currentUser }) {
       )}
     </nav>
   );
+}
+
+function ProtectedRoute({ currentUser, requireCompletedProfile = true, children }) {
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  if (requireCompletedProfile && !currentUser.profile_completed) {
+    return <Navigate to="/profile" replace />;
+  }
+  return children;
 }
 
 function bytesToKB(value) {
@@ -210,6 +231,8 @@ function RegisterPage() {
   const [form, setForm] = useState({
     email: "",
     username: "",
+    first_name: "",
+    last_name: "",
     birth_date: "",
     password: "",
   });
@@ -218,6 +241,7 @@ function RegisterPage() {
   const [devVerifyUrl, setDevVerifyUrl] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const todayIso = new Date().toISOString().slice(0, 10);
+  const normalizedEmail = (form.email || "").trim();
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -260,6 +284,16 @@ function RegisterPage() {
           `Success: account created, but verification email could not be sent (${delivery?.reason || "unknown error"}). Use Resend Verification later.`,
         );
       }
+
+      setTimeout(() => {
+        navigate("/verification-sent", {
+          state: {
+            prefillEmail: normalizedEmail,
+            previewUrl: delivery?.preview_url || null,
+            devVerifyUrl: data?.dev_verify_url || null,
+          },
+        });
+      }, 500);
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     }
@@ -297,8 +331,37 @@ function RegisterPage() {
             value={form.username}
             onChange={handleChange}
             className={inputClass}
+            pattern="[A-Za-z0-9_]{3,50}"
+            title="3-50 characters: letters, numbers, underscore"
+            required
           />
-          <p className="text-xs text-slate-500">This is the public name visible to other users.</p>
+          <p className="text-xs text-slate-500">3-50 chars, letters/numbers/underscore only.</p>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            First name
+          </label>
+          <input
+            name="first_name"
+            placeholder="Your first name"
+            value={form.first_name}
+            onChange={handleChange}
+            className={inputClass}
+            required
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Last name
+          </label>
+          <input
+            name="last_name"
+            placeholder="Your last name"
+            value={form.last_name}
+            onChange={handleChange}
+            className={inputClass}
+            required
+          />
         </div>
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
@@ -372,13 +435,31 @@ function RegisterPage() {
         </p>
       )}
       <div className="pt-2">
-        <button
-          type="button"
-          onClick={() => navigate("/login")}
-          className={secondaryButtonClass}
-        >
-          Go to login
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/resend-verification", {
+                state: {
+                  prefillEmail: normalizedEmail,
+                  previewUrl: previewUrl || null,
+                  devVerifyUrl: devVerifyUrl || null,
+                  from: "register",
+                },
+              })
+            }
+            className={secondaryButtonClass}
+          >
+            Email sent page
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className={secondaryButtonClass}
+          >
+            Go to login
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -416,6 +497,21 @@ function LoginPage({ onLogin }) {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 403 && data?.requires_email_verification) {
+          const fallbackEmail =
+            (typeof data?.email === "string" && data.email.trim()) ||
+            ((form.username || "").includes("@") ? form.username.trim() : "");
+          setMessage("Email not verified. Redirecting to verification help...");
+          setTimeout(() => {
+            navigate("/resend-verification", {
+              state: {
+                prefillEmail: fallbackEmail,
+                from: "login-blocked",
+              },
+            });
+          }, 400);
+          return;
+        }
         setMessage(`Error: ${data.error || "Login failed"}`);
         return;
       }
@@ -423,7 +519,8 @@ function LoginPage({ onLogin }) {
       persistUser(data.user);
       onLogin(data.user);
       setMessage(`Success: welcome ${data.user.username}`);
-      setTimeout(() => navigate("/find-match"), 400);
+      const nextPath = data?.user?.profile_completed ? "/find-match" : "/profile";
+      setTimeout(() => navigate(nextPath), 400);
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     }
@@ -489,6 +586,7 @@ function LoginPage({ onLogin }) {
 }
 
 function ProfilePage({ currentUser, onProfileUpdate }) {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     username: "",
     first_name: "",
@@ -571,6 +669,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     !validatingLocation &&
     isLocationAccepted &&
     hasRequiredFields;
+  const canAttemptSaveProfile = !loading && !validatingLocation;
   const isCitySelected =
     (form.city || "").trim().length > 0 &&
     (isCityConfirmed ||
@@ -757,6 +856,14 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
         photos: Array.isArray(data.profile.photos) ? data.profile.photos : [],
       });
       setIsCityConfirmed(Boolean((data.profile.city || "").trim()));
+      if (data.user && typeof onProfileUpdate === "function") {
+        const nextUser = {
+          ...(currentUser || {}),
+          ...data.user,
+        };
+        writeStoredUser(nextUser);
+        onProfileUpdate(nextUser);
+      }
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -1342,6 +1449,13 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   async function handleSubmit(event) {
     event.preventDefault();
 
+    if (!hasRequiredFields) {
+      setMessage(
+        `Error: required fields missing (${missingRequiredFields.join(", ")}).`,
+      );
+      return;
+    }
+
     if (!hasGender) {
       setMessage("Error: please select your gender.");
       return;
@@ -1448,6 +1562,11 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       }
 
       setMessage("Success: profile updated");
+      if (data?.user?.profile_completed) {
+        setTimeout(() => {
+          navigate("/find-match");
+        }, 400);
+      }
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     }
@@ -1945,7 +2064,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <button type="submit" className={primaryButtonClass} disabled={!canSaveProfile}>
+            <button type="submit" className={primaryButtonClass} disabled={!canAttemptSaveProfile}>
               Save Profile
             </button>
             <button
@@ -2006,14 +2125,15 @@ function App() {
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
   const [currentUser, setCurrentUser] = useState(readStoredUser());
+  const isProfileLocked = Boolean(currentUser && !currentUser.profile_completed);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsMenuRef = useRef(null);
 
   useEffect(() => {
     if (currentUser && location.pathname === "/login") {
-      navigate("/find-match", { replace: true });
+      navigate(isProfileLocked ? "/profile" : "/find-match", { replace: true });
     }
-  }, [currentUser, location.pathname, navigate]);
+  }, [currentUser, isProfileLocked, location.pathname, navigate]);
 
   useEffect(() => {
     if (!isSettingsOpen) {
@@ -2284,16 +2404,17 @@ function App() {
           </p>
         </header>
 
-        <TopNav currentUser={currentUser} />
+        <TopNav currentUser={currentUser} profileLocked={isProfileLocked} />
 
       <Routes>
         <Route
           path="/"
-          element={<Navigate to={currentUser ? "/find-match" : "/login"} replace />}
+          element={<Navigate to={currentUser ? (isProfileLocked ? "/profile" : "/find-match") : "/login"} replace />}
         />
         <Route path="/login" element={<LoginPage onLogin={setCurrentUser} />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/verification-sent" element={<VerificationSentPage />} />
         <Route path="/resend-verification" element={<ResendVerificationPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -2313,7 +2434,11 @@ function App() {
         />
         <Route
           path="/find-match"
-          element={<FindMatchPage currentUser={currentUser} />}
+          element={
+            <ProtectedRoute currentUser={currentUser}>
+              <FindMatchPage currentUser={currentUser} />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/popularity"
@@ -2321,43 +2446,59 @@ function App() {
         />
         <Route
           path="/popularity/views"
-          element={<PopularityListPage currentUser={currentUser} mode="views" />}
+          element={
+            <ProtectedRoute currentUser={currentUser}>
+              <PopularityListPage currentUser={currentUser} mode="views" />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/popularity/likes"
-          element={<PopularityListPage currentUser={currentUser} mode="likes" />}
+          element={
+            <ProtectedRoute currentUser={currentUser}>
+              <PopularityListPage currentUser={currentUser} mode="likes" />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/popularity/matches"
-          element={<PopularityListPage currentUser={currentUser} mode="matches" />}
+          element={
+            <ProtectedRoute currentUser={currentUser}>
+              <PopularityListPage currentUser={currentUser} mode="matches" />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/blocked-users"
-          element={<BlockedUsersPage currentUser={currentUser} />}
+          element={
+            <ProtectedRoute currentUser={currentUser}>
+              <BlockedUsersPage currentUser={currentUser} />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/messages"
           element={
-            currentUser ? (
+            <ProtectedRoute currentUser={currentUser}>
               <MessagesPage currentUser={currentUser} />
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            </ProtectedRoute>
           }
         />
         <Route
           path="/messages/:conversationId"
           element={
-            currentUser ? (
+            <ProtectedRoute currentUser={currentUser}>
               <MessagesPage currentUser={currentUser} />
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            </ProtectedRoute>
           }
         />
         <Route
           path="/users/:id"
-          element={<UserProfilePage currentUser={currentUser} />}
+          element={
+            <ProtectedRoute currentUser={currentUser}>
+              <UserProfilePage currentUser={currentUser} />
+            </ProtectedRoute>
+          }
         />
       </Routes>
     </main>

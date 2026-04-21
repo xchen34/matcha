@@ -39,6 +39,8 @@ export default function ChatListPage({ currentUser, embedded = false }) {
   const lastMarkedConversationRef = useRef(null);
   const knownConversationIdsRef = useRef(new Set());
   const markId = Number(location.state?.markAsReadConversationId) || null;
+  const removedConversationId =
+    Number(location.state?.removedConversationId) || null;
   const shouldScrollList = conversations.length >= 8;
 
   const loadConversations = useCallback(async () => {
@@ -166,17 +168,31 @@ export default function ChatListPage({ currentUser, embedded = false }) {
   useEffect(() => {
     if (!currentUser?.id) return undefined;
 
-    const refreshAfterDelete = () => {
-      void loadConversations();
-    };
-
     const offMessageDeleted = onRealtimeEvent(
       REALTIME_EVENTS.CHAT_MESSAGE_DELETED,
-      refreshAfterDelete,
+      (payload) => {
+        const conversationId = Number(payload?.conversation_id);
+        const eventUserId = Number(payload?.user_id);
+        if (!Number.isInteger(conversationId) || conversationId <= 0) return;
+        if (Number.isInteger(eventUserId) && Number(eventUserId) !== Number(currentUser.id)) {
+          return;
+        }
+        void loadConversations();
+      },
     );
     const offConversationDeleted = onRealtimeEvent(
       REALTIME_EVENTS.CHAT_CONVERSATION_DELETED,
-      refreshAfterDelete,
+      (payload) => {
+        const conversationId = Number(payload?.conversation_id);
+        const eventUserId = Number(payload?.user_id);
+        if (!Number.isInteger(conversationId) || conversationId <= 0) return;
+        if (Number.isInteger(eventUserId) && Number(eventUserId) !== Number(currentUser.id)) {
+          return;
+        }
+        setConversations((prev) =>
+          prev.filter((conv) => Number(conv.conversation_id) !== conversationId),
+        );
+      },
     );
 
     return () => {
@@ -184,6 +200,16 @@ export default function ChatListPage({ currentUser, embedded = false }) {
       offConversationDeleted();
     };
   }, [currentUser?.id, loadConversations]);
+
+  useEffect(() => {
+    if (!removedConversationId) return;
+    setConversations((prev) =>
+      prev.filter(
+        (conv) => Number(conv.conversation_id) !== Number(removedConversationId),
+      ),
+    );
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, navigate, removedConversationId]);
 
   useEffect(() => {
     if (!currentUser?.id) return undefined;

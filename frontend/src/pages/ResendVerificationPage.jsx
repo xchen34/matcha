@@ -1,23 +1,38 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 export default function ResendVerificationPage() {
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const initialEmailFromState =
+    typeof location.state?.prefillEmail === "string"
+      ? location.state.prefillEmail.trim()
+      : "";
+  const initialEmailFromQuery = (searchParams.get("email") || "").trim();
+  const [email, setEmail] = useState(initialEmailFromState || initialEmailFromQuery);
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState(null); // 'success', 'error', null
-  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState(null); // "success", "error", null
+  const [message, setMessage] = useState("");
+  const [previewUrl, setPreviewUrl] = useState(
+    location.state?.previewUrl || "",
+  );
+  const [devVerifyUrl, setDevVerifyUrl] = useState(
+    location.state?.devVerifyUrl || "",
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setStatus(null);
-    setMessage('');
+    setMessage("");
+    setPreviewUrl("");
+    setDevVerifyUrl("");
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/resend-verification-email', {
-        method: 'POST',
+      const response = await fetch("/api/auth/resend-verification-email", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email: email.trim() }),
       });
@@ -25,17 +40,22 @@ export default function ResendVerificationPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setStatus('success');
+        setStatus("success");
         setMessage(data.message);
-        setEmail('');
+        if (data?.email_delivery?.preview_url) {
+          setPreviewUrl(data.email_delivery.preview_url);
+        }
+        if (data?.dev_verify_url) {
+          setDevVerifyUrl(data.dev_verify_url);
+        }
       } else {
-        setStatus('error');
-        setMessage(data.error || 'Failed to resend verification email');
+        setStatus("error");
+        setMessage(data.error || "Failed to resend verification email");
       }
     } catch (error) {
-      setStatus('error');
-      setMessage('An error occurred. Please try again later.');
-      console.error('Resend error:', error);
+      setStatus("error");
+      setMessage("An error occurred. Please try again later.");
+      console.error("Resend error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -82,19 +102,50 @@ export default function ResendVerificationPage() {
             disabled={isLoading || !email}
             className="w-full bg-rose-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-rose-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Sending...' : 'Resend Verification Email'}
+            {isLoading ? "Sending..." : "Resend Verification Email"}
           </button>
         </form>
 
+        {(previewUrl || devVerifyUrl) && (
+          <div className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+            {previewUrl && (
+              <p>
+                Ethereal preview:{" "}
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-rose-600 underline"
+                >
+                  Open verification email
+                </a>
+              </p>
+            )}
+            {devVerifyUrl && (
+              <p>
+                Fallback verify link:{" "}
+                <a
+                  href={devVerifyUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-rose-600 underline"
+                >
+                  Verify directly in app
+                </a>
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="mt-6 text-center space-y-3 text-sm text-gray-600">
           <p>
-            Remember your password?{' '}
+            Remember your password?{" "}
             <Link to="/login" className="text-rose-500 hover:text-rose-600 font-semibold">
               Go to Login
             </Link>
           </p>
           <p>
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <Link to="/register" className="text-rose-500 hover:text-rose-600 font-semibold">
               Sign up
             </Link>
