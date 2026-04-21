@@ -64,15 +64,24 @@ router.get("/profile/likes", async (req, res, next) => {
 
     const result = await pool.query(
       `
-      SELECT id, username, email, created_at
+      SELECT id, username, email, primary_photo_url, created_at
       FROM (
         SELECT DISTINCT ON (u.id)
           u.id,
           u.username,
           u.email,
+          up.primary_photo_url,
           l.created_at
         FROM likes l
         JOIN users u ON u.id = l.liker_user_id
+        LEFT JOIN LATERAL (
+          SELECT data_url AS primary_photo_url
+          FROM user_photos
+          WHERE user_id = u.id
+            AND is_primary = TRUE
+          ORDER BY id DESC
+          LIMIT 1
+        ) up ON TRUE
         WHERE l.liked_user_id = $1
         ORDER BY u.id, l.created_at DESC
       ) latest_likes_per_user
@@ -86,6 +95,7 @@ router.get("/profile/likes", async (req, res, next) => {
         id: row.id,
         username: row.username,
         email: row.email,
+        primary_photo_url: row.primary_photo_url || null,
         created_at: row.created_at,
       })),
     });
@@ -104,15 +114,24 @@ router.get("/profile/views", async (req, res, next) => {
 
     const result = await pool.query(
       `
-      SELECT id, username, email, created_at
+      SELECT id, username, email, primary_photo_url, created_at
       FROM (
         SELECT DISTINCT ON (u.id)
           u.id,
           u.username,
           u.email,
+          up.primary_photo_url,
           v.created_at
         FROM profile_views v
         JOIN users u ON u.id = v.viewer_user_id
+        LEFT JOIN LATERAL (
+          SELECT data_url AS primary_photo_url
+          FROM user_photos
+          WHERE user_id = u.id
+            AND is_primary = TRUE
+          ORDER BY id DESC
+          LIMIT 1
+        ) up ON TRUE
         WHERE v.viewed_user_id = $1
         ORDER BY u.id, v.created_at DESC
       ) latest_views_per_user
@@ -126,6 +145,7 @@ router.get("/profile/views", async (req, res, next) => {
         id: row.id,
         username: row.username,
         email: row.email,
+        primary_photo_url: row.primary_photo_url || null,
         created_at: row.created_at,
       })),
     });
@@ -148,6 +168,7 @@ router.get("/profile/matches", async (req, res, next) => {
         u.id,
         u.username,
         u.email,
+        up.primary_photo_url,
         GREATEST(l_out.created_at, l_in.created_at) AS matched_at
       FROM users u
       JOIN likes l_out
@@ -156,6 +177,14 @@ router.get("/profile/matches", async (req, res, next) => {
       JOIN likes l_in
         ON l_in.liker_user_id = u.id
        AND l_in.liked_user_id = $1
+      LEFT JOIN LATERAL (
+        SELECT data_url AS primary_photo_url
+        FROM user_photos
+        WHERE user_id = u.id
+          AND is_primary = TRUE
+        ORDER BY id DESC
+        LIMIT 1
+      ) up ON TRUE
       WHERE EXISTS (
         SELECT 1
         FROM likes a
@@ -175,6 +204,7 @@ router.get("/profile/matches", async (req, res, next) => {
         id: row.id,
         username: row.username,
         email: row.email,
+        primary_photo_url: row.primary_photo_url || null,
         matched_at: row.matched_at,
       })),
     });

@@ -4,6 +4,7 @@ import { FaFire, FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
 import { buildApiHeaders } from "../utils.js";
 import { sanitizeText } from "../utils/xssEscape.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
+import ChatAvatar from "../chat/ChatAvatar.jsx";
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
@@ -190,9 +191,17 @@ function MyPopularityPage({ currentUser }) {
                 key={user.id}
                 className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 backdrop-blur"
               >
-                <div>
-                  <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>
-                  <p className="text-xs text-white/70">Viewed your profile</p>
+                <div className="flex items-center gap-3">
+                  <ChatAvatar
+                    name={user.username}
+                    photoUrl={user.primary_photo_url || user.photo_url || user.profile_photo_url || user.avatarUrl}
+                    isOnline={false}
+                    sizeClass="h-10 w-10"
+                  />
+                  <div>
+                    <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>
+                    <p className="text-xs text-white/70">Viewed your profile</p>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -230,9 +239,17 @@ function MyPopularityPage({ currentUser }) {
                 key={user.id}
                 className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 backdrop-blur"
               >
-                <div>
-                  <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>
-                  <p className="text-xs text-white/70">Liked your profile</p>
+                <div className="flex items-center gap-3">
+                  <ChatAvatar
+                    name={user.username}
+                    photoUrl={user.primary_photo_url || user.photo_url || user.profile_photo_url || user.avatarUrl}
+                    isOnline={false}
+                    sizeClass="h-10 w-10"
+                  />
+                  <div>
+                    <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>
+                    <p className="text-xs text-white/70">Liked your profile</p>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -270,9 +287,17 @@ function MyPopularityPage({ currentUser }) {
                 key={user.id}
                 className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 backdrop-blur"
               >
-                <div>
-                  <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>
-                  <p className="text-xs text-white/70">You matched together</p>
+                <div className="flex items-center gap-3">
+                  <ChatAvatar
+                    name={user.username}
+                    photoUrl={user.primary_photo_url || user.photo_url || user.profile_photo_url || user.avatarUrl}
+                    isOnline={false}
+                    sizeClass="h-10 w-10"
+                  />
+                  <div>
+                    <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>
+                    <p className="text-xs text-white/70">You matched together</p>
+                  </div>
                 </div>
                 <button
                   type="button"
