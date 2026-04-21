@@ -448,7 +448,6 @@ function UserProfilePage({ currentUser }) {
   if (!data) return null;
 
   const { user, profile } = data;
-  console.log('UserProfilePage profile:', profile);
   const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
   const isOwnProfile = String(currentUser?.id || "") === String(user.id);
   const relationLabel = isMatch
