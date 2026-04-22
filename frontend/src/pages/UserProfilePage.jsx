@@ -45,7 +45,7 @@ function ProfilePhotosGrid({ photos }) {
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
         {photos.map((photo, idx) => (
           <div
             key={photo.id}
@@ -489,8 +489,7 @@ function UserProfilePage({ currentUser }) {
           </div>
 
           {!isOwnProfile && (
-            <div className="relative flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              <span
+              <div className="relative flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end sm:justify-start">              <span
                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${isMatch ? "bg-red-600 text-white" : likedByProfile ? "bg-pink-100 text-pink-700" : liked ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-700"}`}
               >
                 {relationLabel}

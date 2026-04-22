@@ -149,7 +149,7 @@ function TopNav({ currentUser, profileLocked }) {
           <NavLink to="/find-match" className={({ isActive }) =>
             `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
-            {navItem(<FiUsers size={15} />, "Discover", "Find your match")}
+            {navItem(<FiUsers size={15} />, "Find", "Find your match")}
           </NavLink>
 
           <NavLink to="/popularity/views" className={({ isActive }) =>

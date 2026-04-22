@@ -67,7 +67,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
     <div className="relative w-full max-w-full box-border overflow-hidden flex flex-col justify-between h-full gap-2 sm:gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm transition hover:shadow-md">
 
       {/* IMAGE */}
-      <div className="relative overflow-hidden rounded-xl mb-3 sm:justify-items-center">
+      <div className="relative overflow-hidden rounded-xl mb-3">
         {profilePhotoUrl ? (
           <img
             src={profilePhotoUrl}
