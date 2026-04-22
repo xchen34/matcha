@@ -480,16 +480,16 @@ function UserProfilePage({ currentUser }) {
         <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
           Profile
         </p>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-slate-900">
+            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 break-words">
               {fullName || `@${user.username}`}
             </h2>
             <p className="text-sm text-slate-500">@{user.username}</p>
           </div>
 
           {!isOwnProfile && (
-            <div className="relative flex items-center gap-2">
+            <div className="relative flex items-center gap-2 flex-wrap sm:flex-nowrap">
               <span
                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${isMatch ? "bg-red-600 text-white" : likedByProfile ? "bg-pink-100 text-pink-700" : liked ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-700"}`}
               >
@@ -514,7 +514,7 @@ function UserProfilePage({ currentUser }) {
                         ? "Unlike"
                         : "Like"
                 }
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${isMatch ? "border-red-700 bg-red-600 shadow-md shadow-red-200" : liked ? "border-orange-300 bg-gradient-to-br from-orange-500 to-brand-deep shadow-md shadow-orange-200 ring-2 ring-orange-300/60" : "border-slate-300 bg-slate-200 text-slate-700"}`}
+                className={`inline-flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full border transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${isMatch ? "border-red-700 bg-red-600 shadow-md shadow-red-200" : liked ? "border-orange-300 bg-gradient-to-br from-orange-500 to-brand-deep shadow-md shadow-orange-200 ring-2 ring-orange-300/60" : "border-slate-300 bg-slate-200 text-slate-700"}`}
               >
                 {isMatch ? (
                   <span className="relative inline-flex h-4 w-5 items-center justify-center">
@@ -630,8 +630,7 @@ function UserProfilePage({ currentUser }) {
         </p>
       )}
 
-      <div className="grid items-stretch gap-4 text-sm text-slate-700 sm:grid-cols-2">
-        <div className="h-full space-y-3 rounded-xl bg-white/70 p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm text-slate-700">        <div className="h-full space-y-3 rounded-xl bg-white/70 p-4">
           <div>
             <FieldLabel icon={FiUser}>Gender</FieldLabel>
             <p className="mt-1 text-slate-800">{sanitizeText(profile.gender) || "-"}</p>
@@ -674,7 +673,7 @@ function UserProfilePage({ currentUser }) {
           </div>
           <div>
             <FieldLabel icon={FiActivity}>Status</FieldLabel>
-            <div className="mt-1 flex flex-wrap items-center gap-[2rem]">
+            <div className="mt-1 flex flex-wrap items-center gap-2 sm:gap-6">
               <span
                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${user.is_online ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"}`}
               >
@@ -714,7 +713,7 @@ function UserProfilePage({ currentUser }) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand via-brand/90 to-brand-deep p-5 text-white shadow-lg shadow-orange-200/50">
+      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand via-brand/90 to-brand-deep p-4 sm:p-5 text-white shadow-lg shadow-orange-200/50">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">

@@ -84,14 +84,21 @@ function TopNav({ currentUser, profileLocked }) {
     matches: Number(attentionBadges.matches || 0),
   };
 
-  const withBadge = (icon, label, count) => (
-    <span className="relative inline-flex items-center">
-      <span className="inline-flex items-center gap-1.5">
-        <span aria-hidden="true">{icon}</span>
-        <span>{label}</span>
+  const navItem = (icon, mobile, full, count) => (
+    <span className="relative flex items-center justify-center sm:justify-start gap-1.5">
+
+      <span aria-hidden="true">{icon}</span>
+
+      <span className="sm:hidden text-xs font-medium text-slate-700">
+        {mobile}
       </span>
+
+      <span className="hidden sm:inline text-sm font-medium text-slate-700">
+        {full}
+      </span>
+
       {count > 0 && (
-        <span className="absolute -right-5 -top-4 inline-flex min-w-6 h-6 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold text-white">
+        <span className="absolute -right-4 -top-3 inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
           {count > 99 ? "99+" : count}
         </span>
       )}
@@ -99,66 +106,74 @@ function TopNav({ currentUser, profileLocked }) {
   );
 
   return (
-    <nav className="flex flex-wrap items-center gap-3">
+    <nav className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
+
       {!currentUser && (
         <NavLink to="/login" className={({ isActive }) =>
           `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
         }>
-          <span className="inline-flex items-center gap-1.5">
-            <FiLogIn size={15} aria-hidden="true" />
-            <span>Login</span>
+          <span className="flex items-center gap-1.5 justify-center">
+            <FiLogIn size={15} />
+            <span className="sm:inline hidden">Login</span>
+            <span className="sm:hidden">In</span>
           </span>
         </NavLink>
       )}
+
       {!currentUser && (
         <NavLink to="/register" className={({ isActive }) =>
-          `${secondaryButtonClass} ${isActive ? "bg-slate-900  border-slate-900" : ""}`
+          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
         }>
-          <span className="inline-flex items-center gap-1.5">
-            <FiUserPlus size={15} aria-hidden="true" />
-            <span>Create Account</span>
+          <span className="flex items-center gap-1.5 justify-center">
+            <FiUserPlus size={15} />
+            <span className="sm:inline hidden">Create Account</span>
+            <span className="sm:hidden">Join</span>
           </span>
         </NavLink>
       )}
+
       {currentUser && profileLocked && (
         <NavLink to="/profile" className={({ isActive }) =>
           `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
         }>
-          <span className="inline-flex items-center gap-1.5">
-            <FiUser size={15} aria-hidden="true" />
-            <span>Complete Profile</span>
+          <span className="flex items-center gap-1.5 justify-center">
+            <FiUser size={15} />
+            <span className="sm:inline hidden">Complete Profile</span>
+            <span className="sm:hidden">Profile</span>
           </span>
         </NavLink>
       )}
+
       {currentUser && !profileLocked && (
         <>
           <NavLink to="/find-match" className={({ isActive }) =>
             `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
-            <span className="inline-flex items-center gap-1.5">
-              <FiUsers size={15} aria-hidden="true" />
-              <span>Find your match</span>
-            </span>
+            {navItem(<FiUsers size={15} />, "Discover", "Find your match")}
           </NavLink>
+
           <NavLink to="/popularity/views" className={({ isActive }) =>
             `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
-            {withBadge(<FiEye size={15} />, "Who viewed me", modeCounts.views)}
+            {navItem(<FiEye size={15} />, "Views", "Who viewed me", modeCounts.views)}
           </NavLink>
+
           <NavLink to="/popularity/likes" className={({ isActive }) =>
             `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
-            {withBadge(<FiHeart size={15} />, "Who liked me", modeCounts.likes)}
+            {navItem(<FiHeart size={15} />, "Likes", "Who liked me", modeCounts.likes)}
           </NavLink>
+
           <NavLink to="/popularity/matches" className={({ isActive }) =>
             `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
-            {withBadge(
+            {navItem(
               <span className="relative inline-flex h-4 w-5 items-center justify-center text-slate-500">
                 <FiHeart size={11} className="absolute left-0" />
                 <FiHeart size={11} className="absolute right-0" />
               </span>,
-              "Who matched with me",
+              "Matches",
+              "Matches",
               modeCounts.matches,
             )}
           </NavLink>
@@ -2502,6 +2517,14 @@ function App() {
         />
       </Routes>
     </main>
+    <footer className="mt-16 border-t border-slate-100 bg-white/80 backdrop-blur">
+      <div className="mx-auto max-w-5xl px-5 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+
+        <p className="text-center sm:text-left">
+          © {new Date().getFullYear()} Matcha — 42 Dating Playground
+        </p>
+      </div>
+    </footer>
     </NotificationsProvider>
   );
 }

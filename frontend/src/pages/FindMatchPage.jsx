@@ -479,8 +479,6 @@ function FindMatchPage({ currentUser }) {
       <div className="flex flex-col gap-1 mb-12">
 
         <div className="flex items-start justify-between gap-4">
-
-          {/* LEFT */}
           <div className="space-y-1">
             <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-900">
               <FaUserFriends size={22} aria-hidden="true" />
@@ -499,7 +497,6 @@ function FindMatchPage({ currentUser }) {
             )}
           </div>
 
-          {/* RIGHT */}
           <div className="shrink-0">
             <div className="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
 
@@ -524,7 +521,7 @@ function FindMatchPage({ currentUser }) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="relative flex flex-col gap-1 sm:col-span-2 lg:col-span-2">
+        <div className="relative flex flex-col gap-1 col-span-2 sm:col-span-2 lg:col-span-2">
           <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
             <FaSearch size={12} aria-hidden="true" />
             <span>Search username</span>
@@ -538,7 +535,8 @@ function FindMatchPage({ currentUser }) {
             placeholder="Search by username"
           />
         </div>
-        <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-2">
+        
+        <div className="flex flex-col gap-1 col-span-2 sm:col-span-2 lg:col-span-2">
           <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
             <FaMapMarkerAlt size={12} aria-hidden="true" />
             <span>City</span>
@@ -571,11 +569,16 @@ function FindMatchPage({ currentUser }) {
             <p className="text-[11px] text-green-700">City validated.</p>
           ) : null}
         </div>
-        <div className="flex flex-col gap-1 col-span-2">
-          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1">
-            <FaUser size={12} aria-hidden="true" />
-            <span>Age</span>
-            <span className="ml-2 font-bold text-brand">{draftFilters.min_age} - {draftFilters.max_age}</span>
+
+        <div className="flex flex-col gap-2 col-span-2">
+          <label className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <div className="flex items-center gap-2">
+              <FaUser size={12} className="text-slate-500" aria-hidden="true" />
+              <span>Age</span>
+            </div>
+            <span className="text-xs font-medium text-slate-500">
+              {draftFilters.min_age} – {draftFilters.max_age}
+            </span>
           </label>
           <div className="px-2">
             <Slider
@@ -585,21 +588,49 @@ function FindMatchPage({ currentUser }) {
               allowCross={false}
               value={[draftFilters.min_age, draftFilters.max_age]}
               onChange={handleAgeSliderChange}
-              trackStyle={[{ backgroundColor: '#f59e42' }]}
-              handleStyle={[
-                { borderColor: '#f59e42', backgroundColor: '#fff' },
-                { borderColor: '#f59e42', backgroundColor: '#fff' },
+              trackStyle={[
+                {
+                  backgroundColor: '#f59e42',
+                  height: 4,
+                  borderRadius: 999,
+                },
               ]}
-              railStyle={{ backgroundColor: '#e5e7eb' }}
+              handleStyle={[
+                {
+                  borderColor: '#f59e42',
+                  backgroundColor: '#fff',
+                  height: 14,
+                  width: 14,
+                  marginTop: -5,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                },
+                {
+                  borderColor: '#f59e42',
+                  backgroundColor: '#fff',
+                  height: 14,
+                  width: 14,
+                  marginTop: -5,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                },
+              ]}
+              railStyle={{
+                backgroundColor: '#e5e7eb',
+                height: 4,
+                borderRadius: 999,
+              }}
             />
           </div>
         </div>
 
-        <div className="flex flex-col gap-1 col-span-2">
-          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1">
-            <FaStar size={12} aria-hidden="true" />
-            <span>Popularity</span>
-            <span className="ml-2 font-bold text-brand">{draftFilters.min_fame} - {draftFilters.max_fame}</span>
+        <div className="flex flex-col gap-2 col-span-2">
+          <label className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <div className="flex items-center gap-2">
+              <FaStar size={12} className="text-slate-500" aria-hidden="true" />
+              <span>Popularity</span>
+            </div>
+            <span className="text-xs font-medium text-slate-500">
+              {draftFilters.min_fame} – {draftFilters.max_fame}
+            </span>
           </label>
           <div className="px-2">
             <Slider
@@ -609,65 +640,117 @@ function FindMatchPage({ currentUser }) {
               allowCross={false}
               value={[draftFilters.min_fame, draftFilters.max_fame]}
               onChange={handleFameSliderChange}
-              trackStyle={[{ backgroundColor: '#f59e42' }]}
-              handleStyle={[
-                { borderColor: '#f59e42', backgroundColor: '#fff' },
-                { borderColor: '#f59e42', backgroundColor: '#fff' },
+              trackStyle={[
+                {
+                  backgroundColor: '#f59e42',
+                  height: 4,
+                  borderRadius: 999,
+                },
               ]}
-              railStyle={{ backgroundColor: '#e5e7eb' }}
-              />
+              handleStyle={[
+                {
+                  borderColor: '#f59e42',
+                  backgroundColor: '#fff',
+                  height: 14,
+                  width: 14,
+                  marginTop: -5,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                },
+                {
+                  borderColor: '#f59e42',
+                  backgroundColor: '#fff',
+                  height: 14,
+                  width: 14,
+                  marginTop: -5,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                },
+              ]}
+              railStyle={{
+                backgroundColor: '#e5e7eb',
+                height: 4,
+                borderRadius: 999,
+              }}
+            />
           </div>
         </div>
-        <div className="flex flex-col gap-1 col-span-2">
-          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            <FaSort size={12} aria-hidden="true" />
+
+        <div className="flex flex-col gap-2 col-span-2">
+          <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
+            <FaSort size={12} className="text-slate-400" aria-hidden="true" />
             <span>Sort by</span>
           </label>
-          <select
-            name="sort_by"
-            value={draftFilters.sort_by}
-            onChange={handleFilterChange}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
-          >
+          <div className="relative">
+            <select
+              name="sort_by"
+              value={draftFilters.sort_by}
+              onChange={handleFilterChange}
+              className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm
+                       focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
+            >
               <option value="">Suggested smart ranking</option>
-            <option value="age">Age</option>
-            <option value="location">Location</option>
-            <option value="fame_rating">Fame rating</option>
-            <option value="tags">Tags</option>
-          </select>
+              <option value="age">Age</option>
+              <option value="location">Location</option>
+              <option value="fame_rating">Fame rating</option>
+              <option value="tags">Tags</option>
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+              ▾
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-1 col-span-2">
-          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            <FaArrowDown size={12} aria-hidden="true" />
+
+        <div className="flex flex-col gap-2 col-span-2">
+          <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
+            <FaArrowDown size={12} className="text-slate-400" aria-hidden="true" />
             <span>Order</span>
           </label>
-          <select
-            name="sort_dir"
-            value={draftFilters.sort_dir}
-            onChange={handleFilterChange}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
-          >
-            <option value="desc">Descending</option>
-            <option value="asc">Ascending</option>
-          </select>
+          <div className="relative">
+            <select
+              name="sort_dir"
+              value={draftFilters.sort_dir}
+              onChange={handleFilterChange}
+              className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm
+                        focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
+            >
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+              ▾
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-4">
-          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            <FaTag size={12} aria-hidden="true" />
+        <div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-4">
+          <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+            <FaTag size={12} className="text-slate-500" aria-hidden="true" />
             <span>Interest tags</span>
           </label>
-          <div className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-2">
+          <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-white/70 backdrop-blur border border-white/50 shadow-sm">
             {tagOptions.length === 0 ? (
               <span className="text-xs text-slate-500">No tags available.</span>
             ) : (
-              tagOptions.slice(0, 24).map((tagName) => {
+              tagOptions.slice()
+              .sort((a, b) => a.localeCompare(b))
+              .slice(0, 24)
+              .map((tagName) => {
                 const selected = draftFilters.tags.includes(tagName);
                 return (
                   <button
                     key={tagName}
                     type="button"
                     onClick={() => toggleTag(tagName)}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${selected ? "border-brand bg-brand text-white" : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
+                    className={`
+                      px-3 py-1.5 rounded-full text-xs font-semibold 
+                      transition-all duration-200
+                      flex items-center gap-1
+
+                      ${selected
+                        ? "bg-orange-600 text-white shadow-md scale-105"
+                        : "bg-gray-100 text-gray-600 hover:bg-orange-100 hover:text-orange-600"
+                      }
+
+                      hover:scale-105 active:scale-95
+                    `}
                   >
                     {tagName}
                   </button>

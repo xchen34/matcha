@@ -741,10 +741,27 @@ router.get("/profile/city-suggestions", async (req, res, next) => {
       }));
     }
 
+    // Trouver le pays de la première suggestion
+    let countryFilter = null;
+    if (results.length > 0 && results[0].country) {
+      countryFilter = results[0].country.trim();
+    }
+
+    // Filtrer toutes les suggestions pour ne garder que celles du même pays (et country non vide)
+    let filteredResults = results;
+    if (countryFilter) {
+      filteredResults = results.filter(
+        (item) => {
+        // Filtrer toutes les suggestions pour ne garder que celles du même pays (pas de pays voisins)
+          return c && c === countryFilter;
+        }
+      );
+    }
+
     const normalizedQuery = normalizeLocationText(query);
     const byCity = new Map();
 
-    for (const item of results) {
+    for (const item of filteredResults) {
       const city = (item.city || splitDisplayName(item.display_name)).trim();
       if (!city) continue;
 
@@ -796,8 +813,10 @@ router.get("/profile/city-suggestions", async (req, res, next) => {
       query,
       searchLimit,
       rawResults: results.length,
+      filteredResults: filteredResults.length,
       primaryRawResults: primaryResults.length,
       suggestionsCount: suggestions.length,
+      countryFilter,
       sample: suggestions.slice(0, 3).map((item) => item.city),
     });
 

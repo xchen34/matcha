@@ -1,9 +1,7 @@
 import { FaHeart, FaUser, FaMapMarkerAlt, FaTags, FaStar, FaTransgender } from "react-icons/fa";
-
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { sanitizeText } from "../utils/xssEscape.js";
-
 
 function UserCard({ user, currentUser, canLikeProfiles = true }) {
   const navigate = useNavigate();
@@ -11,6 +9,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   const [isMatch, setIsMatch] = useState(Boolean(user?.is_match));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
   const profilePhotoUrl = useMemo(
     () =>
       user?.profile_photo_url ||
@@ -18,7 +17,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
       user?.primary_photo_url ||
       user?.photo_url ||
       null,
-    [user?.profile_photo_url, user?.avatarUrl, user?.primary_photo_url, user?.photo_url],
+    [user]
   );
 
   useEffect(() => {
@@ -29,35 +28,29 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   async function handleToggleLike() {
     setLoading(true);
     setError("");
+
     try {
       if (!liked && !canLikeProfiles) {
         throw new Error("Add a profile picture first to like users.");
       }
 
       if (!liked) {
-        // Like
         const res = await fetch(`/api/users/${user.id}/like`, {
           method: "POST",
           headers: { "x-user-id": currentUser.id },
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          const alreadyLikedMessages = ["Already liked", "Déjà liké", "Deja like"];
-          if (!alreadyLikedMessages.includes(data.message)) {
-            throw new Error(data.error || "Error while liking");
-          }
-        }
+        if (!res.ok) throw new Error("Error while liking");
         setLiked(true);
       } else {
-        // Unlike
         const res = await fetch(`/api/users/${user.id}/like`, {
           method: "DELETE",
           headers: { "x-user-id": currentUser.id },
         });
         if (!res.ok) throw new Error("Error when unliking");
         setLiked(false);
-        setIsMatch(false); 
+        setIsMatch(false);
       }
+
       const matchRes = await fetch(`/api/users/${user.id}/is-match`, {
         headers: { "x-user-id": currentUser.id },
       });
@@ -71,135 +64,142 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   }
 
   return (
-    <div className="relative flex flex-col justify-between h-full gap-3 rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-orange-100 transition hover:shadow-md">
-      <div>
-        <div className="relative overflow-hidden rounded-xl mb-4">
-          {profilePhotoUrl ? (
-            <img
-              src={profilePhotoUrl}
-              alt={`@${user.username} profile`}
-              className="h-40 w-full object-contain rounded-xl"
-              style={{ objectFit: 'contain' }}
-            />
-          ) : (
-            <div className="flex h-40 w-full items-center justify-center text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-              No profile photo
-            </div>
-          )}
-          {/* Online/offline label bottom right */}
-          <span
-            className={`absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-xs font-semibold shadow border border-white ${user.is_online ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"}`}
-            title={user.is_online ? "Online" : "Offline"}
-          >
-            {user.is_online ? "Online" : "Offline"}
-          </span>
-        </div>
+    <div className="relative w-full max-w-full box-border overflow-hidden flex flex-col justify-between h-full gap-2 sm:gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm transition hover:shadow-md">
 
-        <div className="space-y-2">
-          <h3
-            className="text-lg font-semibold text-slate-900 max-w-full truncate mb-1"
-            style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-            title={`@${user.username}`}
-          >
-            @{user.username}
-          </h3>
-          <div className="flex flex-wrap gap-2 text-sm text-slate-600 items-center mb-1">
-            <span className="inline-flex items-center gap-1">
-              <FaTransgender size={13} aria-hidden="true" />
-              <span className="font-semibold text-slate-800">{sanitizeText(user.gender) || "-"}</span>
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="font-semibold text-slate-500">Pref:</span>
-              <span className="font-semibold text-slate-800">{sanitizeText(user.sexual_preference) || "-"}</span>
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <FaUser size={13} aria-hidden="true" />
-              <span className="font-semibold text-slate-800">{user.age !== undefined && user.age !== null ? user.age : "-"}</span>
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <FaMapMarkerAlt size={13} aria-hidden="true" />
-              <span className="font-semibold text-slate-800">
-                {sanitizeText(user.city) || "-"}
-                {user.neighborhood ? ` - ${sanitizeText(user.neighborhood)}` : ""}
-              </span>
-            </span>
-            {typeof user.fame_rating === "number" && (
-              <span className="inline-flex items-center gap-1">
-                <FaStar size={13} aria-hidden="true" />
-                <span className="font-semibold text-slate-800">{Math.floor(user.fame_rating)}</span>
-              </span>
-            )}
+      {/* IMAGE */}
+      <div className="relative overflow-hidden rounded-xl mb-3 sm:justify-items-center">
+        {profilePhotoUrl ? (
+          <img
+            src={profilePhotoUrl}
+            alt={`@${user.username}`}
+            className="h-36 sm:h-44 w-full object-contain rounded-xl"
+          />
+        ) : (
+          <div className="flex h-36 sm:h-44 w-full items-center justify-center text-xs font-medium text-slate-400">
+            No profile photo
           </div>
-          <div className="flex flex-wrap gap-1 text-xs text-slate-600 items-center mb-2">
-            <FaTags size={12} aria-hidden="true" />
-            {Array.isArray(user.tags) && user.tags.length > 0 ? (
-              user.tags.map((tag) => (
-                <span
-                  key={`${user.id}-${tag}`}
-                  className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700"
-                >
-                  {sanitizeText(tag)}
-                </span>
-              ))
-            ) : (
-              <span className="font-semibold text-slate-800">-</span>
-            )}
-          </div>
-        </div>
+        )}
+
+        <span
+          className={`absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-[11px] font-medium border border-slate-100
+            ${user.is_online ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}
+        >
+          {user.is_online ? "Online" : "Offline"}
+        </span>
       </div>
+
+      {/* USERNAME */}
+      <h3
+        className="text-base sm:text-lg font-semibold text-slate-900 truncate max-w-full"
+        title={`@${user.username}`}
+      >
+        @{user.username}
+      </h3>
+
+      {/* MOBILE QUICK INFO */}
+      <div className="flex sm:hidden gap-2 text-xs text-slate-500 mb-2 min-w-0">
+        <span className="truncate">{user.age ?? "-"}</span>
+        <span>•</span>
+        <span className="truncate">{sanitizeText(user.city) || "-"}</span>
+      </div>
+
+      {/* INFO DESKTOP */}
+      <div className="hidden sm:flex flex-wrap gap-2 text-sm text-slate-500 items-center mb-1">
+        <span className="inline-flex items-center gap-1">
+          <FaTransgender size={13} />
+          <span className="font-semibold text-slate-800">{sanitizeText(user.gender) || "-"}</span>
+        </span>
+
+        <span className="inline-flex items-center gap-1">
+          <span className="font-semibold text-slate-500">Pref:</span>
+          <span className="font-semibold text-slate-800">{sanitizeText(user.sexual_preference) || "-"}</span>
+        </span>
+
+        <span className="inline-flex items-center gap-1">
+          <FaUser size={13} />
+          <span className="font-semibold text-slate-800">{user.age ?? "-"}</span>
+        </span>
+
+        <span className="inline-flex items-center gap-1 min-w-0">
+          <FaMapMarkerAlt size={13} />
+          <span className="font-semibold text-slate-800 truncate">
+            {sanitizeText(user.city) || "-"}
+            {user.neighborhood ? ` - ${sanitizeText(user.neighborhood)}` : ""}
+          </span>
+        </span>
+
+        {typeof user.fame_rating === "number" && (
+          <span className="inline-flex items-center gap-1">
+            <FaStar size={13} />
+            <span className="font-semibold text-slate-800">
+              {Math.floor(user.fame_rating)}
+            </span>
+          </span>
+        )}
+      </div>
+
+      {/* TAGS (LIMITED + SAFE) */}
+      <div className="flex flex-wrap gap-1 text-xs text-slate-600 items-center mb-2 max-w-full overflow-hidden">
+        <FaTags size={12} className="text-slate-400 hidden sm:inline" />
+
+        {Array.isArray(user.tags) && user.tags.length > 0 ? (
+          user.tags.slice(0, 3).map((tag) => (
+            <span
+              key={`${user.id}-${tag}`}
+              className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600 text-[11px] sm:text-xs max-w-[120px] truncate"
+            >
+              {sanitizeText(tag)}
+            </span>
+          ))
+        ) : (
+          <span className="font-semibold text-slate-800">-</span>
+        )}
+      </div>
+
+      {/* WARNING */}
       {!profilePhotoUrl && (
-        <div className="text-amber-700 mb-1">No profile photo: can't be liked.</div>
+        <div className="text-[11px] sm:text-sm text-amber-600">
+          No profile photo — like disabled
+        </div>
       )}
 
-      {/* Footer always at the bottom for perfect alignment */}
-      <div className="flex items-center justify-between mt-2 text-xs font-semibold text-slate-700">
+      {/* FOOTER SAFE */}
+      <div className="flex items-center justify-between gap-2 mt-2 text-[11px] sm:text-xs font-medium text-slate-600 w-full min-w-0">
+
         <button
-          type="button"
           onClick={() => navigate(`/users/${user.id}`)}
-          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:-translate-y-0.5 transition"
+          className="px-2 sm:px-3 py-1 rounded-full border border-slate-200 bg-white shrink-0"
         >
           View profile
         </button>
-        <span className="flex items-center gap-1">
+
+        <span className="flex items-center gap-1 min-w-0">
           <span className={isMatch ? "text-red-600" : liked ? "text-orange-600" : "text-slate-700"}>
             {isMatch ? "Match" : liked ? "Liked" : "Not liked"}
           </span>
+
           <button
-            className={`flex h-7 w-7 items-center justify-center rounded-full border transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${isMatch ? "border-red-700 bg-red-600 shadow-md shadow-red-200" : liked ? "border-orange-300 bg-gradient-to-br from-orange-500 to-brand-deep shadow-md shadow-orange-200 ring-2 ring-orange-300/60" : "border-slate-300 bg-slate-200"}`}
             onClick={handleToggleLike}
             disabled={
               loading ||
               user.id === currentUser.id ||
               (!liked && (!canLikeProfiles || !profilePhotoUrl))
             }
-            aria-label={liked ? "Remove like" : "Like this user"}
-            title={
-              !liked && !canLikeProfiles
-                ? "You must add a profile photo to like others."
-                : !liked && !profilePhotoUrl
-                  ? "This user has no profile photo."
+            className={`flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full border transition
+              ${isMatch
+                ? "border-red-700 bg-red-600"
                 : liked
-                  ? "Unlike"
-                  : "Like"
-            }
+                ? "border-orange-300 bg-orange-500"
+                : "border-slate-300 bg-slate-200"
+              }`}
           >
-            {isMatch ? (
-              <span className="relative inline-flex h-3 w-4 items-center justify-center">
-                <FaHeart size={10} className="absolute left-0 text-white" />
-                <FaHeart size={10} className="absolute right-0 text-white" />
-              </span>
-            ) : (
-              <FaHeart
-                color="#fff"
-                style={{ stroke: "#fff" }}
-                size={14}
-              />
-            )}
+            <FaHeart size={12} color="#fff" />
           </button>
         </span>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {/* ERROR */}
+      {error && <p className="text-[11px] text-red-600 mt-1">{error}</p>}
     </div>
   );
 }
