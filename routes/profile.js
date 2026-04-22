@@ -752,8 +752,9 @@ router.get("/profile/city-suggestions", async (req, res, next) => {
     if (countryFilter) {
       filteredResults = results.filter(
         (item) => {
-        // Filtrer toutes les suggestions pour ne garder que celles du même pays (pas de pays voisins)
-          return c && c === countryFilter;
+          // Filtrer toutes les suggestions pour ne garder que celles du même pays (pas de pays voisins)
+          const itemCountry = (item.country || "").trim();
+          return itemCountry && itemCountry === countryFilter;
         }
       );
     }

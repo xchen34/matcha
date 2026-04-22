@@ -180,7 +180,7 @@ export default function NotificationsBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-[340px] rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+        <div className="fixed left-3 right-3 top-20 z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[340px]">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
             {notifications.length > 0 && (
@@ -217,8 +217,8 @@ export default function NotificationsBell() {
                     <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-lg font-semibold ${getGroupAccentClass(group.type)}`}>
                       <GroupTypeIcon type={group.type} />
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-slate-700">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm text-slate-700">
                         <span className="font-semibold text-slate-900">{sanitizeText(group.primaryActor)}</span>{" "}
                         {createCardMessage(group.primaryActor, group.verb, group.count)}
                       </p>

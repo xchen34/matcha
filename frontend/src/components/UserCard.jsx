@@ -64,8 +64,8 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[22rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
-      <div className="relative aspect-[5/6] w-full overflow-hidden bg-slate-100 sm:aspect-[4/5]">
+    <div className="mx-auto w-full max-w-[19rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
+      <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-100 sm:aspect-[3/4]">
         {profilePhotoUrl ? (
           <img
             src={profilePhotoUrl}
