@@ -64,142 +64,119 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   }
 
   return (
-    <div className="relative w-full max-w-full box-border overflow-hidden flex flex-col justify-between h-full gap-2 sm:gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm transition hover:shadow-md">
-
-      {/* IMAGE */}
-      <div className="relative overflow-hidden rounded-xl mb-3 sm:justify-items-center">
+    <div className="mx-auto w-full max-w-[22rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
+      <div className="relative aspect-[5/6] w-full overflow-hidden bg-slate-100 sm:aspect-[4/5]">
         {profilePhotoUrl ? (
           <img
             src={profilePhotoUrl}
             alt={`@${user.username}`}
-            className="h-36 sm:h-44 w-full object-contain rounded-xl"
+            className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-36 sm:h-44 w-full items-center justify-center text-xs font-medium text-slate-400">
+          <div className="flex h-full w-full items-center justify-center text-xs font-medium text-slate-400">
             No profile photo
           </div>
         )}
 
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent pointer-events-none" />
+
         <span
-          className={`absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-[11px] font-medium border border-slate-100
-            ${user.is_online ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}
+          className={`absolute top-3 right-3 px-2 py-0.5 rounded-full text-[11px] font-medium border border-white/60 backdrop-blur
+            ${user.is_online ? "bg-emerald-100/95 text-emerald-700" : "bg-slate-100/95 text-slate-600"}`}
         >
           {user.is_online ? "Online" : "Offline"}
         </span>
+
+        <button
+          onClick={handleToggleLike}
+          disabled={
+            loading ||
+            user.id === currentUser.id ||
+            (!liked && (!canLikeProfiles || !profilePhotoUrl))
+          }
+          className={`absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-lg transition
+            ${isMatch
+              ? "border-red-700 bg-red-600"
+              : liked
+              ? "border-orange-300 bg-orange-500"
+              : "border-white/80 bg-slate-700/70 backdrop-blur"
+            }`}
+          aria-label={isMatch ? "Match" : liked ? "Liked" : "Like"}
+        >
+          <FaHeart size={18} color="#fff" />
+        </button>
       </div>
 
-      {/* USERNAME */}
-      <h3
-        className="text-base sm:text-lg font-semibold text-slate-900 truncate max-w-full"
-        title={`@${user.username}`}
-      >
-        @{user.username}
-      </h3>
-
-      {/* MOBILE QUICK INFO */}
-      <div className="flex sm:hidden gap-2 text-xs text-slate-500 mb-2 min-w-0">
-        <span className="truncate">{user.age ?? "-"}</span>
-        <span>•</span>
-        <span className="truncate">{sanitizeText(user.city) || "-"}</span>
-      </div>
-
-      {/* INFO DESKTOP */}
-      <div className="hidden sm:flex flex-wrap gap-2 text-sm text-slate-500 items-center mb-1">
-        <span className="inline-flex items-center gap-1">
-          <FaTransgender size={13} />
-          <span className="font-semibold text-slate-800">{sanitizeText(user.gender) || "-"}</span>
-        </span>
-
-        <span className="inline-flex items-center gap-1">
-          <span className="font-semibold text-slate-500">Pref:</span>
-          <span className="font-semibold text-slate-800">{sanitizeText(user.sexual_preference) || "-"}</span>
-        </span>
-
-        <span className="inline-flex items-center gap-1">
-          <FaUser size={13} />
-          <span className="font-semibold text-slate-800">{user.age ?? "-"}</span>
-        </span>
-
-        <span className="inline-flex items-center gap-1 min-w-0">
-          <FaMapMarkerAlt size={13} />
-          <span className="font-semibold text-slate-800 truncate">
-            {sanitizeText(user.city) || "-"}
-            {user.neighborhood ? ` - ${sanitizeText(user.neighborhood)}` : ""}
-          </span>
-        </span>
-
-        {typeof user.fame_rating === "number" && (
-          <span className="inline-flex items-center gap-1">
-            <FaStar size={13} />
-            <span className="font-semibold text-slate-800">
-              {Math.floor(user.fame_rating)}
-            </span>
-          </span>
-        )}
-      </div>
-
-      {/* TAGS (LIMITED + SAFE) */}
-      <div className="flex flex-wrap gap-1 text-xs text-slate-600 items-center mb-2 max-w-full overflow-hidden">
-        <FaTags size={12} className="text-slate-400 hidden sm:inline" />
-
-        {Array.isArray(user.tags) && user.tags.length > 0 ? (
-          user.tags.slice(0, 3).map((tag) => (
-            <span
-              key={`${user.id}-${tag}`}
-              className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600 text-[11px] sm:text-xs max-w-[120px] truncate"
-            >
-              {sanitizeText(tag)}
-            </span>
-          ))
-        ) : (
-          <span className="font-semibold text-slate-800">-</span>
-        )}
-      </div>
-
-      {/* WARNING */}
-      {!profilePhotoUrl && (
-        <div className="text-[11px] sm:text-sm text-amber-600">
-          No profile photo — like disabled
+      <div className="space-y-3 p-3 sm:p-4">
+        <div className="space-y-0.5">
+          <h3
+            className="truncate text-xl font-semibold text-slate-900"
+            title={`@${user.username}`}
+          >
+            @{user.username}
+          </h3>
+          <p className={`text-xs font-semibold ${isMatch ? "text-red-600" : liked ? "text-orange-600" : "text-slate-600"}`}>
+            {isMatch ? "Match" : liked ? "Liked" : "Not liked"}
+          </p>
         </div>
-      )}
 
-      {/* FOOTER SAFE */}
-      <div className="flex items-center justify-between gap-2 mt-2 text-[11px] sm:text-xs font-medium text-slate-600 w-full min-w-0">
+        <div className="flex flex-wrap gap-2 text-sm text-slate-600">
+          <span className="inline-flex items-center gap-1">
+            <FaTransgender size={13} />
+            <span className="font-semibold text-slate-800">{sanitizeText(user.gender) || "-"}</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="font-semibold text-slate-500">Pref:</span>
+            <span className="font-semibold text-slate-800">{sanitizeText(user.sexual_preference) || "-"}</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <FaUser size={13} />
+            <span className="font-semibold text-slate-800">{user.age ?? "-"}</span>
+          </span>
+          <span className="inline-flex min-w-0 items-center gap-1">
+            <FaMapMarkerAlt size={13} />
+            <span className="truncate font-semibold text-slate-800">
+              {sanitizeText(user.city) || "-"}
+              {user.neighborhood ? ` - ${sanitizeText(user.neighborhood)}` : ""}
+            </span>
+          </span>
+          {typeof user.fame_rating === "number" && (
+            <span className="inline-flex items-center gap-1">
+              <FaStar size={13} />
+              <span className="font-semibold text-slate-800">{Math.floor(user.fame_rating)}</span>
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1 text-xs text-slate-600">
+          <FaTags size={12} className="text-slate-400" />
+          {Array.isArray(user.tags) && user.tags.length > 0 ? (
+            user.tags.slice(0, 3).map((tag) => (
+              <span
+                key={`${user.id}-${tag}`}
+                className="max-w-[120px] truncate rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600"
+              >
+                {sanitizeText(tag)}
+              </span>
+            ))
+          ) : (
+            <span className="font-semibold text-slate-800">-</span>
+          )}
+        </div>
+
+        {!profilePhotoUrl && (
+          <div className="text-xs text-amber-600">No profile photo — like disabled</div>
+        )}
 
         <button
           onClick={() => navigate(`/users/${user.id}`)}
-          className="px-2 sm:px-3 py-1 rounded-full border border-slate-200 bg-white shrink-0"
+          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
         >
           View profile
         </button>
 
-        <span className="flex items-center gap-1 min-w-0">
-          <span className={isMatch ? "text-red-600" : liked ? "text-orange-600" : "text-slate-700"}>
-            {isMatch ? "Match" : liked ? "Liked" : "Not liked"}
-          </span>
-
-          <button
-            onClick={handleToggleLike}
-            disabled={
-              loading ||
-              user.id === currentUser.id ||
-              (!liked && (!canLikeProfiles || !profilePhotoUrl))
-            }
-            className={`flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full border transition
-              ${isMatch
-                ? "border-red-700 bg-red-600"
-                : liked
-                ? "border-orange-300 bg-orange-500"
-                : "border-slate-300 bg-slate-200"
-              }`}
-          >
-            <FaHeart size={12} color="#fff" />
-          </button>
-        </span>
+        {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
-
-      {/* ERROR */}
-      {error && <p className="text-[11px] text-red-600 mt-1">{error}</p>}
     </div>
   );
 }
