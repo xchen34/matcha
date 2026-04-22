@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { FiCheck, FiCornerUpLeft, FiTrash2 } from "react-icons/fi";
+import { FiCheck, FiCornerUpLeft, FiTrash2, FiArrowLeft } from "react-icons/fi";
 import ChatAvatar from "../chat/ChatAvatar.jsx";
 import {
   joinConversationRoom,
@@ -906,8 +906,8 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
 
   return (
     <section className={embedded ? "w-full space-y-5" : "mx-auto max-w-xl w-full space-y-5 px-3 sm:px-4"}>
-      <header className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3 min-w-0">
           <button
             type="button"
             onClick={() => {
@@ -915,7 +915,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                 navigate(`/users/${conversation.other_user.id}`);
               }
             }}
-            className="focus:outline-none"
+            className="shrink-0 focus:outline-none"
             title="View profile"
           >
             <ChatAvatar
@@ -926,20 +926,29 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
               imageClassName="rounded-2xl"
             />
           </button>
-          <div>
-            <h2 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-              {displayName}
+
+          <div className="min-w-0">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 flex flex-wrap items-center gap-2">
+              <span className="truncate">{displayName}</span>
               {blockStatus === "unmatched" && (
-                <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold border border-yellow-300">Unmatched</span>
+                <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold border border-yellow-300">
+                  Unmatched
+                </span>
               )}
               {blockStatus === "blocked_by_you" && (
-                <span className="ml-2 px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-semibold border border-red-300">Blocked</span>
+                <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-semibold border border-red-300">
+                  Blocked
+                </span>
               )}
               {blockStatus === "blocked_you" && (
-                <span className="ml-2 px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-semibold border border-red-300">Blocked you</span>
+                <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-semibold border border-red-300">
+                  Blocked you
+                </span>
               )}
               {blockStatus === null && isMatch && (
-                <span className="ml-2 px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-semibold border border-green-300">Matched</span>
+                <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-semibold border border-green-300">
+                  Matched
+                </span>
               )}
             </h2>
             <p className="text-sm text-slate-500">
@@ -947,7 +956,9 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:items-center sm:justify-end">
+
           {!embedded && (
             <button
               type="button"
@@ -956,16 +967,18 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                   state: { markAsReadConversationId: conversation?.id },
                 })
               }
-              className="rounded-full border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-700"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
-              Back to inbox
+              <FiArrowLeft size={14} aria-hidden="true" />
+              <span>Back to inbox</span>
             </button>
           )}
+
           <button
             type="button"
             onClick={handleDeleteConversation}
             disabled={isDeletingConversation}
-            className="inline-flex items-center gap-2 rounded-full border border-red-200 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-red-200 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <FiTrash2 size={14} aria-hidden="true" />
             <span>{isDeletingConversation ? "Deleting…" : "Delete chat"}</span>

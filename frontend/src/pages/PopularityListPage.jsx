@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
+import { FaEye, FaUser, FaHeart, FaHeartBroken, FaCommentDots } from "react-icons/fa";
 import { Navigate, useNavigate } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
 import { sanitizeText } from "../utils/xssEscape.js";
@@ -286,12 +286,16 @@ function PopularityListPage({ currentUser, mode = "views" }) {
   const renderActionButtons = (user) => (
     <div className="flex items-center gap-2">
       <button
-        type="button"
-        onClick={() => navigate(`/users/${user.id}`)}
-        className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
-      >
-        View profile
-      </button>
+  type="button"
+  onClick={() => navigate(`/users/${user.id}`)}
+  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-2 sm:px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+>
+  <FaUser size={12} aria-hidden="true" />
+  <span className="ml-1">
+    <span className="sm:hidden">View</span>
+    <span className="hidden sm:inline">View profile</span>
+  </span>
+</button>
       {mode === "matches" && (
         <button
           type="button"
@@ -299,7 +303,10 @@ function PopularityListPage({ currentUser, mode = "views" }) {
           disabled={startingChatFor === user.id}
           className="inline-flex items-center justify-center rounded-full border border-brand bg-brand px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-deep disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {startingChatFor === user.id ? "Opening…" : "Chat"}
+          <FaCommentDots size={12} />
+          <span class="ml-1">
+            {startingChatFor === user.id ? "Opening…" : "Chat"}
+          </span>
         </button>
       )}
     </div>
@@ -313,7 +320,7 @@ function PopularityListPage({ currentUser, mode = "views" }) {
   <section className={cardClass}>
     
     {/* ✅ HEADER FLEX */}
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 
       {/* LEFT: title + subtitle */}
       <div className="space-y-1">
@@ -335,8 +342,8 @@ function PopularityListPage({ currentUser, mode = "views" }) {
       </div>
 
       {/* RIGHT: compact stats */}
-      <div className="shrink-0">
-        <div className="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+      <div className="w-full sm:w-auto sm:shrink-0">
+        <div className="flex w-full sm:w-auto items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
 
           {/* icon */}
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 to-brand-deep text-white shadow-md shadow-orange-200/60">
@@ -379,7 +386,7 @@ function PopularityListPage({ currentUser, mode = "views" }) {
             {[...displayedUsers, ...displayedUsers].map((user, index) => (
               <div
                 key={`${user.id}-${index}`}
-                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
               >
                 <div className="flex items-center gap-3">
                   <ChatAvatar
