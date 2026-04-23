@@ -6,5 +6,10 @@ CREATE TABLE IF NOT EXISTS users (
   last_name VARCHAR(100) NOT NULL,
   password_hash TEXT NOT NULL,
   email_verified BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  pending_email VARCHAR(255),
+  email_verification_token VARCHAR(255),
+  email_verification_token_expiry TIMESTAMPTZ,
+  password_reset_token VARCHAR(255),
+  password_reset_token_expiry TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW ()
 );
