@@ -346,7 +346,7 @@ function RegisterPage() {
             value={form.username}
             onChange={handleChange}
             className={inputClass}
-            pattern="[A-Za-z0-9._-]{1,20}"
+            pattern="[A-Za-z0-9._\-]{1,20}"
             title="1-20 characters: letters, numbers, dot, underscore, hyphen"
             required
           />
