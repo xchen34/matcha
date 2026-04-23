@@ -4,12 +4,23 @@
 WITH params AS (
   SELECT 500::int AS count -- change here if you want a different volume
 ),
+deleted_seed_users AS (
+  DELETE FROM users
+  WHERE
+    -- legacy seeds from previous script versions
+    email LIKE '%.seed\_%@example.com' ESCAPE '\'
+    -- current/future seed convention
+    OR email LIKE 'seed.%@example.com'
+    OR username LIKE 'seed\_%' ESCAPE '\'
+  RETURNING id
+),
+cleanup_done AS (
+  SELECT COUNT(*) AS removed_count FROM deleted_seed_users
+),
 generated AS (
   SELECT
-    -- unique tag to avoid email/username conflicts even if run multiple times
-    'seed_' || to_char(NOW(), 'YYYYMMDDHH24MISS') || '_' || g AS tag,
     g
-  FROM params, generate_series(1, (SELECT count FROM params)) g
+  FROM params, cleanup_done, generate_series(1, (SELECT count FROM params)) g
 ),
 name_bank AS (
   SELECT ARRAY[
@@ -52,8 +63,11 @@ seed_tags AS (
 new_users AS (
   INSERT INTO users (email, username, first_name, last_name, password_hash, email_verified, created_at)
   SELECT
-    lower(f || '.' || l || '.' || gen.tag || '@example.com') AS email,
-    lower(f || '_' || l || '_' || gen.tag)                  AS username,
+    lower('seed.' || regexp_replace(f, '[^a-zA-Z0-9]', '', 'g') || '.' || gen.g || '@example.com') AS email,
+    left(
+      lower('seed_' || regexp_replace(f, '[^a-zA-Z0-9]', '', 'g') || '_' || gen.g),
+      20
+    ) AS username,
     f AS first_name,
     l AS last_name,
     -- bcrypt hash for password "password" (demo only)
@@ -87,8 +101,19 @@ inserted_profiles AS (
     (ARRAY['male','female','non_binary','other'])[1 + floor(random() * 4)],
     (ARRAY['male','female','both','other'])[1 + floor(random() * 4)],
     'Auto bio for ' || u.username,
-    -- age between 18 and 40
-    (CURRENT_DATE - ((18 + floor(random() * 22))::int * INTERVAL '1 year'))::date,
+    -- age distribution:
+    -- ~90% in 18-60, ~10% in 61-100
+    (
+      CURRENT_DATE - (
+        (
+          CASE
+            WHEN random() < 0.9
+              THEN 18 + floor(random() * 43)::int
+            ELSE 61 + floor(random() * 40)::int
+          END
+        ) * INTERVAL '1 year'
+      )
+    )::date,
     (ARRAY[
       'Paris','Lyon','Marseille','Toulouse','Nice','Nantes','Strasbourg','Montpellier','Bordeaux','Lille',
       'Berlin','Madrid','London','Rome','Amsterdam','Brussels','Lisbon',
@@ -97,22 +122,66 @@ inserted_profiles AS (
     ])[1 + floor(random() * 36)],
     ROUND((random() * 180 - 90)::numeric, 6),
     ROUND((random() * 360 - 180)::numeric, 6),
-    ROUND((random() * 100)::numeric, 2)
+    0
   FROM new_users u
   LEFT JOIN profiles p ON p.user_id = u.id
   WHERE p.user_id IS NULL
   RETURNING user_id
+),
+inserted_tags AS (
+  INSERT INTO user_profile_tags (user_id, tag_id)
+  SELECT
+    u.id,
+    t.id
+  FROM new_users u
+  JOIN LATERAL (
+    SELECT id
+    FROM tags
+    ORDER BY random()
+    LIMIT (1 + floor(random() * 5))::int
+  ) t ON TRUE
+  ON CONFLICT DO NOTHING
+  RETURNING user_id
+),
+seed_views AS (
+  INSERT INTO profile_views (viewer_user_id, viewed_user_id, created_at)
+  SELECT
+    viewer.id AS viewer_user_id,
+    viewed.id AS viewed_user_id,
+    NOW() - (random() * INTERVAL '30 days')
+  FROM new_users viewer
+  JOIN new_users viewed ON viewer.id <> viewed.id
+  WHERE random() < 0.03
+  ON CONFLICT (viewer_user_id, viewed_user_id) DO NOTHING
+  RETURNING viewer_user_id, viewed_user_id
+),
+seed_likes AS (
+  INSERT INTO likes (liker_user_id, liked_user_id, created_at)
+  SELECT
+    liker.id AS liker_user_id,
+    liked.id AS liked_user_id,
+    NOW() - (random() * INTERVAL '6 days')
+  FROM new_users liker
+  JOIN new_users liked ON liker.id <> liked.id
+  WHERE random() < 0.012
+  ON CONFLICT (liker_user_id, liked_user_id) DO NOTHING
+  RETURNING liker_user_id, liked_user_id
+),
+seed_matches AS (
+  INSERT INTO likes (liker_user_id, liked_user_id, created_at)
+  SELECT
+    l.liked_user_id AS liker_user_id,
+    l.liker_user_id AS liked_user_id,
+    NOW() - (random() * INTERVAL '3 days')
+  FROM seed_likes l
+  WHERE random() < 0.35
+  ON CONFLICT (liker_user_id, liked_user_id) DO NOTHING
+  RETURNING liker_user_id, liked_user_id
 )
--- assign 1-5 random tags per new user
-INSERT INTO user_profile_tags (user_id, tag_id)
 SELECT
-  u.id,
-  t.id
-FROM new_users u
-JOIN LATERAL (
-  SELECT id
-  FROM tags
-  ORDER BY random()
-  LIMIT (1 + floor(random() * 5))::int
-) t ON TRUE
-ON CONFLICT DO NOTHING;
+  (SELECT COUNT(*) FROM new_users) AS created_users,
+  (SELECT COUNT(*) FROM inserted_profiles) AS created_profiles,
+  (SELECT COUNT(*) FROM inserted_tags) AS inserted_tags,
+  (SELECT COUNT(*) FROM seed_views) AS inserted_views,
+  (SELECT COUNT(*) FROM seed_likes) AS inserted_likes,
+  (SELECT COUNT(*) FROM seed_matches) AS inserted_match_likes;

@@ -197,6 +197,7 @@ function MyPopularityPage({ currentUser }) {
                     photoUrl={user.primary_photo_url || user.photo_url || user.profile_photo_url || user.avatarUrl}
                     isOnline={false}
                     sizeClass="h-10 w-10"
+                    showPresence={false}
                   />
                   <div>
                     <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>
@@ -245,6 +246,7 @@ function MyPopularityPage({ currentUser }) {
                     photoUrl={user.primary_photo_url || user.photo_url || user.profile_photo_url || user.avatarUrl}
                     isOnline={false}
                     sizeClass="h-10 w-10"
+                    showPresence={false}
                   />
                   <div>
                     <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>
@@ -293,6 +295,7 @@ function MyPopularityPage({ currentUser }) {
                     photoUrl={user.primary_photo_url || user.photo_url || user.profile_photo_url || user.avatarUrl}
                     isOnline={false}
                     sizeClass="h-10 w-10"
+                    showPresence={false}
                   />
                   <div>
                     <p className="font-semibold text-white">@{sanitizeText(user.username)}</p>

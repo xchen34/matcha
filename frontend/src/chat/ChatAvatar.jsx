@@ -2,6 +2,7 @@ export default function ChatAvatar({
   name,
   photoUrl,
   isOnline = false,
+  showPresence = true,
   sizeClass = "h-12 w-12",
   imageClassName = "",
 }) {
@@ -24,11 +25,13 @@ export default function ChatAvatar({
           <span>{initial}</span>
         )}
       </div>
-      <span
-        className={`absolute bottom-1 right-1 z-10 h-3.5 w-3.5 translate-x-1/4 translate-y-1/4 rounded-full border-2 border-white shadow-sm ${
-          isOnline ? "bg-emerald-500" : "bg-slate-400"
-        }`}
-      />
+      {showPresence && (
+        <span
+          className={`absolute bottom-1 right-1 z-10 h-3.5 w-3.5 translate-x-1/4 translate-y-1/4 rounded-full border-2 border-white shadow-sm ${
+            isOnline ? "bg-emerald-500" : "bg-slate-400"
+          }`}
+        />
+      )}
     </div>
   );
 }

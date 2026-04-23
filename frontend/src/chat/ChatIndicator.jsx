@@ -15,6 +15,26 @@ function formatPreview(lastMessage) {
   return formatQuotedMessagePreview(lastMessage.content, 48);
 }
 
+function toDisplayHandle(user) {
+  const username = String(user?.username || "").trim().replace(/^@+/, "");
+  if (username) {
+    return `@${sanitizeText(username)}`;
+  }
+  return sanitizeText(`User ${user?.id ?? ""}`);
+}
+
+function toAvatarName(user) {
+  const username = String(user?.username || "").trim().replace(/^@+/, "");
+  if (username) {
+    return sanitizeText(username);
+  }
+  const firstName = String(user?.first_name || "").trim();
+  if (firstName) {
+    return sanitizeText(firstName);
+  }
+  return sanitizeText(`User ${user?.id ?? ""}`);
+}
+
 export default function ChatIndicator({ currentUser }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -179,11 +199,8 @@ export default function ChatIndicator({ currentUser }) {
               <p className="px-3 py-3 text-sm text-slate-500">No conversations yet.</p>
             ) : (
               shortcuts.map((conv) => {
-                const displayName = sanitizeText(
-                  conv.other_user?.first_name ||
-                  conv.other_user?.username ||
-                  `User ${conv.other_user?.id ?? ""}`
-                );
+                const displayName = toDisplayHandle(conv.other_user);
+                const avatarName = toAvatarName(conv.other_user);
 
                 return (
                   <button
@@ -193,7 +210,7 @@ export default function ChatIndicator({ currentUser }) {
                     className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-slate-50"
                   >
                     <ChatAvatar
-                      name={displayName}
+                      name={avatarName}
                       photoUrl={conv.other_user?.primary_photo_url || ""}
                       isOnline={Boolean(conv.other_user?.is_online)}
                       sizeClass="h-10 w-10"

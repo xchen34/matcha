@@ -7,6 +7,28 @@ import { sanitizeText } from "../utils/xssEscape.js";
 import { fetchChatConversations } from "../chat/api.js";
 import { formatQuotedMessagePreview } from "../chat/quoteUtils.js";
 
+const POLL_INTERVAL_MS = 15000;
+
+function toDisplayHandle(user) {
+  const username = String(user?.username || "").trim().replace(/^@+/, "");
+  if (username) {
+    return `@${sanitizeText(username)}`;
+  }
+  return sanitizeText(`User ${user?.id ?? ""}`);
+}
+
+function toAvatarName(user) {
+  const username = String(user?.username || "").trim().replace(/^@+/, "");
+  if (username) {
+    return sanitizeText(username);
+  }
+  const firstName = String(user?.first_name || "").trim();
+  if (firstName) {
+    return sanitizeText(firstName);
+  }
+  return sanitizeText(`User ${user?.id ?? ""}`);
+}
+
 function formatTimestamp(value) {
   if (!value) return "";
   const date = new Date(value);
@@ -65,6 +87,13 @@ export default function ChatListPage({ currentUser, embedded = false }) {
 
   useEffect(() => {
     loadConversations();
+  }, [loadConversations]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(loadConversations, POLL_INTERVAL_MS);
+    return () => {
+      window.clearInterval(intervalId);
+    };
   }, [loadConversations]);
 
   useEffect(() => {
@@ -297,11 +326,8 @@ export default function ChatListPage({ currentUser, embedded = false }) {
             );
             const lastMessageTime = formatTimestamp(conv.last_message?.created_at);
 
-            const displayName = sanitizeText(
-              conv.other_user.first_name ||
-              conv.other_user.username ||
-              `User ${conv.other_user.id}`
-            );
+            const displayName = toDisplayHandle(conv.other_user);
+            const avatarName = toAvatarName(conv.other_user);
 
             return (
               <li key={conv.conversation_id}>
@@ -312,7 +338,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                   }`}
                 >
                   <ChatAvatar
-                    name={displayName}
+                    name={avatarName}
                     photoUrl={conv.other_user.primary_photo_url}
                     isOnline={Boolean(conv.other_user.is_online)}
                   />

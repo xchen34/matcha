@@ -216,17 +216,50 @@ router.get("/profile/matches", async (req, res, next) => {
 // POST /api/users/:id/view — record that the current user viewed user :id
 router.post("/users/:id/view", async (req, res, next) => {
   try {
-    const viewer_user_id = req.header("x-user-id");
-    const viewed_user_id = req.params.id;
+    const rawViewerUserId = req.header("x-user-id");
+    const rawViewedUserId = req.params.id;
+    const viewer_user_id = Number(rawViewerUserId);
+    const viewed_user_id = Number(rawViewedUserId);
 
-    if (!viewer_user_id || !viewed_user_id) {
+    if (!rawViewerUserId || !rawViewedUserId) {
       return res.status(400).json({
         error: "viewer_user_id (header) et viewed_user_id (param) requis",
       });
     }
 
+    if (
+      !Number.isInteger(viewer_user_id) ||
+      viewer_user_id <= 0 ||
+      !Number.isInteger(viewed_user_id) ||
+      viewed_user_id <= 0
+    ) {
+      return res.status(400).json({
+        error: "viewer_user_id et viewed_user_id doivent etre des entiers positifs",
+      });
+    }
+
     if (String(viewer_user_id) === String(viewed_user_id)) {
       return res.status(400).json({ error: "Impossible to view myself" });
+    }
+
+    const usersExistenceResult = await pool.query(
+      `
+      SELECT id
+      FROM users
+      WHERE id = ANY($1::int[])
+      `,
+      [[viewer_user_id, viewed_user_id]],
+    );
+    const existingUserIds = new Set(
+      usersExistenceResult.rows.map((row) => Number(row.id)),
+    );
+
+    if (!existingUserIds.has(viewer_user_id)) {
+      return res.status(401).json({ error: "Viewer user not found" });
+    }
+
+    if (!existingUserIds.has(viewed_user_id)) {
+      return res.status(404).json({ error: "Viewed user not found" });
     }
 
     const result = await pool.query(
@@ -414,21 +447,22 @@ router.get("/matches", async (req, res, next) => {
         SELECT
           u.id,
           GREATEST(
-            LEAST(
-              FLOOR(
-                COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id), 0)::numeric / 20
-              ) + FLOOR(
-                COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric / 5
-              ) + CASE
-                WHEN COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0) = 0
-                  THEN -1
-                ELSE 0
-              END,
-              100
-            ),
-            0
-          )::int AS fame_rating
+              LEAST(
+                FLOOR(
+                  COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id), 0)::numeric / 20
+                ) + FLOOR(
+                  COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric / 5
+                ) + CASE
+                  WHEN COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0) = 0
+                    THEN -1
+                  ELSE 0
+                END,
+                100
+              ),
+              0
+            )::int AS fame_rating
         FROM users u
+        LEFT JOIN profiles p ON p.user_id = u.id
       )
       SELECT
         u.id,
