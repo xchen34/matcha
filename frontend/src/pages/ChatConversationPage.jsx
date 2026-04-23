@@ -19,7 +19,7 @@ import {
   sendChatMessage,
 } from "../chat/api.js";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 18;
 const MAX_CHAT_MESSAGE_LENGTH = 1200;
 
 const chatBubbleClass =

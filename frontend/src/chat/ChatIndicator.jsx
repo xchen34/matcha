@@ -166,7 +166,7 @@ export default function ChatIndicator({ currentUser }) {
       </button>
 
       {isOpen && (
-        <div className="fixed left-3 right-3 top-20 z-50 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80">
+        <div className="fixed left-2 right-2 top-16 z-50 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80">
           <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Messages

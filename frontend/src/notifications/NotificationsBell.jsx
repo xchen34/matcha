@@ -180,7 +180,7 @@ export default function NotificationsBell() {
       </button>
 
       {open && (
-        <div className="fixed left-3 right-3 top-20 z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[340px]">
+        <div className="fixed left-2 right-2 top-16 z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 w-auto max-w-[98vw] sm:w-[340px]">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
             {notifications.length > 0 && (
@@ -212,12 +212,12 @@ export default function NotificationsBell() {
                   className="w-full text-left"
                 >
                   <div
-                    className={`flex items-center gap-3 rounded-2xl border bg-slate-50 p-3 transition duration-200 hover:bg-white ${getGroupBorderClass(group.type)} ${dismissingGroups.includes(group.type) ? "translate-x-5 opacity-0 scale-95" : "hover:border-slate-300"}`}
+                    className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-2xl border bg-slate-50 p-3 transition duration-200 hover:bg-white ${getGroupBorderClass(group.type)} ${dismissingGroups.includes(group.type) ? "translate-x-5 opacity-0 scale-95" : "hover:border-slate-300"}`}
                   >
-                    <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-lg font-semibold ${getGroupAccentClass(group.type)}`}>
+                    <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-lg font-semibold mx-auto sm:mx-0 ${getGroupAccentClass(group.type)}`}>
                       <GroupTypeIcon type={group.type} />
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 text-center sm:text-left">
                       <p className="break-words text-sm text-slate-700">
                         <span className="font-semibold text-slate-900">{sanitizeText(group.primaryActor)}</span>{" "}
                         {createCardMessage(group.primaryActor, group.verb, group.count)}

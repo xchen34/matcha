@@ -8,7 +8,7 @@ import UserCard from "../components/UserCard.jsx";
 import { buildApiHeaders } from "../utils.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 18;
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
@@ -477,7 +477,6 @@ function FindMatchPage({ currentUser }) {
   return (
     <section className={cardClass}>
       <div className="flex flex-col gap-1 mb-12">
-
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-900">
@@ -676,7 +675,7 @@ function FindMatchPage({ currentUser }) {
 
         <div className="flex flex-col gap-2 col-span-2">
           <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-            <FaSort size={12} className="text-slate-400" aria-hidden="true" />
+            <FaSort size={12} className="text-slate-500" aria-hidden="true" />
             <span>Sort by</span>
           </label>
           <div className="relative">
@@ -701,7 +700,7 @@ function FindMatchPage({ currentUser }) {
 
         <div className="flex flex-col gap-2 col-span-2">
           <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-            <FaArrowDown size={12} className="text-slate-400" aria-hidden="true" />
+            <FaArrowDown size={12} className="text-slate-500" aria-hidden="true" />
             <span>Order</span>
           </label>
           <div className="relative">
@@ -790,7 +789,7 @@ function FindMatchPage({ currentUser }) {
         </div>
       )}
 
-      <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {(!Array.isArray(users) || users.length === 0) && <p>No users found.</p>}
         {Array.isArray(users) &&
           users.map((user) => (
