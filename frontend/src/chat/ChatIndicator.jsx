@@ -40,7 +40,6 @@ export default function ChatIndicator({ currentUser }) {
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
   const [conversations, setConversations] = useState([]);
-  const [loadTrigger, setLoadTrigger] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -84,8 +83,8 @@ export default function ChatIndicator({ currentUser }) {
   }, [currentUser, location.pathname]);
 
   useEffect(() => {
-    loadChats();
-  }, [loadChats, loadTrigger]);
+    void loadChats();
+  }, [loadChats]);
 
   useEffect(() => {
     const intervalId = window.setInterval(loadChats, POLL_INTERVAL_MS);
@@ -97,19 +96,12 @@ export default function ChatIndicator({ currentUser }) {
   useEffect(() => {
     if (!currentUser?.id) return undefined;
     const off = onRealtimeEvent("chat:message:created", () => {
-      setLoadTrigger((prev) => prev + 1);
+      void loadChats();
     });
     return () => {
       off();
     };
-  }, [currentUser?.id]);
-
-  useEffect(() => {
-    if (!currentUser?.id) return;
-    if (location.pathname.startsWith("/messages")) {
-      setLoadTrigger((prev) => prev + 1);
-    }
-  }, [location.pathname, currentUser?.id]);
+  }, [currentUser?.id, loadChats]);
 
   useEffect(() => {
     if (!isOpen) return undefined;

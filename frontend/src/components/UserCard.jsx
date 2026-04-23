@@ -1,12 +1,11 @@
 import { FaBan, FaHeart, FaUser, FaMapMarkerAlt, FaTags, FaStar, FaTransgender } from "react-icons/fa";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { sanitizeText } from "../utils/xssEscape.js";
 
 function UserCard({ user, currentUser, canLikeProfiles = true }) {
   const navigate = useNavigate();
-  const [liked, setLiked] = useState(Boolean(user?.liked));
-  const [isMatch, setIsMatch] = useState(Boolean(user?.is_match));
+  const [optimistic, setOptimistic] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,10 +19,10 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
     [user]
   );
 
-  useEffect(() => {
-    setLiked(Boolean(user?.liked));
-    setIsMatch(Boolean(user?.is_match));
-  }, [user?.id, user?.liked, user?.is_match]);
+  const liked =
+    optimistic?.userId === user?.id ? optimistic.liked : Boolean(user?.liked);
+  const isMatch =
+    optimistic?.userId === user?.id ? optimistic.isMatch : Boolean(user?.is_match);
 
   const likeDisabledBecauseNoOwnPhoto =
     !liked && !canLikeProfiles && user?.id !== currentUser?.id;
@@ -38,6 +37,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
       if (!liked && !canLikeProfiles) {
         throw new Error("Add a profile picture first to like users.");
       }
+      const nextLiked = !liked;
 
       if (!liked) {
         const res = await fetch(`/api/users/${user.id}/like`, {
@@ -45,22 +45,33 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           headers: { "x-user-id": currentUser.id },
         });
         if (!res.ok) throw new Error("Error while liking");
-        setLiked(true);
+        setOptimistic({
+          userId: user.id,
+          liked: nextLiked,
+          isMatch,
+        });
       } else {
         const res = await fetch(`/api/users/${user.id}/like`, {
           method: "DELETE",
           headers: { "x-user-id": currentUser.id },
         });
         if (!res.ok) throw new Error("Error when unliking");
-        setLiked(false);
-        setIsMatch(false);
+        setOptimistic({
+          userId: user.id,
+          liked: nextLiked,
+          isMatch: false,
+        });
       }
 
       const matchRes = await fetch(`/api/users/${user.id}/is-match`, {
         headers: { "x-user-id": currentUser.id },
       });
       const matchData = await matchRes.json();
-      setIsMatch(!!matchData.is_match);
+      setOptimistic({
+        userId: user.id,
+        liked: nextLiked,
+        isMatch: !!matchData.is_match,
+      });
     } catch (err) {
       setError(err.message || "Network error");
     } finally {
