@@ -1,4 +1,4 @@
-import { FaHeart, FaUser, FaMapMarkerAlt, FaTags, FaStar, FaTransgender } from "react-icons/fa";
+import { FaBan, FaHeart, FaUser, FaMapMarkerAlt, FaTags, FaStar, FaTransgender } from "react-icons/fa";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { sanitizeText } from "../utils/xssEscape.js";
@@ -24,6 +24,11 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
     setLiked(Boolean(user?.liked));
     setIsMatch(Boolean(user?.is_match));
   }, [user?.id, user?.liked, user?.is_match]);
+
+  const likeDisabledBecauseNoOwnPhoto =
+    !liked && !canLikeProfiles && user?.id !== currentUser?.id;
+  const fameValue = Number(user?.fame_rating);
+  const hasFameValue = Number.isFinite(fameValue);
 
   async function handleToggleLike() {
     setLoading(true);
@@ -87,24 +92,36 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           {user.is_online ? "Online" : "Offline"}
         </span>
 
-        <button
-          onClick={handleToggleLike}
-          disabled={
-            loading ||
-            user.id === currentUser.id ||
-            (!liked && (!canLikeProfiles || !profilePhotoUrl))
-          }
-          className={`absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-lg transition
-            ${isMatch
-              ? "border-red-700 bg-red-600"
-              : liked
-              ? "border-orange-300 bg-orange-500"
-              : "border-white/80 bg-slate-700/70 backdrop-blur"
-            }`}
-          aria-label={isMatch ? "Match" : liked ? "Liked" : "Like"}
-        >
-          <FaHeart size={18} color="#fff" />
-        </button>
+        <div className="group absolute bottom-3 right-3">
+          <button
+            onClick={handleToggleLike}
+            disabled={
+              loading ||
+              user.id === currentUser.id ||
+              (!liked && (!canLikeProfiles || !profilePhotoUrl))
+            }
+            className={`relative flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-lg transition
+              ${isMatch
+                ? "border-red-700 bg-red-600"
+                : liked
+                ? "border-orange-300 bg-orange-500"
+                : "border-white/80 bg-slate-700/70 backdrop-blur"
+              } ${likeDisabledBecauseNoOwnPhoto ? "cursor-not-allowed" : ""}`}
+            aria-label={isMatch ? "Match" : liked ? "Liked" : "Like"}
+          >
+            <FaHeart size={18} color="#fff" />
+            {likeDisabledBecauseNoOwnPhoto && (
+              <span className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white shadow-sm">
+                <FaBan size={10} />
+              </span>
+            )}
+          </button>
+          {likeDisabledBecauseNoOwnPhoto && (
+            <div className="pointer-events-none absolute bottom-full right-0 mb-2 hidden w-52 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-lg group-hover:block">
+              Add a primary profile photo to enable likes.
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-3 p-3 sm:p-4">
@@ -140,10 +157,10 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
               {user.neighborhood ? ` - ${sanitizeText(user.neighborhood)}` : ""}
             </span>
           </span>
-          {typeof user.fame_rating === "number" && (
+          {hasFameValue && (
             <span className="inline-flex items-center gap-1">
               <FaStar size={13} />
-              <span className="font-semibold text-slate-800">{Math.floor(user.fame_rating)}</span>
+              <span className="font-semibold text-slate-800">{Math.floor(fameValue)}</span>
             </span>
           )}
         </div>

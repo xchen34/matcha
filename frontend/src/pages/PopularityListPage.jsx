@@ -393,6 +393,7 @@ function PopularityListPage({ currentUser, mode = "views" }) {
                     name={user.username}
                     photoUrl={user.primary_photo_url || user.photo_url || user.profile_photo_url || user.avatarUrl }
                     sizeClass="h-10 w-10"
+                    showPresence={false}
                   />
                   <div>
                     <p className="inline-flex items-center gap-2 font-semibold text-slate-900">
@@ -423,6 +424,7 @@ function PopularityListPage({ currentUser, mode = "views" }) {
                 name={user.username}
                 photoUrl={user.primary_photo_url || user.photo_url || user.profile_photo_url || user.avatarUrl}
                 sizeClass="h-10 w-10"
+                showPresence={false}
               />
               <div>
                 <p className="inline-flex items-center gap-2 font-semibold text-slate-900">

@@ -12,6 +12,7 @@ const {
 
 const router = express.Router();
 const MAX_BIO_LENGTH = 500;
+const USERNAME_PATTERN = /^[A-Za-z0-9._-]{1,20}$/;
 const allowedGenders = ["male", "female", "non_binary", "other"];
 const allowedPreferences = ["male", "female", "both", "other"];
 const GEO_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -858,20 +859,20 @@ router.get("/profile/me", async (req, res, next) => {
           p.latitude,
           p.longitude,
           GREATEST(
-            LEAST(
-              FLOOR(
-                COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id), 0)::numeric / 20
-              ) + FLOOR(
-                COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric / 5
-              ) + CASE
-                WHEN COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0) = 0
-                  THEN -1
-                ELSE 0
-              END,
-              100
-            ),
-            0
-          )::int AS fame_rating
+              LEAST(
+                FLOOR(
+                  COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id), 0)::numeric / 20
+                ) + FLOOR(
+                  COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric / 5
+                ) + CASE
+                  WHEN COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0) = 0
+                    THEN -1
+                  ELSE 0
+                END,
+                100
+              ),
+              0
+            )::int AS fame_rating
         FROM users AS u
         LEFT JOIN profiles AS p ON p.user_id = u.id
         WHERE u.id = $1
@@ -977,20 +978,20 @@ router.get("/profile/:id", async (req, res, next) => {
           p.city,
           p.neighborhood,
           GREATEST(
-            LEAST(
-              FLOOR(
-                COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id), 0)::numeric / 20
-              ) + FLOOR(
-                COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric / 5
-              ) + CASE
-                WHEN COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0) = 0
-                  THEN -1
-                ELSE 0
-              END,
-              100
-            ),
-            0
-          )::int AS fame_rating
+              LEAST(
+                FLOOR(
+                  COALESCE((SELECT COUNT(*) FROM profile_views WHERE viewed_user_id = u.id), 0)::numeric / 20
+                ) + FLOOR(
+                  COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id), 0)::numeric / 5
+                ) + CASE
+                  WHEN COALESCE((SELECT COUNT(*) FROM likes WHERE liked_user_id = u.id AND created_at > NOW() - INTERVAL '7 days'), 0) = 0
+                    THEN -1
+                  ELSE 0
+                END,
+                100
+              ),
+              0
+            )::int AS fame_rating
         FROM users AS u
         LEFT JOIN profiles AS p ON p.user_id = u.id
         WHERE u.id = $1
@@ -1279,13 +1280,10 @@ router.put("/profile/me", async (req, res, next) => {
       ? birth_date.trim()
       : null;
 
-    if (
-      normalizedUsername &&
-      !/^[a-zA-Z0-9_]{3,50}$/.test(normalizedUsername)
-    ) {
+    if (normalizedUsername && !USERNAME_PATTERN.test(normalizedUsername)) {
       return res.status(400).json({
         error:
-          "username is invalid (use 3-50 characters: letters, numbers, underscore)",
+          "username is invalid (use 1-20 characters: letters, numbers, dot, underscore, hyphen)",
       });
     }
 
