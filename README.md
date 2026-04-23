@@ -77,7 +77,7 @@ Schema files live in `scripts/sql/`.
 Backend (default `http://localhost:3000`):
 
 ```bash
-npm run dev
+npm start
 ```
 
 Frontend (default `http://localhost:5173`):
