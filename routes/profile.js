@@ -1248,7 +1248,7 @@ router.put("/profile/me", async (req, res, next) => {
     if (normalizedUsername && !USERNAME_PATTERN.test(normalizedUsername)) {
       return res.status(400).json({
         error:
-          "username is invalid (use 3-20 characters: letters, numbers, dot, underscore, hyphen)",
+          "username is invalid (use 2-20 characters: letters, numbers, dot, underscore, hyphen)",
       });
     }
 

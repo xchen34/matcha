@@ -346,10 +346,10 @@ function RegisterPage() {
             onChange={handleChange}
             className={inputClass}
             pattern="[A-Za-z0-9._\-]{1,20}"
-            title="3-20 characters: letters, numbers, dot, underscore, hyphen"
+            title="2-20 characters: letters, numbers, dot, underscore, hyphen"
             required
           />
-          <p className="text-xs text-slate-500">3-20 chars, letters/numbers and . _ - only.</p>
+          <p className="text-xs text-slate-500">2-20 chars, letters/numbers and . _ - only.</p>
         </div>
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
