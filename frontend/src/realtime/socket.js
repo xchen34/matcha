@@ -7,8 +7,11 @@ const activeConversationIds = new Set();
 function ensureSocket() {
   if (socket) return socket;
 
-  // Connect explicitly to backend server (port 3000)
-  socket = io("http://localhost:3000", {
+  const configuredSocketUrl = import.meta.env.VITE_SOCKET_URL;
+  const socketUrl = configuredSocketUrl ? configuredSocketUrl.trim() : undefined;
+
+  // Use same-origin by default so Vite/Nginx proxies can route /socket.io.
+  socket = io(socketUrl, {
     path: "/socket.io",
     transports: ["websocket", "polling"],
     autoConnect: false,
