@@ -14,7 +14,7 @@ const {
 const router = express.Router(); //router 是一个独立的 Express 应用实例，可以定义自己的路由和中间件。最后通过 module.exports 导出，供 app.js 挂载使用。
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72;
-const USERNAME_PATTERN = /^[A-Za-z0-9._-]{1,20}$/;
+const USERNAME_PATTERN = /^[A-Za-z0-9._-]{3,20}$/;
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); // 简单的邮箱格式验证，确保包含一个 @ 和一个 .，且没有空格。实际项目中可以使用更复杂的验证库，如 validator.js。
@@ -206,7 +206,7 @@ router.post("/auth/register", authLimiter, async (req, res, next) => {
     if (!USERNAME_PATTERN.test(normalizedUsername)) {
       return res.status(400).json({
         error:
-          "username is invalid (use 1-20 characters: letters, numbers, dot, underscore, hyphen)",
+          "username is invalid (use 3-20 characters: letters, numbers, dot, underscore, hyphen)",
       });
     }
 

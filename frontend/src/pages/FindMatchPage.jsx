@@ -505,7 +505,7 @@ function FindMatchPage({ currentUser }) {
               </div>
 
               <div className="leading-tight">
-                <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                   <span>My fame</span>
                 </p>
 
@@ -676,7 +676,7 @@ function FindMatchPage({ currentUser }) {
 
         <div className="flex flex-col gap-2 col-span-2">
           <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-            <FaSort size={12} className="text-slate-400" aria-hidden="true" />
+            <FaSort size={12} className="text-slate-500" aria-hidden="true" />
             <span>Sort by</span>
           </label>
           <div className="relative">
@@ -693,7 +693,7 @@ function FindMatchPage({ currentUser }) {
               <option value="fame_rating">Fame rating</option>
               <option value="tags">Tags</option>
             </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
               ▾
             </div>
           </div>
@@ -701,7 +701,7 @@ function FindMatchPage({ currentUser }) {
 
         <div className="flex flex-col gap-2 col-span-2">
           <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-            <FaArrowDown size={12} className="text-slate-400" aria-hidden="true" />
+            <FaArrowDown size={12} className="text-slate-500" aria-hidden="true" />
             <span>Order</span>
           </label>
           <div className="relative">
@@ -715,7 +715,7 @@ function FindMatchPage({ currentUser }) {
               <option value="desc">Descending</option>
               <option value="asc">Ascending</option>
             </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
               ▾
             </div>
           </div>

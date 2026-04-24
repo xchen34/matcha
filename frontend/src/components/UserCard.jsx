@@ -80,7 +80,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[19rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
+    <div className="mx-auto w-full max-w-[19rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md hover:scale-105">
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-100 sm:aspect-[3/4]">
         {profilePhotoUrl ? (
           <img
@@ -89,7 +89,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs font-medium text-slate-400">
+          <div className="flex h-full w-full items-center justify-center text-xs font-medium text-slate-500">
             No profile photo
           </div>
         )}
@@ -177,7 +177,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-1 text-xs text-slate-600">
-          <FaTags size={12} className="text-slate-400" />
+          <FaTags size={12} className="text-slate-500" />
           {Array.isArray(user.tags) && user.tags.length > 0 ? (
             user.tags.slice(0, 3).map((tag) => (
               <span

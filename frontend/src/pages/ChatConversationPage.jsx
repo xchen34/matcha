@@ -373,7 +373,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       } else if (blockedYou) {
         setBlockStatus("blocked_you");
         setIsMatch(false);
-        setMatchError("你已被对方拉黑");
+        setMatchError("You've been blocked");
       } else if (!matched) {
         setBlockStatus("unmatched");
         setIsMatch(false);
@@ -808,10 +808,10 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         setMessages((prev) => dedupeMessages([...prev, payload.message]));
       } catch (err) {
         setError(err.message);
-        if (err?.message === "你已被对方拉黑") {
+        if (err?.message === "You've been blocked") {
           setBlockStatus("blocked_you");
           setIsMatch(false);
-          setMatchError("你已被对方拉黑");
+          setMatchError("You've been blocked");
         } else if (err?.message === "Cannot interact with a user you blocked.") {
           setBlockStatus("blocked_by_you");
           setIsMatch(false);
