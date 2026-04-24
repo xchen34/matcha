@@ -79,6 +79,24 @@ async function initDb() {
       "seed_fake_users.sql",
     );
     const seedFakeUsersSql = fs.readFileSync(seedFakeUsersSqlPath, "utf8");
+    const seedUserPhotosSql = `
+      INSERT INTO user_photos (user_id, data_url, is_primary)
+      SELECT
+        u.id,
+        CASE
+          WHEN p.gender = 'female'
+            THEN 'https://randomuser.me/api/portraits/women/' || (u.id % 100) || '.jpg'
+          WHEN p.gender = 'male'
+            THEN 'https://randomuser.me/api/portraits/men/' || (u.id % 100) || '.jpg'
+          ELSE
+            'https://images.unsplash.com/photo-1517841905240-472988babdf9'
+        END,
+        TRUE
+      FROM users u
+      INNER JOIN profiles p ON p.user_id = u.id
+      LEFT JOIN user_photos up ON up.user_id = u.id
+      WHERE up.user_id IS NULL;
+    `;
     const migrateLegacyUsersSql = `
       ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(50);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100);
@@ -152,6 +170,7 @@ async function initDb() {
     await pool.query(createChatSql);
     await pool.query(migrateLegacyUsersSql);
     await pool.query(seedFakeUsersSql);
+    await pool.query(seedUserPhotosSql);
     // const { spawnSync } = require("child_process");
     // const result = spawnSync("node", [path.join(__dirname, "seed_photos_for_existing_users.js")], { stdio: "inherit" });
     // if (result.status !== 0) {

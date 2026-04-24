@@ -86,6 +86,52 @@ Frontend (default `http://localhost:5173`):
 cd frontend && npm run dev
 ```
 
+## Docker Compose (Frontend + Backend + PostgreSQL)
+
+The repository includes Docker files for one-command development startup.
+
+### 1) Prepare environment
+
+Ensure `.env` exists:
+
+```bash
+cp .env.example .env
+```
+
+For Compose, set at least these values in `.env`:
+
+```bash
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=postgres
+```
+
+### 2) Start everything
+
+```bash
+docker compose up --build
+```
+
+Exposed services:
+
+- Frontend (Vite): `http://localhost:5173`
+- Backend API: `http://localhost:3000`
+- PostgreSQL: `localhost:5432`
+
+The backend container runs `npm run db:init` before `npm run dev` so schema/seed SQL is applied automatically at startup.
+
+### 3) Stop services
+
+```bash
+docker compose down
+```
+
+Remove services plus database volume:
+
+```bash
+docker compose down -v
+```
+
 ## Health Checks
 
 - `GET /api/health`
