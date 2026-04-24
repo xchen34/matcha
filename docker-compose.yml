@@ -37,7 +37,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-    command: sh -c "npm run db:init && npm run dev"
+    command: sh -c "npm run db:init && npm run seed:photos && npm run dev"
 
   frontend:
     build:
