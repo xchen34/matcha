@@ -119,18 +119,28 @@ async function fetchRandomPhoto(gender = null, retry = 0) {
   if (gender && (gender === "male" || gender === "female")) {
     url += `&gender=${gender}`;
   }
-  const res = await fetchWithFallback(url);
-  const data = await res.json();
-  if (
-    data.results &&
-    data.results[0] &&
-    data.results[0].picture &&
-    data.results[0].picture.large
-  ) {
-    return data.results[0].picture.large;
-  } else if (retry < 5) {
-    return await fetchRandomPhoto(gender, retry + 1);
-  } else {
+
+  try {
+    const res = await fetchWithFallback(url);
+    if (!res || !res.ok) {
+      throw new Error(`randomuser request failed: ${res?.status || "no response"}`);
+    }
+
+    const raw = await res.text();
+    if (!raw || !raw.trim()) {
+      throw new Error("randomuser returned empty response body");
+    }
+
+    const data = JSON.parse(raw);
+    const photoUrl = data?.results?.[0]?.picture?.large;
+    if (photoUrl) {
+      return photoUrl;
+    }
+    throw new Error("randomuser response missing picture.large");
+  } catch (error) {
+    if (retry < 4) {
+      return fetchRandomPhoto(gender, retry + 1);
+    }
     return null;
   }
 }
@@ -170,8 +180,12 @@ async function main() {
           if (g && portraits[g]) {
             url = portraits[g][getRandomInt(0, portraits[g].length - 1)];
           } else {
-            // fallback : randomuser.me
+            // fallback: online API first, static pool as final fallback
             url = await fetchRandomPhoto();
+            if (!url) {
+              const allPortraits = [...portraits.male, ...portraits.female];
+              url = allPortraits[getRandomInt(0, allPortraits.length - 1)];
+            }
           }
         } else {
           // Theme photo for secondary photos
