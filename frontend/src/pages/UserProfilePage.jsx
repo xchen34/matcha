@@ -8,6 +8,7 @@ import { onRealtimeEvent } from "../realtime/socket.js";
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+const MAX_FAKE_REPORT_REASON_LENGTH = 200;
 
 function FieldLabel({ icon: Icon, children }) {
   return (
@@ -336,6 +337,12 @@ function UserProfilePage({ currentUser }) {
       setModerationMessage("Please provide a valid report reason (minimum 5 characters).");
       return;
     }
+    if (reason.length > MAX_FAKE_REPORT_REASON_LENGTH) {
+      setModerationMessage(
+        `Report reason cannot exceed ${MAX_FAKE_REPORT_REASON_LENGTH} characters.`,
+      );
+      return;
+    }
 
     setReporting(true);
     setModerationMessage("");
@@ -576,7 +583,11 @@ function UserProfilePage({ currentUser }) {
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand"
             rows={4}
             placeholder="Explain why this profile looks fake"
+            maxLength={MAX_FAKE_REPORT_REASON_LENGTH}
           />
+          <p className="text-xs text-slate-500">
+            {reportReason.length}/{MAX_FAKE_REPORT_REASON_LENGTH}
+          </p>
           <div className="flex items-center gap-2">
             <button
               type="submit"

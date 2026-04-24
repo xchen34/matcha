@@ -14,7 +14,8 @@ const {
 const router = express.Router(); //router 是一个独立的 Express 应用实例，可以定义自己的路由和中间件。最后通过 module.exports 导出，供 app.js 挂载使用。
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72;
-const USERNAME_PATTERN = /^[A-Za-z0-9._-]{3,20}$/;
+const USERNAME_PATTERN = /^[A-Za-z0-9._-]{2,20}$/;
+const MIN_BIRTH_DATE_ISO = "1900-01-01";
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); // 简单的邮箱格式验证，确保包含一个 @ 和一个 .，且没有空格。实际项目中可以使用更复杂的验证库，如 validator.js。
@@ -27,10 +28,22 @@ function isValidEmail(email) {
 function parseBirthDate(value) {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
 
-  const date = new Date(`${trimmed}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
   return date;
 }
 
@@ -182,6 +195,20 @@ router.post("/auth/register", authLimiter, async (req, res, next) => {
       return res
         .status(400)
         .json({ error: "birth_date must be a valid date (YYYY-MM-DD)" });
+    }
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    if (parsedBirthDate > today) {
+      return res
+        .status(400)
+        .json({ error: "birth_date cannot be in the future" });
+    }
+
+    if (birth_date < MIN_BIRTH_DATE_ISO) {
+      return res.status(400).json({
+        error: `birth_date must be on or after ${MIN_BIRTH_DATE_ISO}`,
+      });
     }
 
     if (!isAtLeast18YearsOld(parsedBirthDate)) {

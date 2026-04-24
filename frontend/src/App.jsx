@@ -46,6 +46,7 @@ import { buildApiHeaders } from "./utils.js";
 import ChatIndicator from "./chat/ChatIndicator.jsx";
 const STORAGE_KEY = "matcha.currentUser";
 const MAX_BIO_LENGTH = 500;
+const MIN_BIRTH_DATE_ISO = "1900-01-01";
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
@@ -59,6 +60,37 @@ const primaryButtonClass =
   "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-5 py-2.5 text-sm font-semibold shadow-md shadow-orange-200 hover:-translate-y-0.5 hover:shadow-lg transition disabled:opacity-60";
 const secondaryButtonClass =
   "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition";
+
+function getMaxAdultBirthDateIso() {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(date.getUTCFullYear() - 18);
+  return date.toISOString().slice(0, 10);
+}
+
+function isValidBirthDateIso(value, minIso, maxIso) {
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return false;
+  }
+
+  if (trimmed < minIso || trimmed > maxIso) return false;
+  return true;
+}
 
 function TopNav({ currentUser, profileLocked }) {
   const location = useLocation();
@@ -254,7 +286,7 @@ function RegisterPage() {
   const [previewUrl, setPreviewUrl] = useState("");
   const [devVerifyUrl, setDevVerifyUrl] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const maxAdultBirthDateIso = getMaxAdultBirthDateIso();
   const normalizedEmail = (form.email || "").trim();
 
   function handleChange(event) {
@@ -267,6 +299,13 @@ function RegisterPage() {
     setMessage("Submitting...");
     setPreviewUrl("");
     setDevVerifyUrl("");
+
+    if (!isValidBirthDateIso(form.birth_date, MIN_BIRTH_DATE_ISO, maxAdultBirthDateIso)) {
+      setMessage(
+        `Error: birth date must be a valid date between ${MIN_BIRTH_DATE_ISO} and ${maxAdultBirthDateIso}.`,
+      );
+      return;
+    }
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -345,7 +384,7 @@ function RegisterPage() {
             value={form.username}
             onChange={handleChange}
             className={inputClass}
-            pattern="[A-Za-z0-9._\-]{1,20}"
+            pattern="[A-Za-z0-9._\-]{2,20}"
             title="2-20 characters: letters, numbers, dot, underscore, hyphen"
             required
           />
@@ -387,7 +426,9 @@ function RegisterPage() {
             value={form.birth_date}
             onChange={handleChange}
             className={inputClass}
-            max={todayIso}
+            min={MIN_BIRTH_DATE_ISO}
+            max={maxAdultBirthDateIso}
+            required
           />
           <p className="text-xs text-slate-500">Required to verify you are at least 18 years old.</p>
         </div>
@@ -688,7 +729,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     (form.city || "").trim().length > 0 &&
     (isCityConfirmed ||
       (!validatingLocation && Boolean(locationValidation?.city_exists)));
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const maxAdultBirthDateIso = useMemo(() => getMaxAdultBirthDateIso(), []);
 
   function buildSuggestionKey(suggestion) {
     return `${suggestion.city || ""}-${suggestion.display_name || ""}-${suggestion.latitude ?? ""}-${suggestion.longitude ?? ""}`;
@@ -1480,6 +1521,13 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       return;
     }
 
+    if (!isValidBirthDateIso(form.birth_date, MIN_BIRTH_DATE_ISO, maxAdultBirthDateIso)) {
+      setMessage(
+        `Error: birth date must be a valid date between ${MIN_BIRTH_DATE_ISO} and ${maxAdultBirthDateIso}.`,
+      );
+      return;
+    }
+
     setMessage("Submitting...");
 
     const headers = buildApiHeaders(
@@ -1634,7 +1682,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 value={form.birth_date}
                 onChange={handleChange}
                 className={inputClass}
-                max={todayIso}
+                min={MIN_BIRTH_DATE_ISO}
+                max={maxAdultBirthDateIso}
+                required
               />
             </div>
           </div>

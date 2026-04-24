@@ -12,7 +12,8 @@ const {
 
 const router = express.Router();
 const MAX_BIO_LENGTH = 500;
-const USERNAME_PATTERN = /^[A-Za-z0-9._-]{1,20}$/;
+const USERNAME_PATTERN = /^[A-Za-z0-9._-]{2,20}$/;
+const MIN_BIRTH_DATE_ISO = "1900-01-01";
 const allowedGenders = ["male", "female", "non_binary", "other"];
 const allowedPreferences = ["male", "female", "both", "other"];
 const GEO_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -132,6 +133,41 @@ function parseOptionalCoordinate(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return null;
   return parsed;
+}
+
+function parseBirthDate(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+}
+
+function isAtLeast18YearsOld(birthDate) {
+  const today = new Date();
+  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+  const monthDelta = today.getUTCMonth() - birthDate.getUTCMonth();
+  if (
+    monthDelta < 0 ||
+    (monthDelta === 0 && today.getUTCDate() < birthDate.getUTCDate())
+  ) {
+    age -= 1;
+  }
+  return age >= 18;
 }
 
 function getAge(birthDate) {
@@ -1241,7 +1277,7 @@ router.put("/profile/me", async (req, res, next) => {
     const normalizedUsername = isNonEmptyString(username)
       ? username.trim()
       : null;
-    const normalizedBirthDate = isNonEmptyString(birth_date)
+    let normalizedBirthDate = isNonEmptyString(birth_date)
       ? birth_date.trim()
       : null;
 
@@ -1253,11 +1289,17 @@ router.put("/profile/me", async (req, res, next) => {
     }
 
     if (normalizedBirthDate) {
-      const parsedBirthDate = new Date(`${normalizedBirthDate}T00:00:00Z`);
-      if (Number.isNaN(parsedBirthDate.getTime())) {
+      const parsedBirthDate = parseBirthDate(normalizedBirthDate);
+      if (!parsedBirthDate) {
         return res
           .status(400)
-          .json({ error: "birth_date must be a valid date" });
+          .json({ error: "birth_date must be a valid date (YYYY-MM-DD)" });
+      }
+
+      if (normalizedBirthDate < MIN_BIRTH_DATE_ISO) {
+        return res.status(400).json({
+          error: `birth_date must be on or after ${MIN_BIRTH_DATE_ISO}`,
+        });
       }
 
       const today = new Date();
@@ -1267,6 +1309,14 @@ router.put("/profile/me", async (req, res, next) => {
           .status(400)
           .json({ error: "birth_date cannot be in the future" });
       }
+
+      if (!isAtLeast18YearsOld(parsedBirthDate)) {
+        return res
+          .status(400)
+          .json({ error: "You must be at least 18 years old" });
+      }
+
+      normalizedBirthDate = parsedBirthDate.toISOString().slice(0, 10);
     }
 
     await client.query("BEGIN");
