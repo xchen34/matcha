@@ -1,7 +1,6 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: matcha-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -21,7 +20,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    container_name: matcha-backend
     restart: unless-stopped
     env_file:
       - .env
@@ -45,7 +43,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: matcha-frontend
     restart: unless-stopped
     environment:
       VITE_API_PROXY_TARGET: http://backend:3000
