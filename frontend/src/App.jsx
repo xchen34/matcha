@@ -281,6 +281,7 @@ function RegisterPage() {
     last_name: "",
     birth_date: "",
     password: "",
+    confirmPassword: "",
   });
   const [message, setMessage] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
@@ -288,6 +289,9 @@ function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const maxAdultBirthDateIso = getMaxAdultBirthDateIso();
   const normalizedEmail = (form.email || "").trim();
+  const passwordsMatch =
+    form.password && form.confirmPassword &&
+    form.password === form.confirmPassword;
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -304,6 +308,11 @@ function RegisterPage() {
       setMessage(
         `Error: birth date must be a valid date between ${MIN_BIRTH_DATE_ISO} and ${maxAdultBirthDateIso}.`,
       );
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setMessage("Passwords do not match");
       return;
     }
 
@@ -456,6 +465,35 @@ function RegisterPage() {
             </button>
           </div>
           <p className="text-xs text-slate-500">Avoid common passwords and use a secure one.</p>
+        </div>
+         <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Reenter Password
+          </label>
+          <div className="relative">
+            <input
+              name="confirmPassword"
+              type={showPassword ? "text" : "password"}
+              placeholder="reenter password"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              className={`${inputClass} pr-12`}
+            />
+            {form.confirmPassword && form.password !== form.confirmPassword && (
+              <p className="text-xs text-red-500">
+                Passwords do not match
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 hover:text-slate-700"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              <FiEye size={16} aria-hidden="true" />
+            </button>
+          </div>
         </div>
         <button type="submit" className={primaryButtonClass}>
           Register
@@ -716,8 +754,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     !hasCity ? "city" : null,
   ].filter(Boolean);
   const isLocationAccepted =
-    Boolean(locationValidation?.is_valid) ||
-    (isCityConfirmed && !hasNeighborhoodInput);
+    Boolean(locationValidation?.city_exists) || isCityConfirmed;
 
   const canSaveProfile =
     !loading &&
@@ -976,13 +1013,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     } else if (name === "neighborhood") {
       setForm((prev) => ({
         ...prev,
-        [name]: value,
+        neighborhood: value,
       }));
-      if (value.trim().length > 0) {
-        setIsNeighborhoodSelected(true);
-      } else {
-        setIsNeighborhoodSelected(false);
-      }
+      setIsNeighborhoodSelected(value.trim().length > 0);
     } else {
     setForm((prev) => ({
       ...prev,
@@ -990,11 +1023,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     }));
     }
 
-    if (name === "city" || name === "neighborhood") {
+    if (name === "city") {
       setLocationValidation(null);
-      if (name === "city") {
-        setCitySearchSuggestions([]);
-      }
+      setCitySearchSuggestions([]);
     }
 
     if (name === "latitude" || name === "longitude" || name === "gps_consent") {
@@ -2066,14 +2097,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               )}
             </div>
           </div>
-
-          {locationValidation && (
-            <p className={`text-xs ${locationValidation.is_valid ? "text-emerald-700" : "text-amber-700"}`}>
-              {locationValidation.is_valid
-                ? "Location exists. Save is enabled."
-                : "Location not fully verified yet. Adjust city or neighborhood."}
-            </p>
-          )}
 
           {/* Latitude/Longitude UI hidden for now */}
 

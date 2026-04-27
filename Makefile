@@ -1,4 +1,4 @@
-.PHONY: all up down clean fclean re
+.PHONY: all up down clean fclean reset-db re
 
 all: up
 
@@ -9,9 +9,12 @@ down:
 	docker compose down
 
 clean:
-	docker compose down -v --remove-orphans
+	docker compose down --remove-orphans
 
 fclean:
-	docker compose down -v --rmi local --remove-orphans
+	docker compose down --rmi local --remove-orphans
+
+reset-db:
+	docker compose down -v --remove-orphans
 
 re: fclean all

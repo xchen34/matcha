@@ -1,8 +1,11 @@
 import { io } from "socket.io-client";
+//import { logError, logWarn } from "../utils/logger.js";
 
 let socket = null;
 let pingIntervalId = null;
 const activeConversationIds = new Set();
+let reconnectErrorCount = 0;
+let reconnectErrorWindowStart = 0;
 
 function ensureSocket() {
   if (socket) return socket;
@@ -11,11 +14,13 @@ function ensureSocket() {
   const socketUrl = configuredSocketUrl ? configuredSocketUrl.trim() : undefined;
 
   // Use same-origin by default so Vite/Nginx proxies can route /socket.io.
-  socket = io(socketUrl, {
-    path: "/socket.io",
-    transports: ["websocket", "polling"],
-    autoConnect: false,
-  });
+socket = io(socketUrl, {
+  path: "/socket.io",
+  transports: ["websocket"],
+  upgrade: false,
+  autoConnect: false,
+  reconnection: true,
+});
 
   socket.on("connect", () => {
     for (const conversationId of activeConversationIds) {
@@ -30,27 +35,37 @@ function ensureSocket() {
     isUnloading = true;
   });
 
+  socket.on("connect", () => {
+    reconnectErrorCount = 0;
+    reconnectErrorWindowStart = 0;
+  });
+
   socket.on("disconnect", (reason) => {
     if (isUnloading) return;
     if (reason === "io server disconnect") {
+      logWarn("realtime.disconnect", { reason });
       alert(
         "You no longer have access to this conversation or the connection was closed.\n\n" +
           "Vous n'avez plus accès à cette conversation ou la connexion a été coupée.",
       );
-    }
-    // Tentative de reconnexion automatique si la connexion a été perdue
-    if (!isUnloading && reason !== "io client disconnect") {
-      setTimeout(() => {
-        if (socket && !socket.connected) {
-          socket.connect();
-        }
-      }, 2000);
     }
   });
 
   // Gestion des erreurs de connexion
   socket.on("connect_error", (err) => {
     if (isUnloading) return;
+    logError("realtime.connect_error", err);
+
+    // Ignore noisy transient failures during initial page refresh/reconnect.
+    const now = Date.now();
+    if (!reconnectErrorWindowStart || now - reconnectErrorWindowStart > 15000) {
+      reconnectErrorWindowStart = now;
+      reconnectErrorCount = 0;
+    }
+    reconnectErrorCount += 1;
+
+    if (reconnectErrorCount < 3) return;
+
     alert(
       "Real-time connection failed: " +
         (err?.message || "Unknown error") +
@@ -90,9 +105,6 @@ export function disconnectRealtime() {
     pingIntervalId = null;
   }
 
-  if (socket) {
-    socket.disconnect();
-  }
 }
 
 export function onRealtimeEvent(event, handler) {

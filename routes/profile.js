@@ -1182,67 +1182,76 @@ router.put("/profile/me", async (req, res, next) => {
       safeSexualPreference = "both";
     }
 
-    const gpsConsent = Boolean(gps_consent);
-    const safeCity = isNonEmptyString(city) ? city.trim() : "";
-    let safeNeighborhood = isNonEmptyString(neighborhood)
-      ? neighborhood.trim()
-      : "";
-    const parsedLatitude = parseOptionalCoordinate(latitude);
-    const parsedLongitude = parseOptionalCoordinate(longitude);
+   const gpsConsent = Boolean(gps_consent);
+const safeCity = isNonEmptyString(city) ? city.trim() : "";
+let safeNeighborhood = isNonEmptyString(neighborhood)
+  ? neighborhood.trim()
+  : "";
 
-    if (gpsConsent) {
-      if (parsedLatitude === null || parsedLongitude === null) {
-        return res.status(400).json({
-          error:
-            "latitude and longitude are required when gps_consent is enabled",
-        });
-      }
-      const resolved = await reverseGeocode(parsedLatitude, parsedLongitude);
-      safeNeighborhood = safeNeighborhood || resolved.neighborhood;
-      if (!safeNeighborhood) {
-        return res.status(400).json({
-          error:
-            "Unable to determine neighborhood from GPS. Please enter it manually to confirm.",
-        });
-      }
-    } else if (!safeCity && !safeNeighborhood) {
-      return res.status(400).json({
-        error: "city or neighborhood is required when gps_consent is disabled",
-      });
-    }
+const parsedLatitude = parseOptionalCoordinate(latitude);
+const parsedLongitude = parseOptionalCoordinate(longitude);
 
-    const locationSuggestions = await forwardGeocode({
-      city: safeCity,
-      neighborhood: safeNeighborhood,
-      limit: 5,
+if (gpsConsent) {
+  if (parsedLatitude === null || parsedLongitude === null) {
+    return res.status(400).json({
+      error: "latitude and longitude are required when gps_consent is enabled",
     });
+  }
 
-    if (locationSuggestions.length === 0) {
-      return res.status(400).json({
-        error: "Unable to validate the provided city/neighborhood",
-      });
-    }
+  const resolved = await reverseGeocode(parsedLatitude, parsedLongitude);
 
-    const wantedCity = normalizeLocationText(safeCity);
-    const wantedNeighborhood = normalizeLocationText(safeNeighborhood);
-    const cityExists = wantedCity
-      ? locationSuggestions.some(
-          (item) => normalizeLocationText(item.city) === wantedCity,
-        )
-      : true;
-    const neighborhoodExists = wantedNeighborhood
-      ? locationSuggestions.some(
-          (item) =>
-            normalizeLocationText(item.neighborhood) === wantedNeighborhood,
-        )
-      : true;
+  // GPS 情况下，如果用户没填 neighborhood，就用 reverseGeocode 的结果
+  safeNeighborhood = safeNeighborhood || resolved.neighborhood;
 
-    if (!cityExists || !neighborhoodExists) {
-      return res.status(400).json({
-        error:
-          "Location could not be verified. Please choose a valid city/neighborhood suggestion.",
-      });
-    }
+  if (!safeCity && resolved.city) {
+    safeCity = resolved.city;
+  }
+} else if (!safeCity) {
+  return res.status(400).json({
+    error: "city is required when gps_consent is disabled",
+  });
+}
+
+const locationSuggestions = await forwardGeocode({
+  city: safeCity,
+  limit: 5,
+});
+
+if (locationSuggestions.length === 0) {
+  return res.status(400).json({
+    error: "Unable to validate the provided city",
+  });
+}
+
+const wantedCity = normalizeLocationText(safeCity);
+
+const cityExists = locationSuggestions.some((item) => {
+  const candidates = [
+    item.city,
+    item.town,
+    item.village,
+    item.municipality,
+    item.display_name,
+  ]
+    .filter(Boolean)
+    .map(normalizeLocationText);
+
+  return candidates.some(
+    (value) =>
+      value === wantedCity ||
+      value.includes(wantedCity) ||
+      wantedCity.includes(value),
+  );
+});
+
+if (!cityExists) {
+  return res.status(400).json({
+    error:
+      "Location could not be verified. Please choose a valid city suggestion.",
+  });
+}
+
+// 到这里：city 已验证，neighborhood 可以作为 optional 保存
 
     let normalizedTags = null;
     if (tags !== undefined) {
