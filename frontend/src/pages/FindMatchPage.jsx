@@ -479,6 +479,11 @@ function FindMatchPage({ currentUser }) {
       <div className="flex flex-col gap-1 mb-12">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
+            {!canLikeProfiles && (
+              <p className="text-[11px] text-amber-700 leading-snug max-w-md">
+                Add a primary profile photo in your profile to enable likes.
+              </p>
+            )}
             <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-900">
               <FaUserFriends size={22} aria-hidden="true" />
               <span>Find your match</span>
@@ -489,11 +494,6 @@ function FindMatchPage({ currentUser }) {
               proximity, shared tags, and fame rating.
             </p>
 
-            {!canLikeProfiles && (
-              <p className="text-[11px] text-amber-700 leading-snug max-w-md">
-                Add a primary profile photo in your profile to enable likes.
-              </p>
-            )}
           </div>
 
           <div className="shrink-0">
@@ -504,7 +504,7 @@ function FindMatchPage({ currentUser }) {
               </div>
 
               <div className="leading-tight">
-                <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                   <span>My fame</span>
                 </p>
 
@@ -692,7 +692,7 @@ function FindMatchPage({ currentUser }) {
               <option value="fame_rating">Fame rating</option>
               <option value="tags">Tags</option>
             </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
               ▾
             </div>
           </div>
@@ -714,7 +714,7 @@ function FindMatchPage({ currentUser }) {
               <option value="desc">Descending</option>
               <option value="asc">Ascending</option>
             </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
               ▾
             </div>
           </div>

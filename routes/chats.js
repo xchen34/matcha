@@ -6,39 +6,6 @@ const { authSensitiveLimiter } = require("../middleware/rateLimit");
 
 const router = express.Router();
 const MAX_CHAT_MESSAGE_LENGTH = 1200;
-let chatVisibilityTablesReady = false;
-
-async function ensureChatVisibilityTables() {
-  if (chatVisibilityTablesReady) return;
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS chat_deleted_conversations (
-      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      conversation_id INT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
-      deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      PRIMARY KEY (user_id, conversation_id)
-    )
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS chat_deleted_messages (
-      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      message_id INT NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
-      conversation_id INT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
-      deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      PRIMARY KEY (user_id, message_id)
-    )
-  `);
-
-  await pool.query(
-    "CREATE INDEX IF NOT EXISTS chat_deleted_conversations_user_idx ON chat_deleted_conversations(user_id)",
-  );
-  await pool.query(
-    "CREATE INDEX IF NOT EXISTS chat_deleted_messages_user_conversation_idx ON chat_deleted_messages(user_id, conversation_id)",
-  );
-
-  chatVisibilityTablesReady = true;
-}
 
 function parseQuotedReplyText(content) {
   const text = String(content || "");
@@ -70,8 +37,6 @@ function getMessageLengthForLimit(content) {
 }
 async function deleteConversationHandler(req, res, next) {
   try {
-    await ensureChatVisibilityTables();
-
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const conversationId = parsePositiveInt(req.params.conversationId);
     if (!currentUserId || !conversationId) {
@@ -236,7 +201,7 @@ function ensureConnectionAllowed(status) {
     const err = new Error(
       status.blocked_by_you
         ? "Cannot interact with a user you blocked."
-        : "你已被对方拉黑",
+        : "You've been blocked",
     );
     err.status = 403;
     throw err;
@@ -248,7 +213,7 @@ function ensureMatchRequired(status) {
     const err = new Error(
       status.blocked_by_you
         ? "Cannot interact with a user you blocked."
-        : "你已被对方拉黑",
+        : "You've been blocked",
     );
     err.status = 403;
     throw err;
@@ -265,8 +230,6 @@ router.delete(
   authSensitiveLimiter,
   async (req, res, next) => {
     try {
-      await ensureChatVisibilityTables();
-
       const currentUserId = parsePositiveInt(req.header("x-user-id"));
       const conversationId = parsePositiveInt(req.params.conversationId);
       const messageId = parsePositiveInt(req.params.messageId);
@@ -343,8 +306,6 @@ router.delete(
 
 router.get("/chats", async (req, res, next) => {
   try {
-    await ensureChatVisibilityTables();
-
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     if (!currentUserId) {
       return res.status(400).json({ error: "x-user-id header is required" });
@@ -469,8 +430,6 @@ router.get("/chats", async (req, res, next) => {
 
 router.get("/chats/:conversationId/messages", async (req, res, next) => {
   try {
-    await ensureChatVisibilityTables();
-
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const conversationId = parsePositiveInt(req.params.conversationId);
     const limit = Math.min(
@@ -610,8 +569,6 @@ router.get("/chats/:conversationId/messages", async (req, res, next) => {
 
 router.post("/chats/:conversationId/read", async (req, res, next) => {
   try {
-    await ensureChatVisibilityTables();
-
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const conversationId = parsePositiveInt(req.params.conversationId);
     if (!currentUserId || !conversationId) {
@@ -707,8 +664,6 @@ router.post("/chats/:conversationId/read", async (req, res, next) => {
 
 router.post("/chats/messages", async (req, res, next) => {
   try {
-    await ensureChatVisibilityTables();
-
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const recipientUserId = parsePositiveInt(req.body?.recipient_user_id);
     if (!currentUserId || !recipientUserId) {
@@ -853,8 +808,6 @@ router.post("/chats/messages", async (req, res, next) => {
 
 router.post("/chats/conversations", async (req, res, next) => {
   try {
-    await ensureChatVisibilityTables();
-
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const otherUserId = parsePositiveInt(req.body?.other_user_id);
 

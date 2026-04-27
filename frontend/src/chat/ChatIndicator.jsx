@@ -40,7 +40,6 @@ export default function ChatIndicator({ currentUser }) {
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
   const [conversations, setConversations] = useState([]);
-  const [loadTrigger, setLoadTrigger] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -84,8 +83,8 @@ export default function ChatIndicator({ currentUser }) {
   }, [currentUser, location.pathname]);
 
   useEffect(() => {
-    loadChats();
-  }, [loadChats, loadTrigger]);
+    void loadChats();
+  }, [loadChats]);
 
   useEffect(() => {
     const intervalId = window.setInterval(loadChats, POLL_INTERVAL_MS);
@@ -97,19 +96,12 @@ export default function ChatIndicator({ currentUser }) {
   useEffect(() => {
     if (!currentUser?.id) return undefined;
     const off = onRealtimeEvent("chat:message:created", () => {
-      setLoadTrigger((prev) => prev + 1);
+      void loadChats();
     });
     return () => {
       off();
     };
-  }, [currentUser?.id]);
-
-  useEffect(() => {
-    if (!currentUser?.id) return;
-    if (location.pathname.startsWith("/messages")) {
-      setLoadTrigger((prev) => prev + 1);
-    }
-  }, [location.pathname, currentUser?.id]);
+  }, [currentUser?.id, loadChats]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -186,14 +178,7 @@ export default function ChatIndicator({ currentUser }) {
       </button>
 
       {isOpen && (
-        <div className="fixed left-2 right-2 top-16 z-50 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80">
-          <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Messages
-            </p>
-            {isLoading && <span className="text-[0.65rem] text-slate-400">Refreshing...</span>}
-          </div>
-
+         <div className="fixed left-2 right-2 top-16 z-50 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80">
           <div className="max-h-80 overflow-y-auto px-1 py-1">
             {shortcuts.length === 0 ? (
               <p className="px-3 py-3 text-sm text-slate-500">No conversations yet.</p>

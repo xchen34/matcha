@@ -46,6 +46,7 @@ import { buildApiHeaders } from "./utils.js";
 import ChatIndicator from "./chat/ChatIndicator.jsx";
 const STORAGE_KEY = "matcha.currentUser";
 const MAX_BIO_LENGTH = 500;
+const MIN_BIRTH_DATE_ISO = "1900-01-01";
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
@@ -59,6 +60,37 @@ const primaryButtonClass =
   "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-5 py-2.5 text-sm font-semibold shadow-md shadow-orange-200 hover:-translate-y-0.5 hover:shadow-lg transition disabled:opacity-60";
 const secondaryButtonClass =
   "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition";
+
+function getMaxAdultBirthDateIso() {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(date.getUTCFullYear() - 18);
+  return date.toISOString().slice(0, 10);
+}
+
+function isValidBirthDateIso(value, minIso, maxIso) {
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return false;
+  }
+
+  if (trimmed < minIso || trimmed > maxIso) return false;
+  return true;
+}
 
 function TopNav({ currentUser, profileLocked }) {
   const location = useLocation();
@@ -114,8 +146,7 @@ function TopNav({ currentUser, profileLocked }) {
         }>
           <span className="flex items-center gap-1.5 justify-center">
             <FiLogIn size={15} />
-            <span className="sm:inline hidden">Login</span>
-            <span className="sm:hidden">In</span>
+            <span>Login</span>
           </span>
         </NavLink>
       )}
@@ -250,13 +281,17 @@ function RegisterPage() {
     last_name: "",
     birth_date: "",
     password: "",
+    confirmPassword: "",
   });
   const [message, setMessage] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [devVerifyUrl, setDevVerifyUrl] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const maxAdultBirthDateIso = getMaxAdultBirthDateIso();
   const normalizedEmail = (form.email || "").trim();
+  const passwordsMatch =
+    form.password && form.confirmPassword &&
+    form.password === form.confirmPassword;
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -268,6 +303,18 @@ function RegisterPage() {
     setMessage("Submitting...");
     setPreviewUrl("");
     setDevVerifyUrl("");
+
+    if (!isValidBirthDateIso(form.birth_date, MIN_BIRTH_DATE_ISO, maxAdultBirthDateIso)) {
+      setMessage(
+        `Error: birth date must be a valid date between ${MIN_BIRTH_DATE_ISO} and ${maxAdultBirthDateIso}.`,
+      );
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setMessage("Passwords do not match");
+      return;
+    }
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -346,11 +393,11 @@ function RegisterPage() {
             value={form.username}
             onChange={handleChange}
             className={inputClass}
-            pattern="[A-Za-z0-9._-]{1,20}"
-            title="1-20 characters: letters, numbers, dot, underscore, hyphen"
+            pattern="[A-Za-z0-9._\-]{2,20}"
+            title="2-20 characters: letters, numbers, dot, underscore, hyphen"
             required
           />
-          <p className="text-xs text-slate-500">1-20 chars, letters/numbers and . _ - only.</p>
+          <p className="text-xs text-slate-500">2-20 chars, letters/numbers and . _ - only.</p>
         </div>
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
@@ -388,7 +435,9 @@ function RegisterPage() {
             value={form.birth_date}
             onChange={handleChange}
             className={inputClass}
-            max={todayIso}
+            min={MIN_BIRTH_DATE_ISO}
+            max={maxAdultBirthDateIso}
+            required
           />
           <p className="text-xs text-slate-500">Required to verify you are at least 18 years old.</p>
         </div>
@@ -416,6 +465,35 @@ function RegisterPage() {
             </button>
           </div>
           <p className="text-xs text-slate-500">Avoid common passwords and use a secure one.</p>
+        </div>
+         <div className="space-y-1">
+          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+            Reenter Password
+          </label>
+          <div className="relative">
+            <input
+              name="confirmPassword"
+              type={showPassword ? "text" : "password"}
+              placeholder="reenter password"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              className={`${inputClass} pr-12`}
+            />
+            {form.confirmPassword && form.password !== form.confirmPassword && (
+              <p className="text-xs text-red-500">
+                Passwords do not match
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-3 inline-flex items-center text-slate-500 hover:text-slate-700"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              <FiEye size={16} aria-hidden="true" />
+            </button>
+          </div>
         </div>
         <button type="submit" className={primaryButtonClass}>
           Register
@@ -676,8 +754,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     !hasCity ? "city" : null,
   ].filter(Boolean);
   const isLocationAccepted =
-    Boolean(locationValidation?.is_valid) ||
-    (isCityConfirmed && !hasNeighborhoodInput);
+    Boolean(locationValidation?.city_exists) || isCityConfirmed;
 
   const canSaveProfile =
     !loading &&
@@ -689,7 +766,7 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     (form.city || "").trim().length > 0 &&
     (isCityConfirmed ||
       (!validatingLocation && Boolean(locationValidation?.city_exists)));
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const maxAdultBirthDateIso = useMemo(() => getMaxAdultBirthDateIso(), []);
 
   function buildSuggestionKey(suggestion) {
     return `${suggestion.city || ""}-${suggestion.display_name || ""}-${suggestion.latitude ?? ""}-${suggestion.longitude ?? ""}`;
@@ -936,13 +1013,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     } else if (name === "neighborhood") {
       setForm((prev) => ({
         ...prev,
-        [name]: value,
+        neighborhood: value,
       }));
-      if (value.trim().length > 0) {
-        setIsNeighborhoodSelected(true);
-      } else {
-        setIsNeighborhoodSelected(false);
-      }
+      setIsNeighborhoodSelected(value.trim().length > 0);
     } else {
     setForm((prev) => ({
       ...prev,
@@ -950,11 +1023,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     }));
     }
 
-    if (name === "city" || name === "neighborhood") {
+    if (name === "city") {
       setLocationValidation(null);
-      if (name === "city") {
-        setCitySearchSuggestions([]);
-      }
+      setCitySearchSuggestions([]);
     }
 
     if (name === "latitude" || name === "longitude" || name === "gps_consent") {
@@ -1481,6 +1552,13 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
       return;
     }
 
+    if (!isValidBirthDateIso(form.birth_date, MIN_BIRTH_DATE_ISO, maxAdultBirthDateIso)) {
+      setMessage(
+        `Error: birth date must be a valid date between ${MIN_BIRTH_DATE_ISO} and ${maxAdultBirthDateIso}.`,
+      );
+      return;
+    }
+
     setMessage("Submitting...");
 
     const headers = buildApiHeaders(
@@ -1635,7 +1713,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 value={form.birth_date}
                 onChange={handleChange}
                 className={inputClass}
-                max={todayIso}
+                min={MIN_BIRTH_DATE_ISO}
+                max={maxAdultBirthDateIso}
+                required
               />
             </div>
           </div>
@@ -1697,11 +1777,16 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 Modify
               </button>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-orange-500">
               Email can only be changed after password confirmation and new-email verification.
             </p>
             {emailChangeOpen && (
-              <div className="mt-2 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div className="mt-2 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+
+              <div className="space-y-1">
+                <span className="text-xs tracking-[0.12em] text-slate-500 font-semibold">
+                  Enter the new email address 
+                </span>
                 <input
                   name="new_email"
                   type="email"
@@ -1710,6 +1795,12 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                   onChange={handleEmailChangeInput}
                   className={inputClass}
                 />
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-xs tracking-[0.12em] text-slate-500 font-semibold">
+                  Confirm your current password to authorize the change
+                </span>
                 <input
                   name="password"
                   type="password"
@@ -1718,28 +1809,30 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                   onChange={handleEmailChangeInput}
                   className={inputClass}
                 />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleEmailChangeSubmit}
-                    className={primaryButtonClass}
-                    disabled={emailChangeLoading}
-                  >
-                    {emailChangeLoading ? "Sending..." : "Send verification email"}
-                  </button>
-                  <button
-                    type="button"
-                    className={secondaryButtonClass}
-                    onClick={() => {
-                      setEmailChangeOpen(false);
-                      setEmailChangeForm({ new_email: "", password: "" });
-                    }}
-                    disabled={emailChangeLoading}
-                  >
-                    Cancel
-                  </button>
-                </div>
               </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleEmailChangeSubmit}
+                  className={primaryButtonClass}
+                  disabled={emailChangeLoading}
+                >
+                  {emailChangeLoading ? "Sending..." : "Send verification email"}
+                </button>
+                <button
+                  type="button"
+                  className={secondaryButtonClass}
+                  onClick={() => {
+                    setEmailChangeOpen(false);
+                    setEmailChangeForm({ new_email: "", password: "" });
+                  }}
+                  disabled={emailChangeLoading}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
             )}
           </div>
 
@@ -2017,14 +2110,6 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               )}
             </div>
           </div>
-
-          {locationValidation && (
-            <p className={`text-xs ${locationValidation.is_valid ? "text-emerald-700" : "text-amber-700"}`}>
-              {locationValidation.is_valid
-                ? "Location exists. Save is enabled."
-                : "Location not fully verified yet. Adjust city or neighborhood."}
-            </p>
-          )}
 
           {/* Latitude/Longitude UI hidden for now */}
 

@@ -4,7 +4,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Space Grotesk"', "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ['"Space Grotesk"', "sans-serif"],
       },
       colors: {
         brand: "#e85d04",

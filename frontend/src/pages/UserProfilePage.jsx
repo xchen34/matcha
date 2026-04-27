@@ -8,6 +8,7 @@ import { onRealtimeEvent } from "../realtime/socket.js";
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+const MAX_FAKE_REPORT_REASON_LENGTH = 200;
 
 function FieldLabel({ icon: Icon, children }) {
   return (
@@ -18,7 +19,7 @@ function FieldLabel({ icon: Icon, children }) {
   );
 }
 
-// Affichage des photos avec cadre carré fixe
+// Shows a heart button with optional disabled state and tooltip if user cannot like due to no profile photo
 function ProfilePhotosGrid({ photos }) {
   const FRAME_SIZE = 224;
   const [modalIndex, setModalIndex] = useState(null);
@@ -123,7 +124,7 @@ function UserProfilePage({ currentUser }) {
       setData(null);
     }, [currentUser, id]);
 
-    // Réinitialisation globale de l'erreur si currentUser change (logout/login)
+    // Redirect to login if not authenticated, but don't show error message since it's not an error state for the user
     useEffect(() => {
       setError("");
     }, [currentUser]);
@@ -149,7 +150,7 @@ function UserProfilePage({ currentUser }) {
       setLoading(true);
       setError("");
       try {
-        // Si l'utilisateur courant consulte son propre profil, utiliser /api/profile/me
+        // If user is viewing their own profile, use the /me endpoint
         let response;
         if (currentUser && String(currentUser.id) === String(id)) {
           response = await fetch(`/api/profile/me`, {
@@ -336,6 +337,12 @@ function UserProfilePage({ currentUser }) {
       setModerationMessage("Please provide a valid report reason (minimum 5 characters).");
       return;
     }
+    if (reason.length > MAX_FAKE_REPORT_REASON_LENGTH) {
+      setModerationMessage(
+        `Report reason cannot exceed ${MAX_FAKE_REPORT_REASON_LENGTH} characters.`,
+      );
+      return;
+    }
 
     setReporting(true);
     setModerationMessage("");
@@ -450,7 +457,6 @@ function UserProfilePage({ currentUser }) {
   if (!data) return null;
 
   const { user, profile } = data;
-  console.log('UserProfilePage profile:', profile);
   const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
   const isOwnProfile = String(currentUser?.id || "") === String(user.id);
   const relationLabel = isMatch
@@ -477,6 +483,18 @@ function UserProfilePage({ currentUser }) {
   return (
     <section className={cardClass}>
       <div className="space-y-1">
+
+        {/* Note about like restrictions */}
+        {(!Array.isArray(profile.photos) || profile.photos.length === 0 || !canLikeProfiles) && (
+          <p className="text-xs text-amber-700 mt-2">
+            {!Array.isArray(profile.photos) || profile.photos.length === 0
+              ? "No profile photo: can't be liked."
+              : !canLikeProfiles
+                ? "Add a profile photo to like."
+                : null}
+          </p>
+        )}
+
         <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
           Profile
         </p>
@@ -577,7 +595,11 @@ function UserProfilePage({ currentUser }) {
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand"
             rows={4}
             placeholder="Explain why this profile looks fake"
+            maxLength={MAX_FAKE_REPORT_REASON_LENGTH}
           />
+          <p className="text-xs text-slate-500">
+            {reportReason.length}/{MAX_FAKE_REPORT_REASON_LENGTH}
+          </p>
           <div className="flex items-center gap-2">
             <button
               type="submit"
@@ -616,17 +638,6 @@ function UserProfilePage({ currentUser }) {
 
       {Array.isArray(profile.photos) && profile.photos.length > 0 && (
         <ProfilePhotosGrid photos={profile.photos} />
-      )}
-
-      {/* Note about like restrictions */}
-      {(!Array.isArray(profile.photos) || profile.photos.length === 0 || !canLikeProfiles) && (
-        <p className="text-xs text-amber-700 mt-2">
-          {!Array.isArray(profile.photos) || profile.photos.length === 0
-            ? "No profile photo: can't be liked."
-            : !canLikeProfiles
-              ? "Add a profile photo to like."
-              : null}
-        </p>
       )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm text-slate-700">        <div className="h-full space-y-3 rounded-xl bg-white/70 p-4">

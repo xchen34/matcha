@@ -17,6 +17,16 @@ const { globalApiLimiter } = require("./middleware/rateLimit");
 const app = express();
 const isProduction = process.env.NODE_ENV === "production";
 
+function parseAllowedOrigins() {
+  const raw = process.env.CORS_ORIGIN || "http://localhost:5173";
+  return raw
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+const allowedOrigins = parseAllowedOrigins();
+
 app.disable("x-powered-by");
 
 app.use(
@@ -37,7 +47,18 @@ app.use(
 );
 
 const corsOptions = {
-  origin: "http://localhost:5173",
+  origin(origin, callback) {
+    // Allow server-to-server and non-browser tools (curl/Postman) without Origin.
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("CORS origin not allowed"));
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-user-id"],
 };

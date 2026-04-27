@@ -211,14 +211,12 @@ export default function NotificationsBell() {
                   onClick={() => void handleGroupClick(group)}
                   className="w-full text-left"
                 >
-                  <div
-                    className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-2xl border bg-slate-50 p-3 transition duration-200 hover:bg-white ${getGroupBorderClass(group.type)} ${dismissingGroups.includes(group.type) ? "translate-x-5 opacity-0 scale-95" : "hover:border-slate-300"}`}
-                  >
-                    <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-lg font-semibold mx-auto sm:mx-0 ${getGroupAccentClass(group.type)}`}>
+                  <div className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-2xl border bg-slate-50 p-3 transition duration-200 hover:bg-white ${getGroupBorderClass(group.type)} ${dismissingGroups.includes(group.type) ? "translate-x-5 opacity-0 scale-95" : "hover:border-slate-300"}`}>
+                    <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-lg font-semibold mx-auto sm:mx-0 ${getGroupAccentClass(group.type)}`} >
                       <GroupTypeIcon type={group.type} />
                     </div>
-                    <div className="min-w-0 flex-1 text-center sm:text-left">
-                      <p className="break-words text-sm text-slate-700">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm text-slate-700 text-center sm:text-left">
                         <span className="font-semibold text-slate-900">{sanitizeText(group.primaryActor)}</span>{" "}
                         {createCardMessage(group.primaryActor, group.verb, group.count)}
                       </p>

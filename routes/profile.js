@@ -12,7 +12,8 @@ const {
 
 const router = express.Router();
 const MAX_BIO_LENGTH = 500;
-const USERNAME_PATTERN = /^[A-Za-z0-9._-]{1,20}$/;
+const USERNAME_PATTERN = /^[A-Za-z0-9._-]{2,20}$/;
+const MIN_BIRTH_DATE_ISO = "1900-01-01";
 const allowedGenders = ["male", "female", "non_binary", "other"];
 const allowedPreferences = ["male", "female", "both", "other"];
 const GEO_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -132,6 +133,41 @@ function parseOptionalCoordinate(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return null;
   return parsed;
+}
+
+function parseBirthDate(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+}
+
+function isAtLeast18YearsOld(birthDate) {
+  const today = new Date();
+  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+  const monthDelta = today.getUTCMonth() - birthDate.getUTCMonth();
+  if (
+    monthDelta < 0 ||
+    (monthDelta === 0 && today.getUTCDate() < birthDate.getUTCDate())
+  ) {
+    age -= 1;
+  }
+  return age >= 18;
 }
 
 function getAge(birthDate) {
@@ -571,15 +607,6 @@ router.get("/profile/validate-location", async (req, res, next) => {
       ? Math.max(1, Math.min(rawLimit, 20))
       : 12;
 
-    // console.info("[profile/validate-location] request", {
-    //   userId: currentUserId,
-    //   city,
-    //   neighborhood,
-    //   latitude,
-    //   longitude,
-    //   limit,
-    // });
-
     if (!city && !neighborhood && (latitude === null || longitude === null)) {
       return res.status(400).json({
         error:
@@ -651,16 +678,6 @@ router.get("/profile/validate-location", async (req, res, next) => {
       : true;
 
     const isValid = suggestions.length > 0 && cityExists && neighborhoodExists;
-
-    // console.info("[profile/validate-location] result", {
-    //   city,
-    //   neighborhood,
-    //   suggestionsCount: suggestions.length,
-    //   cityExists,
-    //   neighborhoodExists,
-    //   isValid,
-    // });
-
     return res.json({
       validation: {
         is_valid: isValid,
@@ -712,10 +729,6 @@ router.get("/profile/city-suggestions", async (req, res, next) => {
       ? req.query.query.trim()
       : "";
     if (query.length < 2) {
-      // console.info("[profile/city-suggestions] short query", {
-      //   userId: currentUserId,
-      //   query,
-      // });
       return res.json({ query, suggestions: [] });
     }
 
@@ -809,18 +822,6 @@ router.get("/profile/city-suggestions", async (req, res, next) => {
         city: item.city,
         display_name: item.display_name,
       }));
-
-    console.info("[profile/city-suggestions] result", {
-      userId: currentUserId,
-      query,
-      searchLimit,
-      rawResults: results.length,
-      filteredResults: filteredResults.length,
-      primaryRawResults: primaryResults.length,
-      suggestionsCount: suggestions.length,
-      countryFilter,
-      sample: suggestions.slice(0, 3).map((item) => item.city),
-    });
 
     return res.json({ query, suggestions });
   } catch (error) {
@@ -1181,67 +1182,76 @@ router.put("/profile/me", async (req, res, next) => {
       safeSexualPreference = "both";
     }
 
-    const gpsConsent = Boolean(gps_consent);
-    const safeCity = isNonEmptyString(city) ? city.trim() : "";
-    let safeNeighborhood = isNonEmptyString(neighborhood)
-      ? neighborhood.trim()
-      : "";
-    const parsedLatitude = parseOptionalCoordinate(latitude);
-    const parsedLongitude = parseOptionalCoordinate(longitude);
+   const gpsConsent = Boolean(gps_consent);
+const safeCity = isNonEmptyString(city) ? city.trim() : "";
+let safeNeighborhood = isNonEmptyString(neighborhood)
+  ? neighborhood.trim()
+  : "";
 
-    if (gpsConsent) {
-      if (parsedLatitude === null || parsedLongitude === null) {
-        return res.status(400).json({
-          error:
-            "latitude and longitude are required when gps_consent is enabled",
-        });
-      }
-      const resolved = await reverseGeocode(parsedLatitude, parsedLongitude);
-      safeNeighborhood = safeNeighborhood || resolved.neighborhood;
-      if (!safeNeighborhood) {
-        return res.status(400).json({
-          error:
-            "Unable to determine neighborhood from GPS. Please enter it manually to confirm.",
-        });
-      }
-    } else if (!safeCity && !safeNeighborhood) {
-      return res.status(400).json({
-        error: "city or neighborhood is required when gps_consent is disabled",
-      });
-    }
+const parsedLatitude = parseOptionalCoordinate(latitude);
+const parsedLongitude = parseOptionalCoordinate(longitude);
 
-    const locationSuggestions = await forwardGeocode({
-      city: safeCity,
-      neighborhood: safeNeighborhood,
-      limit: 5,
+if (gpsConsent) {
+  if (parsedLatitude === null || parsedLongitude === null) {
+    return res.status(400).json({
+      error: "latitude and longitude are required when gps_consent is enabled",
     });
+  }
 
-    if (locationSuggestions.length === 0) {
-      return res.status(400).json({
-        error: "Unable to validate the provided city/neighborhood",
-      });
-    }
+  const resolved = await reverseGeocode(parsedLatitude, parsedLongitude);
 
-    const wantedCity = normalizeLocationText(safeCity);
-    const wantedNeighborhood = normalizeLocationText(safeNeighborhood);
-    const cityExists = wantedCity
-      ? locationSuggestions.some(
-          (item) => normalizeLocationText(item.city) === wantedCity,
-        )
-      : true;
-    const neighborhoodExists = wantedNeighborhood
-      ? locationSuggestions.some(
-          (item) =>
-            normalizeLocationText(item.neighborhood) === wantedNeighborhood,
-        )
-      : true;
+  // GPS 情况下，如果用户没填 neighborhood，就用 reverseGeocode 的结果
+  safeNeighborhood = safeNeighborhood || resolved.neighborhood;
 
-    if (!cityExists || !neighborhoodExists) {
-      return res.status(400).json({
-        error:
-          "Location could not be verified. Please choose a valid city/neighborhood suggestion.",
-      });
-    }
+  if (!safeCity && resolved.city) {
+    safeCity = resolved.city;
+  }
+} else if (!safeCity) {
+  return res.status(400).json({
+    error: "city is required when gps_consent is disabled",
+  });
+}
+
+const locationSuggestions = await forwardGeocode({
+  city: safeCity,
+  limit: 5,
+});
+
+if (locationSuggestions.length === 0) {
+  return res.status(400).json({
+    error: "Unable to validate the provided city",
+  });
+}
+
+const wantedCity = normalizeLocationText(safeCity);
+
+const cityExists = locationSuggestions.some((item) => {
+  const candidates = [
+    item.city,
+    item.town,
+    item.village,
+    item.municipality,
+    item.display_name,
+  ]
+    .filter(Boolean)
+    .map(normalizeLocationText);
+
+  return candidates.some(
+    (value) =>
+      value === wantedCity ||
+      value.includes(wantedCity) ||
+      wantedCity.includes(value),
+  );
+});
+
+if (!cityExists) {
+  return res.status(400).json({
+    error:
+      "Location could not be verified. Please choose a valid city suggestion.",
+  });
+}
+
+// 到这里：city 已验证，neighborhood 可以作为 optional 保存
 
     let normalizedTags = null;
     if (tags !== undefined) {
@@ -1276,23 +1286,29 @@ router.put("/profile/me", async (req, res, next) => {
     const normalizedUsername = isNonEmptyString(username)
       ? username.trim()
       : null;
-    const normalizedBirthDate = isNonEmptyString(birth_date)
+    let normalizedBirthDate = isNonEmptyString(birth_date)
       ? birth_date.trim()
       : null;
 
     if (normalizedUsername && !USERNAME_PATTERN.test(normalizedUsername)) {
       return res.status(400).json({
         error:
-          "username is invalid (use 1-20 characters: letters, numbers, dot, underscore, hyphen)",
+          "username is invalid (use 2-20 characters: letters, numbers, dot, underscore, hyphen)",
       });
     }
 
     if (normalizedBirthDate) {
-      const parsedBirthDate = new Date(`${normalizedBirthDate}T00:00:00Z`);
-      if (Number.isNaN(parsedBirthDate.getTime())) {
+      const parsedBirthDate = parseBirthDate(normalizedBirthDate);
+      if (!parsedBirthDate) {
         return res
           .status(400)
-          .json({ error: "birth_date must be a valid date" });
+          .json({ error: "birth_date must be a valid date (YYYY-MM-DD)" });
+      }
+
+      if (normalizedBirthDate < MIN_BIRTH_DATE_ISO) {
+        return res.status(400).json({
+          error: `birth_date must be on or after ${MIN_BIRTH_DATE_ISO}`,
+        });
       }
 
       const today = new Date();
@@ -1302,6 +1318,14 @@ router.put("/profile/me", async (req, res, next) => {
           .status(400)
           .json({ error: "birth_date cannot be in the future" });
       }
+
+      if (!isAtLeast18YearsOld(parsedBirthDate)) {
+        return res
+          .status(400)
+          .json({ error: "You must be at least 18 years old" });
+      }
+
+      normalizedBirthDate = parsedBirthDate.toISOString().slice(0, 10);
     }
 
     await client.query("BEGIN");

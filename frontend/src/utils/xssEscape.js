@@ -20,7 +20,7 @@ export function escapeHtml(text) {
     "/": "&#x2F;",
   };
   
-  return String(text).replace(/[&<>"'\/]/g, (char) => map[char]);
+  return String(text).replace(/[&<>"'/]/g, (char) => map[char]);
 }
 
 /**

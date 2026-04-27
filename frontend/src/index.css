@@ -17,6 +17,13 @@
       #f8fafc;
   }
 
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
   #root {
     @apply min-h-screen;
   }
