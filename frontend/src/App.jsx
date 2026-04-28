@@ -27,117 +27,12 @@ import TopNav from "./components/TopNav.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import { readStoredUser, writeStoredUser } from "./utils/userStorage.js";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import { bytesToKB } from "./utils/formatUtils.js";
+import { normalizeLocationPrefix, getValidationCacheKey } from "./utils/locationUtils.js";
 
 const STORAGE_KEY = "matcha.currentUser";
-const MAX_BIO_LENGTH = 500;
-const MIN_BIRTH_DATE_ISO = (() => {
-  const now = new Date();
-  const year = now.getFullYear() - 100;
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-})();
-
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
-const inputClass =
-  "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition";
-const textareaClass =
-  "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition min-h-[140px]";
-const selectClass =
-  "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition bg-white";
-const primaryButtonClass =
-  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-5 py-2.5 text-sm font-semibold shadow-md shadow-orange-200 hover:-translate-y-0.5 hover:shadow-lg transition disabled:opacity-60";
-const secondaryButtonClass =
-  "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition";
-
-function getMaxAdultBirthDateIso() {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCFullYear(date.getUTCFullYear() - 18);
-  return date.toISOString().slice(0, 10);
-}
-
-function isValidBirthDateIso(value, minIso, maxIso) {
-  if (typeof value !== "string") return false;
-  const trimmed = value.trim();
-  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return false;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
-
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  if (
-    parsed.getUTCFullYear() !== year ||
-    parsed.getUTCMonth() !== month - 1 ||
-    parsed.getUTCDate() !== day
-  ) {
-    return false;
-  }
-
-  if (trimmed < minIso || trimmed > maxIso) return false;
-  return true;
-}
-
-function ProtectedRoute({ currentUser, requireCompletedProfile = true, children }) {
-  if (!currentUser) {
-    return <Navigate to="/login" replace />;
-  }
-  if (requireCompletedProfile && !currentUser.profile_completed) {
-    return <Navigate to="/profile" replace />;
-  }
-  return children;
-}
-
-function bytesToKB(value) {
-  return Math.round(value / 1024);
-}
-
-function normalizeLocationPrefix(value) {
-  return (value || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function getValidationCacheKey(city, neighborhood, latitude, longitude) {
-  return [
-    normalizeLocationPrefix(city),
-    normalizeLocationPrefix(neighborhood),
-    latitude || "",
-    longitude || "",
-  ].join("|");
-}
-
-function readStoredUser() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw);
-    const userId = parsed?.id ?? parsed?.user_id ?? parsed?.userId;
-    if (!parsed || !Number.isInteger(Number(userId))) {
-      return null;
-    }
-
-    return {
-      ...parsed,
-      id: Number(userId),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredUser(user) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-}
 
 function App() {
   const navigate = useNavigate();

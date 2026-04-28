@@ -1,39 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Route, useNavigate } from "react-router-dom";
 import { FaLocationArrow } from "react-icons/fa";
-import { FiCalendar, FiCompass, FiEye, FiHeart, FiImage, FiInfo, 
-  FiLogIn, FiLogOut, FiMail, FiMapPin, FiMessageCircle, FiSettings, 
-  FiSlash, FiTag, FiTrash2, FiUser, FiUserPlus, FiUsers} from "react-icons/fi";
-import UserCard from "../components/UserCard";
-import FindMatchPage from "../pages/FindMatchPage";
-import BlockedUsersPage from "../pages/BlockedUsersPage";
-import PopularityListPage from "../pages/PopularityListPage";
-import UserProfilePage from "../pages/UserProfilePage";
-import MessagesPage from "../pages/MessagesPage.jsx";
-import VerifyEmailPage from "../pages/VerifyEmailPage.jsx";
-import ResendVerificationPage from "../pages/ResendVerificationPage.jsx";
-import VerificationSentPage from "../pages/VerificationSentPage.jsx";
-import ForgotPasswordPage from "../pages/ForgotPasswordPage.jsx";
-import ResetPasswordPage from "../pages/ResetPasswordPage.jsx";
-import { NotificationsProvider } from "../notifications/NotificationsProvider.jsx";
-import NotificationsBell from "../notifications/NotificationsBell.jsx";
-import { useNotifications } from "../notifications/useNotifications.js";
-import { connectRealtime, disconnectRealtime, getRealtimeSocket } from "../realtime/socket.js";
+import { FiCalendar, FiCompass, FiImage, FiInfo, 
+    FiMail, FiMapPin, FiTag, FiUser} from "react-icons/fi";
+import { connectRealtime } from "../realtime/socket.js";
 import { MAX_PHOTO_SIZE_BYTES, MAX_TOTAL_PHOTOS_SIZE_BYTES,
   MAX_PHOTOS_COUNT, validatePhotoFile } from "../utils/photoValidator.js";
 import { buildApiHeaders } from "../utils.js";
-import ChatIndicator from "../chat/ChatIndicator.jsx";
+import { writeStoredUser } from "../utils/userStorage.js";
+import { MIN_BIRTH_DATE_ISO, isValidBirthDateIso, getMaxAdultBirthDateIso } from "../utils/date.js";
+import { bytesToKB } from "../utils/formatUtils.js";
+import { normalizeLocationPrefix, getValidationCacheKey } from "../utils/locationUtils.js";
 
 const MAX_BIO_LENGTH = 500;
-const STORAGE_KEY = "matcha.currentUser";
-
-const MIN_BIRTH_DATE_ISO = (() => {
-  const now = new Date();
-  const year = now.getFullYear() - 100;
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-})();
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
@@ -47,62 +26,6 @@ const primaryButtonClass =
   "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-5 py-2.5 text-sm font-semibold shadow-md shadow-orange-200 hover:-translate-y-0.5 hover:shadow-lg transition disabled:opacity-60";
 const secondaryButtonClass =
   "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition";
-
-function writeStoredUser(user) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-}
-
-function getValidationCacheKey(city, neighborhood, latitude, longitude) {
-  return [
-    normalizeLocationPrefix(city),
-    normalizeLocationPrefix(neighborhood),
-    latitude || "",
-    longitude || "",
-  ].join("|");
-}
-
-function bytesToKB(value) {
-  return Math.round(value / 1024);
-}
-
-function getMaxAdultBirthDateIso() {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCFullYear(date.getUTCFullYear() - 18);
-  return date.toISOString().slice(0, 10);
-}
-
-function isValidBirthDateIso(value, minIso, maxIso) {
-  if (typeof value !== "string") return false;
-  const trimmed = value.trim();
-  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return false;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
-
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  if (
-    parsed.getUTCFullYear() !== year ||
-    parsed.getUTCMonth() !== month - 1 ||
-    parsed.getUTCDate() !== day
-  ) {
-    return false;
-  }
-
-  if (trimmed < minIso || trimmed > maxIso) return false;
-  return true;
-}
-
-function normalizeLocationPrefix(value) {
-  return (value || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
 
 export default function ProfilePage({ currentUser, onProfileUpdate }) {
   const navigate = useNavigate();

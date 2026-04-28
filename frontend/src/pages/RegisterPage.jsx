@@ -1,62 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { FaLocationArrow } from "react-icons/fa";
-import { FiCalendar, FiCompass, FiEye, FiHeart, FiImage, FiInfo, 
-  FiLogIn, FiLogOut, FiMail, FiMapPin, FiMessageCircle, FiSettings, 
-  FiSlash, FiTag, FiTrash2, FiUser, FiUserPlus, FiUsers} from "react-icons/fi";
-import UserCard from "../components/UserCard";
-import FindMatchPage from "../pages/FindMatchPage";
-import BlockedUsersPage from "../pages/BlockedUsersPage";
-import PopularityListPage from "../pages/PopularityListPage";
-import UserProfilePage from "../pages/UserProfilePage";
-import MessagesPage from "../pages/MessagesPage.jsx";
-import VerifyEmailPage from "../pages/VerifyEmailPage.jsx";
-import ResendVerificationPage from "../pages/ResendVerificationPage.jsx";
-import VerificationSentPage from "../pages/VerificationSentPage.jsx";
-import ForgotPasswordPage from "../pages/ForgotPasswordPage.jsx";
-import ResetPasswordPage from "../pages/ResetPasswordPage.jsx";
-import { NotificationsProvider } from "../notifications/NotificationsProvider.jsx";
-import NotificationsBell from "../notifications/NotificationsBell.jsx";
-import { useNotifications } from "../notifications/useNotifications.js";
-import { connectRealtime, disconnectRealtime, getRealtimeSocket } from "../realtime/socket.js";
-import { MAX_PHOTO_SIZE_BYTES, MAX_TOTAL_PHOTOS_SIZE_BYTES,
-  MAX_PHOTOS_COUNT, validatePhotoFile } from "../utils/photoValidator.js";
-import { buildApiHeaders } from "../utils.js";
-import ChatIndicator from "../chat/ChatIndicator.jsx";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FiEye} from "react-icons/fi";
+import { MIN_BIRTH_DATE_ISO, isValidBirthDateIso, getMaxAdultBirthDateIso } from "../utils/date.js";
 
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
 const inputClass =
   "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition";
-const textareaClass =
-  "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition min-h-[140px]";
-const selectClass =
-  "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition bg-white";
 const primaryButtonClass =
   "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-5 py-2.5 text-sm font-semibold shadow-md shadow-orange-200 hover:-translate-y-0.5 hover:shadow-lg transition disabled:opacity-60";
 const secondaryButtonClass =
   "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition";
-
-const STORAGE_KEY = "matcha.currentUser";
-
-const MIN_BIRTH_DATE_ISO = (() => {
-  const now = new Date();
-  const year = now.getFullYear() - 100;
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-})();
-  
-function writeStoredUser(user) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-}
-
-function getMaxAdultBirthDateIso() {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCFullYear(date.getUTCFullYear() - 18);
-  return date.toISOString().slice(0, 10);
-}
 
 export default function RegisterPage() {
   const navigate = useNavigate();
