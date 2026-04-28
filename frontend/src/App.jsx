@@ -44,22 +44,30 @@ import {
 } from "./utils/photoValidator.js";
 import { buildApiHeaders } from "./utils.js";
 import ChatIndicator from "./chat/ChatIndicator.jsx";
+import { ui } from "./styles/uiClasses";
+
 const STORAGE_KEY = "matcha.currentUser";
 const MAX_BIO_LENGTH = 500;
-const MIN_BIRTH_DATE_ISO = "1900-01-01";
+const MIN_BIRTH_DATE_ISO = (() => {
+  const now = new Date();
+  const year = now.getFullYear() - 150;
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+})();
 
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
-const inputClass =
-  "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition";
-const textareaClass =
-  "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition min-h-[140px]";
-const selectClass =
-  "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition bg-white";
-const primaryButtonClass =
-  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-5 py-2.5 text-sm font-semibold shadow-md shadow-orange-200 hover:-translate-y-0.5 hover:shadow-lg transition disabled:opacity-60";
-const secondaryButtonClass =
-  "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition";
+// const cardClass =
+//   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+// const inputClass =
+//   "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition";
+// const textareaClass =
+//   "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition min-h-[140px]";
+// const selectClass =
+//   "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition bg-white";
+// const primaryButtonClass =
+//   "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-5 py-2.5 text-sm font-semibold shadow-md shadow-orange-200 hover:-translate-y-0.5 hover:shadow-lg transition disabled:opacity-60";
+// const secondaryButtonClass =
+//   "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition";
 
 function getMaxAdultBirthDateIso() {
   const date = new Date();
@@ -141,8 +149,9 @@ function TopNav({ currentUser, profileLocked }) {
     <nav className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
 
       {!currentUser && (
-        <NavLink to="/login" className={({ isActive }) =>
-          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+        <NavLink to="/login" 
+          // className={({ isActive }) => `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          className={({ isActive }) => `${ui.buttonSecondary} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
         }>
           <span className="flex items-center gap-1.5 justify-center">
             <FiLogIn size={15} />
@@ -152,8 +161,9 @@ function TopNav({ currentUser, profileLocked }) {
       )}
 
       {!currentUser && (
-        <NavLink to="/register" className={({ isActive }) =>
-          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+        <NavLink to="/register" 
+          // className={({ isActive }) => `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          className={({ isActive }) => `${ui.buttonSecondary} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
         }>
           <span className="flex items-center gap-1.5 justify-center">
             <FiUserPlus size={15} />
@@ -164,8 +174,9 @@ function TopNav({ currentUser, profileLocked }) {
       )}
 
       {currentUser && profileLocked && (
-        <NavLink to="/profile" className={({ isActive }) =>
-          `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+        <NavLink to="/profile" 
+          // className={({ isActive }) => `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          className={({ isActive }) => `${ui.buttonSecondary} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
         }>
           <span className="flex items-center gap-1.5 justify-center">
             <FiUser size={15} />
@@ -177,26 +188,30 @@ function TopNav({ currentUser, profileLocked }) {
 
       {currentUser && !profileLocked && (
         <>
-          <NavLink to="/find-match" className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          <NavLink to="/find-match" 
+            // className={({ isActive }) => `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+            className={({ isActive }) => `${ui.buttonSecondary} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
             {navItem(<FiUsers size={15} />, "Find", "Find your match")}
           </NavLink>
 
-          <NavLink to="/popularity/views" className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          <NavLink to="/popularity/views" 
+            // className={({ isActive }) => `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+            className={({ isActive }) => `${ui.buttonSecondary} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
             {navItem(<FiEye size={15} />, "Views", "Who viewed me", modeCounts.views)}
           </NavLink>
 
-          <NavLink to="/popularity/likes" className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          <NavLink to="/popularity/likes" 
+            // className={({ isActive }) => `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+            className={({ isActive }) => `${ui.buttonSecondary} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
             {navItem(<FiHeart size={15} />, "Likes", "Who liked me", modeCounts.likes)}
           </NavLink>
 
-          <NavLink to="/popularity/matches" className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+          <NavLink to="/popularity/matches" 
+            // className={({ isActive }) => `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+            className={({ isActive }) => `${ui.buttonSecondary} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
           }>
             {navItem(
               <span className="relative inline-flex h-4 w-5 items-center justify-center text-slate-500">
@@ -361,7 +376,8 @@ function RegisterPage() {
     }
   }
   return (
-    <section className={cardClass}>
+    // <section className={cardClass}>
+    <section className={ui.card}>
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
           Get started
@@ -379,7 +395,9 @@ function RegisterPage() {
             placeholder="you@example.com"
             value={form.email}
             onChange={handleChange}
-            className={inputClass}
+            // className={inputClass}
+            className={ui.input}
+            required
           />
           <p className="text-xs text-slate-500">Used for account recovery and notifications.</p>
         </div>
@@ -392,7 +410,8 @@ function RegisterPage() {
             placeholder="Choose a unique username"
             value={form.username}
             onChange={handleChange}
-            className={inputClass}
+            // className={inputClass}
+            className={ui.input}
             pattern="[A-Za-z0-9._\-]{2,20}"
             title="2-20 characters: letters, numbers, dot, underscore, hyphen"
             required
@@ -408,7 +427,8 @@ function RegisterPage() {
             placeholder="Your first name"
             value={form.first_name}
             onChange={handleChange}
-            className={inputClass}
+            // className={inputClass}
+            className={ui.input}
             required
           />
         </div>
@@ -421,7 +441,8 @@ function RegisterPage() {
             placeholder="Your last name"
             value={form.last_name}
             onChange={handleChange}
-            className={inputClass}
+            // className={inputClass}
+            className={ui.input}
             required
           />
         </div>
@@ -434,7 +455,8 @@ function RegisterPage() {
             type="date"
             value={form.birth_date}
             onChange={handleChange}
-            className={inputClass}
+            // className={inputClass}
+            className={ui.input}
             min={MIN_BIRTH_DATE_ISO}
             max={maxAdultBirthDateIso}
             required
@@ -452,7 +474,8 @@ function RegisterPage() {
               placeholder="Create a strong password"
               value={form.password}
               onChange={handleChange}
-              className={`${inputClass} pr-12`}
+              // className={`${inputClass} pr-12`}
+              className={ui.input + " pr-12"}
             />
             <button
               type="button"
@@ -477,7 +500,8 @@ function RegisterPage() {
               placeholder="reenter password"
               value={form.confirmPassword}
               onChange={handleChange}
-              className={`${inputClass} pr-12`}
+              // className={`${inputClass} pr-12`}
+              className={ui.input + " pr-12"}              
             />
             {form.confirmPassword && form.password !== form.confirmPassword && (
               <p className="text-xs text-red-500">
@@ -495,7 +519,10 @@ function RegisterPage() {
             </button>
           </div>
         </div>
-        <button type="submit" className={primaryButtonClass}>
+        <button type="submit" 
+          // className={primaryButtonClass}
+          className={ui.buttonPrimary}
+        >
           Register
         </button>
         <p className="text-xs text-slate-500">You must be at least 18 years old.</p>
@@ -541,14 +568,16 @@ function RegisterPage() {
                 },
               })
             }
-            className={secondaryButtonClass}
+            // className={secondaryButtonClass}
+            className={ui.buttonSecondary}
           >
             Email sent page
           </button>
           <button
             type="button"
             onClick={() => navigate("/login")}
-            className={secondaryButtonClass}
+            // className={secondaryButtonClass}
+            className={ui.buttonSecondary}
           >
             Go to login
           </button>
@@ -620,7 +649,8 @@ function LoginPage({ onLogin }) {
   }
 
   return (
-    <section className={cardClass}>
+    // <section className={cardClass}>
+    <section className={ui.card}>
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
           Welcome back
@@ -637,7 +667,8 @@ function LoginPage({ onLogin }) {
             placeholder="Enter username or email"
             value={form.username}
             onChange={handleChange}
-            className={inputClass}
+            // className={inputClass}
+            className={ui.input}
           />
         </div>
         <div className="space-y-1">
@@ -651,7 +682,8 @@ function LoginPage({ onLogin }) {
               placeholder="Enter your password"
               value={form.password}
               onChange={handleChange}
-              className={`${inputClass} pr-12`}
+              // className={`${inputClass} pr-12`}
+              className={ui.input + " pr-12"}
             />
             <button
               type="button"
@@ -664,7 +696,10 @@ function LoginPage({ onLogin }) {
             </button>
           </div>
         </div>
-        <button type="submit" className={primaryButtonClass}>
+        <button type="submit" 
+          // className={primaryButtonClass}
+          className={ui.buttonPrimary}
+        >
           Login
         </button>
         <div className="text-right">
@@ -756,11 +791,15 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   const isLocationAccepted =
     Boolean(locationValidation?.city_exists) || isCityConfirmed;
 
+  const gpsConsentNeedsCoords =
+    form.gps_consent && (!form.latitude || !form.longitude);
+
   const canSaveProfile =
     !loading &&
     !validatingLocation &&
     isLocationAccepted &&
-    hasRequiredFields;
+    hasRequiredFields &&
+    !gpsConsentNeedsCoords;
   const canAttemptSaveProfile = !loading && !validatingLocation;
   const isCitySelected =
     (form.city || "").trim().length > 0 &&
@@ -1407,6 +1446,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
     setForm((prev) => ({
       ...prev,
       neighborhood: "",
+      gps_consent: false,
+      latitude: "",
+      longitude: "",
     }));
     setIsCityConfirmed(false);
     setCityNeighborhoodOptions([]);
@@ -1666,7 +1708,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
   }
 
   return (
-    <section className={cardClass}>
+    // <section className={cardClass}>
+    <section className={ui.card}>
       <div className="space-y-1">
         <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-900">
           <FiUser size={20} aria-hidden="true" />
@@ -1697,7 +1740,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 placeholder="Username"
                 value={form.username}
                 onChange={handleChange}
-                className={inputClass}
+                // className={inputClass}
+                className={ui.input}
               />
             </div>
             <div className="space-y-1">
@@ -1712,7 +1756,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 type="date"
                 value={form.birth_date}
                 onChange={handleChange}
-                className={inputClass}
+                // className={inputClass}
+                className={ui.input}
                 min={MIN_BIRTH_DATE_ISO}
                 max={maxAdultBirthDateIso}
                 required
@@ -1733,7 +1778,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 placeholder="First name"
                 value={form.first_name}
                 onChange={handleChange}
-                className={inputClass}
+                // className={inputClass}
+                className={ui.input}
               />
             </div>
             <div className="space-y-1">
@@ -1748,7 +1794,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 placeholder="Last name"
                 value={form.last_name}
                 onChange={handleChange}
-                className={inputClass}
+                // className={inputClass}
+                className={ui.input}
               />
             </div>
           </div>
@@ -1767,21 +1814,24 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 placeholder="Email address"
                 value={form.email}
                 readOnly
-                className={`${inputClass} bg-slate-50 text-slate-600`}
+                // className={`${inputClass} bg-slate-50 text-slate-600`}
+                className={ui.input + " bg-slate-50 text-slate-600"}
+
               />
               <button
                 type="button"
                 onClick={() => setEmailChangeOpen((prev) => !prev)}
-                className={secondaryButtonClass}
+                // className={secondaryButtonClass}
+                className={ui.secondaryButton}
               >
                 Modify
               </button>
             </div>
-            <p className="text-xs text-orange-500">
-              Email can only be changed after password confirmation and new-email verification.
-            </p>
             {emailChangeOpen && (
             <div className="mt-2 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-orange-500">
+                Email can only be changed after password confirmation and new-email verification.
+              </p>
 
               <div className="space-y-1">
                 <span className="text-xs tracking-[0.12em] text-slate-500 font-semibold">
@@ -1793,7 +1843,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                   placeholder="New email"
                   value={emailChangeForm.new_email}
                   onChange={handleEmailChangeInput}
-                  className={inputClass}
+                  // className={inputClass}
+                  className={ui.input}
                 />
               </div>
 
@@ -1807,7 +1858,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                   placeholder="Current password"
                   value={emailChangeForm.password}
                   onChange={handleEmailChangeInput}
-                  className={inputClass}
+                  // className={inputClass}
+                  className={ui.input}
                 />
               </div>
 
@@ -1815,14 +1867,16 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 <button
                   type="button"
                   onClick={handleEmailChangeSubmit}
-                  className={primaryButtonClass}
+                  // className={primaryButtonClass}
+                  className={ui.primaryButton}
                   disabled={emailChangeLoading}
                 >
                   {emailChangeLoading ? "Sending..." : "Send verification email"}
                 </button>
                 <button
                   type="button"
-                  className={secondaryButtonClass}
+                  // className={secondaryButtonClass}
+                  className={ui.secondaryButton}
                   onClick={() => {
                     setEmailChangeOpen(false);
                     setEmailChangeForm({ new_email: "", password: "" });
@@ -1847,7 +1901,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               name="gender"
               value={form.gender}
               onChange={handleChange}
-              className={selectClass}
+              // className={selectClass}
+              className={ui.select}
             >
               <option value="">Select gender</option>
               <option value="male">male</option>
@@ -1868,7 +1923,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               name="sexual_preference"
               value={form.sexual_preference}
               onChange={handleChange}
-              className={selectClass}
+              // className={selectClass}
+              className={ui.select}
             >
               <option value="">Select sexual preference</option>
               <option value="male">male</option>
@@ -1890,7 +1946,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               placeholder="Biography"
               value={form.biography}
               onChange={handleChange}
-              className={textareaClass}
+              // className={textareaClass}
+              className={ui.textarea}
               rows={4}
               maxLength={MAX_BIO_LENGTH}
             />
@@ -1972,7 +2029,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
             </label>
             <button
               type="button"
-              className={secondaryButtonClass}
+              // className={secondaryButtonClass}
+              className={ui.secondaryButton}
               onClick={useCurrentLocation}
               disabled={loadingGeo || !form.gps_consent}
             >
@@ -1981,9 +2039,17 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                 {loadingGeo ? "Locating..." : "Use my position"}
               </span>
             </button>
-            <span className="text-xs text-slate-500">
-              Enable GPS consent to auto-fill your location.
-            </span>
+            {!form.gps_consent ? (
+              <span className="text-xs text-slate-500">
+                Enable GPS consent to auto-fill your location.
+              </span>
+            ) : (
+              <span className="text-xs text-red-600 block w-full mt-1">
+                GPS consent activate : click on "Use my position" and allow location access in your browser.
+                <br />
+                Verify the detected city/neighborhood before saving, edit if needed.
+              </span>
+            )}
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
@@ -1998,17 +2064,19 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                   onBlur={() => {
                     setTimeout(() => setIsCitySuggestionsOpen(false), 120);
                   }}
-                  className={`${inputClass} flex-1 ${cityAutocompleteOptions.length > 0 ? "rounded-b-none" : ""} ${isNeighborhoodSelected ? "opacity-60" : ""}`}
+                  // className={`${inputClass} flex-1 ${cityAutocompleteOptions.length > 0 ? "rounded-b-none" : ""} ${isNeighborhoodSelected || form.gps_consent ? "opacity-60" : ""}`}
+                  className={`${ui.input} flex-1 ${cityAutocompleteOptions.length > 0 ? "rounded-b-none" : ""} ${isNeighborhoodSelected || form.gps_consent ? "opacity-60" : ""}`}
                   autoComplete="new-password"
-                  disabled={isNeighborhoodSelected}
+                  disabled={isNeighborhoodSelected || form.gps_consent}
                   required
                 />
-                
-                {isNeighborhoodSelected && (
+
+                {(isNeighborhoodSelected || form.gps_consent) && (
                   <button
                     type="button"
                     onClick={handleEditLocation}
-                    className={secondaryButtonClass}
+                    // className={secondaryButtonClass}
+                    className={ui.secondaryButton}
                   >
                     Edit
                   </button>
@@ -2057,8 +2125,9 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
                   name="neighborhood"
                   value={form.neighborhood}
                   onChange={handleChange}
-                  className={`${selectClass} ${isCitySelected ? "" : "opacity-60 cursor-not-allowed"}`}
-                  disabled={!isCitySelected || loadingNeighborhoods || neighborhoodByCityOptions.length === 0}
+                  // className={`${selectClass} ${isCitySelected ? "" : "opacity-60 cursor-not-allowed"} ${form.gps_consent ? "opacity-60" : ""}`}
+                  className={ui.select + ` ${isCitySelected ? "" : "opacity-60 cursor-not-allowed"} ${form.gps_consent ? "opacity-60" : ""}`}
+                  disabled={!isCitySelected || loadingNeighborhoods || neighborhoodByCityOptions.length === 0 || form.gps_consent}
                 >
                   <option value="">
                     {isCitySelected
@@ -2122,7 +2191,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               <select
                 value={selectedTag}
                 onChange={(event) => setSelectedTag(event.target.value)}
-                className={selectClass}
+                // className={selectClass}
+                className={ui.select}
               >
                 <option value="">Select an interest tag</option>
                 {tagOptions.map((item) => (
@@ -2134,7 +2204,8 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
               <button
                 type="button"
                 onClick={() => addTag(selectedTag)}
-                className={secondaryButtonClass}
+                // className={secondaryButtonClass}
+                className={ui.secondaryButton}
                 disabled={!selectedTag || form.tags.length >= 10}
               >
                 Add
@@ -2164,12 +2235,17 @@ function ProfilePage({ currentUser, onProfileUpdate }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <button type="submit" className={primaryButtonClass} disabled={!canAttemptSaveProfile}>
+            <button type="submit" 
+              // className={primaryButtonClass} 
+              className={ui.primaryButton}
+              disabled={!canAttemptSaveProfile}
+            >
               Save Profile
             </button>
             <button
               type="button"
-              className={secondaryButtonClass}
+              // className={secondaryButtonClass}
+              className={ui.secondaryButton}
               onClick={loadProfile}
             >
               Reload Profile
