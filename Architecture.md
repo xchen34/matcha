@@ -230,7 +230,8 @@ Implemented controls include:
 | `routes/health.js` | Lightweight liveness endpoint |
 | `routes/dbHealth.js` | DB connectivity check endpoint |
 | `routes/users.js` | Basic CRUD user endpoints (legacy/simple utility) |
-| `routes/auth.js` | Registration, login, email verification, email change, password reset, account deletion |
+| `routes/auth.js` | Declarative auth route wiring |
+| `routes/authController.js` | Registration, login, email verification, email change, password reset, account deletion |
 | `routes/profile.js` | Profile read/update, tags, location/geocode, city suggestion APIs |
 | `routes/likes.js` | Views, likes, matches, discovery endpoint, like/unlike/match state handling |
 | `routes/chats.js` | Conversations/messages APIs, message limits, read states, visibility deletions, block/match guards |
