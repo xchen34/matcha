@@ -8,8 +8,9 @@ import ChatAvatar from "../chat/ChatAvatar.jsx";
 import { useNotifications } from "../notifications/useNotifications.js";
 import { getRealtimeSocket, onRealtimeEvent } from "../realtime/socket.js";
 
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+import { ui } from "../styles/uiClasses";
+// const cardClass =
+  // "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
 
 const MODE_CONFIG = {
   views: {
@@ -317,8 +318,8 @@ function PopularityListPage({ currentUser, mode = "views" }) {
   if (error) return <p className="text-sm text-red-600">{error}</p>;
 
   return (
-  <section className={cardClass}>
-    
+  // <section className={cardClass}>
+  <section className={ui.card}>
     {/* ✅ HEADER FLEX */}
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 

@@ -185,9 +185,16 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
             <FaMapMarkerAlt size={13} />
             <span className="truncate font-semibold text-slate-800">
               {sanitizeText(user.city) || "-"}
+              {user.neighborhood ? ` - ${sanitizeText(user.neighborhood)}` : ""}
+              </span>
             </span>
-          </span>
-        </div>
+            {hasFameValue && (
+              <span className="inline-flex items-center gap-1">
+                <FaStar size={13} />
+                <span className="font-semibold text-slate-800">{Math.floor(fameValue)}</span>
+              </span>
+            )}
+          </div>
 
         {/* TAGS */}
         <div className="mb-2 flex flex-wrap items-center gap-1 text-xs text-slate-600">

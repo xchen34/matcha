@@ -10,8 +10,9 @@ import { onRealtimeEvent } from "../realtime/socket.js";
 
 const PAGE_SIZE = 18;
 
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+import { ui } from "../styles/uiClasses";
+// const cardClass =
+  // "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
 
 function FindMatchPage({ currentUser }) {
   const [users, setUsers] = useState([]);
@@ -475,7 +476,8 @@ function FindMatchPage({ currentUser }) {
   if (loading) return <p className="text-sm text-slate-600">Loading matches...</p>;
 
   return (
-    <section className={cardClass}>
+    // <section className={cardClass}>
+    <section className={ui.card}>
       <div className="flex flex-col gap-1 mb-12">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">

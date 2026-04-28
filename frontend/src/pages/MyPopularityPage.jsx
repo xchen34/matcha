@@ -6,8 +6,9 @@ import { sanitizeText } from "../utils/xssEscape.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
 import ChatAvatar from "../chat/ChatAvatar.jsx";
 
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+import { ui } from "../styles/uiClasses";
+// const cardClass =
+  // "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
 
 function MyPopularityPage({ currentUser }) {
   const navigate = useNavigate();
@@ -121,7 +122,8 @@ function MyPopularityPage({ currentUser }) {
   if (error) return <p className="text-sm text-red-600">{error}</p>;
 
   return (
-    <section className={cardClass}>
+    // <section className={cardClass}>
+    <section className={ui.card}>
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold text-slate-900">My popularity</h2>
         <p className="text-sm text-slate-500">Who viewed me, who liked me, and who matched with me</p>

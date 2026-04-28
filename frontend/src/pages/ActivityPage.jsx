@@ -3,8 +3,9 @@ import { Navigate, useLocation } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
 import { useNotifications } from "../notifications/useNotifications.js";
 
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+import { ui } from "../styles/uiClasses";
+// const cardClass =
+  // "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
 
 function ActivityPage({ currentUser }) {
   const [tab, setTab] = useState("views");
@@ -102,7 +103,8 @@ function ActivityPage({ currentUser }) {
   if (!currentUser) return <Navigate to="/login" replace />;
 
   return (
-    <section className={cardClass}>
+    // <section className={cardClass}>
+    <section className={ui.card}>
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
           Activity
