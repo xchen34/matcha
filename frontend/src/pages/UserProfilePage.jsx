@@ -6,10 +6,8 @@ import { buildApiHeaders } from "../utils.js";
 import { sanitizeText } from "../utils/xssEscape.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
 
-import { ui } from "../styles/uiClasses";
-// const cardClass =
-  // "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
-
+const cardClass =
+  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
 const MAX_FAKE_REPORT_REASON_LENGTH = 200;
 
 function FieldLabel({ icon: Icon, children }) {
@@ -483,8 +481,7 @@ function UserProfilePage({ currentUser }) {
   }
 
   return (
-    // <section className={cardClass}>
-    <section className={ui.card}>
+    <section className={cardClass}>
       <div className="space-y-1">
 
         {/* Note about like restrictions */}

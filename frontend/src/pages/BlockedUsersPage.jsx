@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
 
-import { ui } from "../styles/uiClasses";
-// const cardClass =
-  // "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+const cardClass =
+  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
 
 function BlockedUsersPage({ currentUser }) {
   const [blockedUsers, setBlockedUsers] = useState([]);
@@ -83,8 +82,7 @@ function BlockedUsersPage({ currentUser }) {
   if (loading) return <p className="text-sm text-slate-600">Loading blocked users...</p>;
 
   return (
-    // <section className={cardClass}>
-    <section className={ui.card}>
+    <section className={cardClass}>
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
           Safety
