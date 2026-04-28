@@ -378,7 +378,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         setBlockStatus("unmatched");
         setIsMatch(false);
         setMatchError(
-          "Le match a été annulé. Vous ne pouvez plus envoyer de messages à cet utilisateur.",
+          "The match has been cancelled. You can no longer send messages to this user."
         );
       } else {
         setBlockStatus(null);
@@ -664,10 +664,10 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
     const offMatchStatus = onRealtimeEvent("match:status:changed", (payload) => {
       if (!payload) return;
       const otherUserId = conversation?.other_user?.id;
-      // On ne fait la logique que si la conversation affichée correspond à l'utilisateur concerné
+      // Only react to match changes related to the other user in this conversation
       if (!otherUserId) return;
       if (Number(payload.userId) === Number(otherUserId)) {
-        // Si le match est rompu, on affiche un message et on désactive l'envoi
+        // If the payload indicates a non-match, set the appropriate states. Otherwise, reset them.
         if (payload.matched === false) {
           setIsMatch(false);
           setMatchError("Le match a été annulé. Vous ne pouvez plus envoyer de messages à cet utilisateur.");
@@ -1037,7 +1037,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
               }
             });
 
-            // Choisir le plus récent des deux événements
+            // Choose which status message to show based on the most recent relevant message
             let showType = null;
             let showIdx = -1;
             let showDate = null;
@@ -1208,7 +1208,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                 );
               }
 
-              // Masque tous les autres messages système matched/unmatched
+              // Mask messages that indicate a match or unmatch status to avoid confusion
               if (matchedRegex.test(msg.content) || unmatchedRegex.test(msg.content)) {
                 return null;
               }

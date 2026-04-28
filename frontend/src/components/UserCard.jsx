@@ -80,7 +80,8 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[19rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md hover:scale-105">
+    <div className="relative mx-auto flex h-full w-full max-w-[19rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md hover:scale-105">
+      {/* IMAGE */}
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-100 sm:aspect-[3/4]">
         {profilePhotoUrl ? (
           <img
@@ -103,7 +104,21 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           {user.is_online ? "Online" : "Offline"}
         </span>
 
-        <div className="group absolute bottom-3 right-3">
+        {/* LIKE BUTTON + STATUS INLINE */}
+        <div className="group absolute bottom-3 right-3 flex items-center gap-2">
+          <span
+            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full backdrop-blur
+              ${isMatch
+                ? "bg-red-600 text-white"
+                : liked
+                ? "bg-orange-500 text-white"
+                : "bg-slate-800/70 text-white"
+              }`}
+          >
+            {isMatch ? "Match" : liked ? "Liked" : "Not liked"}
+          </span>
+
+          {/* BUTTON */}
           <button
             onClick={handleToggleLike}
             disabled={
@@ -118,7 +133,6 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
                 ? "border-orange-300 bg-orange-500"
                 : "border-white/80 bg-slate-700/70 backdrop-blur"
               } ${likeDisabledBecauseNoOwnPhoto ? "cursor-not-allowed" : ""}`}
-            aria-label={isMatch ? "Match" : liked ? "Liked" : "Like"}
           >
             <FaHeart size={18} color="#fff" />
             {likeDisabledBecauseNoOwnPhoto && (
@@ -127,56 +141,63 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
               </span>
             )}
           </button>
+
+          {/* TOOLTIP */}
           {likeDisabledBecauseNoOwnPhoto && (
-            <div className="pointer-events-none absolute bottom-full right-0 mb-2 hidden w-52 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-lg group-hover:block">
+            <div className="pointer-events-none absolute bottom-full right-0 mb-2 w-52 rounded-lg bg-black/80 px-3 py-2 text-xs font-medium text-white shadow-lg opacity-0 group-hover:opacity-100 transition">
               Add a primary profile photo to enable likes.
             </div>
           )}
         </div>
       </div>
 
-      <div className="space-y-3 p-3 sm:p-4">
-        <div className="space-y-0.5">
-          <h3
-            className="truncate text-xl font-semibold text-slate-900"
-            title={`@${user.username}`}
-          >
+      {/* CONTENT */}
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        {/* HEADER */}
+        <div className="mb-2">
+          <h3 className="truncate text-xl font-semibold text-slate-900">
             @{user.username}
           </h3>
-          <p className={`text-xs font-semibold ${isMatch ? "text-red-600" : liked ? "text-orange-600" : "text-slate-600"}`}>
-            {isMatch ? "Match" : liked ? "Liked" : "Not liked"}
-          </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 text-sm text-slate-600">
+        {/* INFOS */}
+        <div className="mb-2 flex flex-wrap gap-2 text-sm text-slate-600">
           <span className="inline-flex items-center gap-1">
             <FaTransgender size={13} />
-            <span className="font-semibold text-slate-800">{sanitizeText(user.gender) || "-"}</span>
+            <span className="font-semibold text-slate-800">
+              {sanitizeText(user.gender) || "-"}
+            </span>
           </span>
+
           <span className="inline-flex items-center gap-1">
             <span className="font-semibold text-slate-500">Pref:</span>
-            <span className="font-semibold text-slate-800">{sanitizeText(user.sexual_preference) || "-"}</span>
+            <span className="font-semibold text-slate-800">
+              {sanitizeText(user.sexual_preference) || "-"}
+            </span>
           </span>
+
           <span className="inline-flex items-center gap-1">
             <FaUser size={13} />
             <span className="font-semibold text-slate-800">{user.age ?? "-"}</span>
           </span>
+
           <span className="inline-flex min-w-0 items-center gap-1">
             <FaMapMarkerAlt size={13} />
             <span className="truncate font-semibold text-slate-800">
               {sanitizeText(user.city) || "-"}
               {user.neighborhood ? ` - ${sanitizeText(user.neighborhood)}` : ""}
+              </span>
             </span>
-          </span>
-          {hasFameValue && (
-            <span className="inline-flex items-center gap-1">
-              <FaStar size={13} />
-              <span className="font-semibold text-slate-800">{Math.floor(fameValue)}</span>
-            </span>
-          )}
-        </div>
+            {hasFameValue && (
+              <span className="inline-flex items-center gap-1">
+                <FaStar size={13} />
+                <span className="font-semibold text-slate-800">{Math.floor(fameValue)}</span>
+              </span>
+            )}
+          </div>
 
-        <div className="flex flex-wrap items-center gap-1 text-xs text-slate-600">
+        {/* TAGS */}
+        <div className="mb-2 flex flex-wrap items-center gap-1 text-xs text-slate-600">
           <FaTags size={12} className="text-slate-500" />
           {Array.isArray(user.tags) && user.tags.length > 0 ? (
             user.tags.slice(0, 3).map((tag) => (
@@ -192,18 +213,20 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           )}
         </div>
 
-        {!profilePhotoUrl && (
-          <div className="text-xs text-amber-600">No profile photo — like disabled</div>
-        )}
+        {/* ERROR */}
+        {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
 
-        <button
-          onClick={() => navigate(`/users/${user.id}`)}
-          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
-        >
-          View profile
-        </button>
+        {/* BUTTON BOTTOM */}
+        <div className="mt-auto flex justify-end pt-2">
+          <button
+            onClick={() => navigate(`/users/${user.id}`)}
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-black border border-slate-300 hover:bg-slate-100 transition"
+          >
+            <FaUser size={12} />
+            View profile
+          </button>
+        </div>
 
-        {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
     </div>
   );

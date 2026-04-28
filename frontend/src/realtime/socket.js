@@ -1,5 +1,4 @@
 import { io } from "socket.io-client";
-//import { logError, logWarn } from "../utils/logger.js";
 
 let socket = null;
 let pingIntervalId = null;
@@ -14,13 +13,13 @@ function ensureSocket() {
   const socketUrl = configuredSocketUrl ? configuredSocketUrl.trim() : undefined;
 
   // Use same-origin by default so Vite/Nginx proxies can route /socket.io.
-socket = io(socketUrl, {
-  path: "/socket.io",
-  transports: ["websocket"],
-  upgrade: false,
-  autoConnect: false,
-  reconnection: true,
-});
+  socket = io(socketUrl, {
+    path: "/socket.io",
+    transports: ["websocket"],
+    upgrade: false,
+    autoConnect: false,
+    reconnection: true,
+  });
 
   socket.on("connect", () => {
     for (const conversationId of activeConversationIds) {
@@ -43,7 +42,7 @@ socket = io(socketUrl, {
   socket.on("disconnect", (reason) => {
     if (isUnloading) return;
     if (reason === "io server disconnect") {
-      logWarn("realtime.disconnect", { reason });
+      console.warn("realtime.disconnect", { reason });
       alert(
         "You no longer have access to this conversation or the connection was closed.\n\n" +
           "Vous n'avez plus accès à cette conversation ou la connexion a été coupée.",
@@ -51,10 +50,10 @@ socket = io(socketUrl, {
     }
   });
 
-  // Gestion des erreurs de connexion
+  // Manage connection errors and show an alert if there are multiple within a short time frame
   socket.on("connect_error", (err) => {
     if (isUnloading) return;
-    logError("realtime.connect_error", err);
+    console.error("Real-time connection error:", err);
 
     // Ignore noisy transient failures during initial page refresh/reconnect.
     const now = Date.now();
@@ -104,7 +103,6 @@ export function disconnectRealtime() {
     window.clearInterval(pingIntervalId);
     pingIntervalId = null;
   }
-
 }
 
 export function onRealtimeEvent(event, handler) {

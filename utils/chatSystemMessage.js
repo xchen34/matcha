@@ -22,7 +22,7 @@ async function insertSystemMessage(userA, userB, content) {
     conversationId = fetchRes.rows[0]?.id;
   }
   if (!conversationId) return;
-  // Pour un message système, on met userA comme sender, userB comme destinataire
+  // Insert the system message
   await pool.query(
     `INSERT INTO chat_messages (conversation_id, sender_user_id, recipient_user_id, content, is_read)
      VALUES ($1, $2, $3, $4, TRUE)`,

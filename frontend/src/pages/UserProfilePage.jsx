@@ -19,7 +19,7 @@ function FieldLabel({ icon: Icon, children }) {
   );
 }
 
-// Affichage des photos avec cadre carré fixe
+// Shows a heart button with optional disabled state and tooltip if user cannot like due to no profile photo
 function ProfilePhotosGrid({ photos }) {
   const FRAME_SIZE = 224;
   const [modalIndex, setModalIndex] = useState(null);
@@ -124,7 +124,7 @@ function UserProfilePage({ currentUser }) {
       setData(null);
     }, [currentUser, id]);
 
-    // Réinitialisation globale de l'erreur si currentUser change (logout/login)
+    // Redirect to login if not authenticated, but don't show error message since it's not an error state for the user
     useEffect(() => {
       setError("");
     }, [currentUser]);
@@ -150,7 +150,7 @@ function UserProfilePage({ currentUser }) {
       setLoading(true);
       setError("");
       try {
-        // Si l'utilisateur courant consulte son propre profil, utiliser /api/profile/me
+        // If user is viewing their own profile, use the /me endpoint
         let response;
         if (currentUser && String(currentUser.id) === String(id)) {
           response = await fetch(`/api/profile/me`, {
@@ -483,6 +483,18 @@ function UserProfilePage({ currentUser }) {
   return (
     <section className={cardClass}>
       <div className="space-y-1">
+
+        {/* Note about like restrictions */}
+        {(!Array.isArray(profile.photos) || profile.photos.length === 0 || !canLikeProfiles) && (
+          <p className="text-xs text-amber-700 mt-2">
+            {!Array.isArray(profile.photos) || profile.photos.length === 0
+              ? "No profile photo: can't be liked."
+              : !canLikeProfiles
+                ? "Add a profile photo to like."
+                : null}
+          </p>
+        )}
+
         <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
           Profile
         </p>
@@ -626,17 +638,6 @@ function UserProfilePage({ currentUser }) {
 
       {Array.isArray(profile.photos) && profile.photos.length > 0 && (
         <ProfilePhotosGrid photos={profile.photos} />
-      )}
-
-      {/* Note about like restrictions */}
-      {(!Array.isArray(profile.photos) || profile.photos.length === 0 || !canLikeProfiles) && (
-        <p className="text-xs text-amber-700 mt-2">
-          {!Array.isArray(profile.photos) || profile.photos.length === 0
-            ? "No profile photo: can't be liked."
-            : !canLikeProfiles
-              ? "Add a profile photo to like."
-              : null}
-        </p>
       )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm text-slate-700">        <div className="h-full space-y-3 rounded-xl bg-white/70 p-4">

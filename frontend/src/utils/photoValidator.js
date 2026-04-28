@@ -10,10 +10,10 @@ export const ALLOWED_PHOTO_MIMES = new Set([
   "image/gif",
 ]);
 
-export const MAX_PHOTO_SIZE_BYTES = 300 * 1024; // 300KB per photo
+export const MAX_PHOTO_SIZE_BYTES = 500 * 1024; // 500KB per photo
 export const MAX_PHOTOS_COUNT = 5;
 export const MAX_TOTAL_PHOTOS_SIZE_BYTES =
-  MAX_PHOTO_SIZE_BYTES * MAX_PHOTOS_COUNT; // 1500KB total for 5 photos
+  MAX_PHOTO_SIZE_BYTES * MAX_PHOTOS_COUNT; // 2500KB total for 5 photos
 
 /**
  * Validate MIME type from a File object
@@ -34,7 +34,7 @@ export function validatePhotoFile(file) {
     const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
     return {
       valid: false,
-      error: `File too large: ${sizeMB}MB. Maximum 300KB per photo.`,
+      error: `File too large: ${sizeMB}MB. Maximum 500KB per photo.`,
     };
   }
 
