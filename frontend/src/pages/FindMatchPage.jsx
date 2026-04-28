@@ -9,8 +9,6 @@ import { buildApiHeaders } from "../utils.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
 
 const PAGE_SIZE = 18;
-
-import { ui } from "../styles/uiClasses.js";
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
 
