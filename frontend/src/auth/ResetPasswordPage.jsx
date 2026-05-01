@@ -1,16 +1,22 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import PasswordInput from "./components/PasswordInput";
+import { secondaryButtonClass } from "../styles/UIClasses.jsx";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const token = useMemo(() => (searchParams.get("token") || "").trim(), [searchParams]);
+
+  const token = useMemo(
+    () => (searchParams.get("token") || "").trim(),
+    [searchParams]
+  );
 
   const [form, setForm] = useState({
     new_password: "",
     confirm_password: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -34,7 +40,7 @@ export default function ResetPasswordPage() {
     }
 
     if (form.new_password !== form.confirm_password) {
-      setMessage("Error: Passwords do not match.");
+      setMessage("Passwords do not match");
       return;
     }
 
@@ -49,17 +55,17 @@ export default function ResetPasswordPage() {
           new_password: form.new_password,
         }),
       });
+
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage(`Error: ${data.error || "Reset failed"}`);
+        setMessage(data.error || "Reset failed");
         return;
       }
 
-      setMessage(data.message || "Password reset successful.");
-      setTimeout(() => navigate("/login"), 1500);
+      setTimeout(() => navigate("/login"), 1000);
     } catch (error) {
-      setMessage(`Error: ${error.message}`);
+      setMessage(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -68,44 +74,54 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Reset Password</h1>
+
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          Reset Password
+        </h1>
+
         <p className="text-gray-600 mb-6">
           Set a new password for your account.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
-            <input
+            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              New Password
+            </label>
+
+            <PasswordInput
               name="new_password"
-              type={showPassword ? "text" : "password"}
               value={form.new_password}
               onChange={handleChange}
-              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+              placeholder="New password"
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
-            <input
+            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              Confirm Password
+            </label>
+
+            <PasswordInput
               name="confirm_password"
-              type={showPassword ? "text" : "password"}
               value={form.confirm_password}
               onChange={handleChange}
-              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+              placeholder="Confirm password"
+              required
             />
           </div>
 
-          <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={showPassword}
-              onChange={(event) => setShowPassword(event.target.checked)}
-            />
-            Show password
-          </label>
+          {/* ONLY ONE SIMPLE MESSAGE */}
+          {form.confirm_password &&
+            form.new_password !== form.confirm_password && (
+              <p className="text-xs text-red-500">
+                Passwords do not match
+              </p>
+            )}
 
           <button
             type="submit"
@@ -116,12 +132,18 @@ export default function ResetPasswordPage() {
           </button>
         </form>
 
-        {message && <p className="mt-4 text-sm text-slate-700">{message}</p>}
+        {message && (
+          <p className="mt-4 text-sm text-slate-700">{message}</p>
+        )}
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          <Link to="/login" className="text-rose-500 hover:text-rose-600 font-semibold">
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className={secondaryButtonClass}
+          >
             Back to login
-          </Link>
+          </button>
         </div>
       </div>
     </div>

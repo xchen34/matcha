@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaEye, FaUser, FaHeart, FaHeartBroken, FaCommentDots } from "react-icons/fa";
+import { FaEye, FaUser, FaHeart, FaCommentDots } from "react-icons/fa";
 import { Navigate, useNavigate } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
 import { sanitizeText } from "../utils/xssEscape.js";
-import { ensureConversationExists } from "../chat/api.js";
-import ChatAvatar from "../chat/ChatAvatar.jsx";
-import { useNotifications } from "../notifications/useNotifications.js";
+import { ensureConversationExists } from "../chat/hooks/api.js";
+import ChatAvatar from "../chat/components/ChatAvatar.jsx";
+import { useNotifications } from "../notifications/hooks/useNotifications.js";
 import { getRealtimeSocket, onRealtimeEvent } from "../realtime/socket.js";
-
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+import { cardClass } from "../styles/UIClasses.jsx";
 
 const MODE_CONFIG = {
   views: {

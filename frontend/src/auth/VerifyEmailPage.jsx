@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-
-const STORAGE_KEY = "matcha.currentUser";
+import { STORAGE_KEY } from '../utils/userStorage.js';
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();

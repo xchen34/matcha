@@ -1,4 +1,4 @@
-import { buildApiHeaders } from "../utils.js";
+import { buildApiHeaders } from "../../utils.js";
 
 async function handleResponse(response, defaultError) {
   const payload = await response.json().catch(() => ({}));

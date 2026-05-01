@@ -5,9 +5,8 @@ import { Navigate, useParams } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
 import { sanitizeText } from "../utils/xssEscape.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
+import { cardClass } from "../styles/UIClasses.jsx";
 
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
 const MAX_FAKE_REPORT_REASON_LENGTH = 200;
 
 function FieldLabel({ icon: Icon, children }) {

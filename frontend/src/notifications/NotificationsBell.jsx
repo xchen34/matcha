@@ -1,32 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
 import { sanitizeText } from "../utils/xssEscape.js";
-import { useNotifications } from "./useNotifications.js";
-
-function createCardMessage(primaryName, verb, count) {
-  const others = Math.max(0, count - 1);
-  if (others === 0) {
-    return `${verb} you`;
-  }
-  return `and ${others} others ${verb} you`;
-}
-
-function formatNotificationDateTime(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return date.toLocaleString("en-GB", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-}
+import { useNotifications } from "./hooks/useNotifications.js";
+import { createCardMessage, formatNotificationDateTime } from "./utils/notificationFormatters.js";
 
 function GroupTypeIcon({ type }) {
   if (type === "profile_view") {

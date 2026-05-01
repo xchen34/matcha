@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { FiCheck, FiCornerUpLeft, FiTrash2, FiArrowLeft } from "react-icons/fi";
-import ChatAvatar from "../chat/ChatAvatar.jsx";
+import ChatAvatar from "./components/ChatAvatar.jsx";
 import {
   joinConversationRoom,
   leaveConversationRoom,
@@ -10,26 +10,18 @@ import {
 import { REALTIME_EVENTS } from "../realtime/events.js";
 import { buildApiHeaders } from "../utils.js";
 import { sanitizeText } from "../utils/xssEscape.js";
-import { parseQuotedMessageContent } from "../chat/quoteUtils.js";
+import { parseQuotedMessageContent } from "./hooks/quoteUtils.js";
 import {
   deleteChatConversation,
   deleteChatMessage,
   fetchConversationMessages,
   markConversationAsRead,
   sendChatMessage,
-} from "../chat/api.js";
+} from "./hooks/api.js";
+import { chatBubbleClass, chatInputClass, chatButtonClass } from "../styles/UIClasses.jsx";
 
 const PAGE_SIZE = 18;
 const MAX_CHAT_MESSAGE_LENGTH = 1200;
-
-const chatBubbleClass =
-  "rounded-2xl border border-slate-200 px-3 py-1 text-sm leading-tight shadow-sm cursor-default";
-const chatInputClass =
-  "w-full rounded-2xl border border-slate-200 px-4 py-2 text-base text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition min-h-[72px]";
-const chatButtonClass = (isDisabled) =>
-  isDisabled
-    ? "inline-flex items-center justify-center rounded-full bg-slate-300 px-4 py-3 text-base font-semibold text-white shadow-lg opacity-60 cursor-not-allowed"
-    : "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-4 py-3 text-base font-semibold text-white shadow-lg shadow-orange-200/60 hover:-translate-y-0.5 transition";
 
 function MessageStatus({ isRead, className = "" }) {
   if (isRead) {

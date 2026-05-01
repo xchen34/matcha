@@ -1,16 +1,15 @@
-// Moved to pages/FindMatchPage.jsx
 import { useCallback, useEffect, useState } from "react";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import { Navigate } from "react-router-dom";
-import { FaFire, FaCheck, FaRedo, FaSearch, FaUserFriends, FaFilter, FaSort, FaMapMarkerAlt, FaTag, FaUser, FaStar, FaArrowDown, FaArrowUp } from "react-icons/fa";
+import { FaFire, FaCheck, FaRedo, FaSearch, FaUserFriends, 
+  FaFilter, FaSort, FaMapMarkerAlt, FaTag, FaUser, FaStar, FaArrowDown } from "react-icons/fa";
 import UserCard from "../components/UserCard.jsx";
 import { buildApiHeaders } from "../utils.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
+import { cardClass } from "../styles/UIClasses.jsx";
 
 const PAGE_SIZE = 18;
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
 
 function FindMatchPage({ currentUser }) {
   const [users, setUsers] = useState([]);

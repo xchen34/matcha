@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import ChatAvatar from "../chat/ChatAvatar.jsx";
+import ChatAvatar from "./components/ChatAvatar.jsx";
 import { onRealtimeEvent } from "../realtime/socket.js";
 import { REALTIME_EVENTS } from "../realtime/events.js";
 import { sanitizeText } from "../utils/xssEscape.js";
-import { fetchChatConversations } from "../chat/api.js";
-import { formatQuotedMessagePreview } from "../chat/quoteUtils.js";
+import { fetchChatConversations } from "./hooks/api.js";
+import { formatQuotedMessagePreview } from "./hooks/quoteUtils.js";
 
 const POLL_INTERVAL_MS = 15000;
 

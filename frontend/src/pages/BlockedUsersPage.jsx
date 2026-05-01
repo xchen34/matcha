@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
-
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+import { cardClass } from "../styles/UIClasses.jsx";
 
 function BlockedUsersPage({ currentUser }) {
   const [blockedUsers, setBlockedUsers] = useState([]);

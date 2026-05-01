@@ -1,24 +1,44 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { FaLocationArrow } from "react-icons/fa";
-import { FiCalendar, FiCompass, FiEye, FiHeart, FiImage, FiInfo, 
-  FiLogIn, FiLogOut, FiMail, FiMapPin, FiMessageCircle, FiSettings, 
-  FiSlash, FiTag, FiTrash2, FiUser, FiUserPlus, FiUsers} from "react-icons/fi";
+import { useEffect, useRef, useState } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { FiLogOut, FiMessageCircle, FiSettings, 
+  FiSlash, FiTrash2, FiUser} from "react-icons/fi";
+
+// Components
+import TopNav from "./components/TopNav.jsx";
+import MessagesPage from "./components/MessagesPage.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import UserCard from "./components/UserCard";
+
+// Pages
 import FindMatchPage from "./pages/FindMatchPage";
 import BlockedUsersPage from "./pages/BlockedUsersPage";
-import PopularityListPage from "./pages/PopularityListPage";
 import UserProfilePage from "./pages/UserProfilePage";
-import MessagesPage from "./pages/MessagesPage.jsx";
-import VerifyEmailPage from "./pages/VerifyEmailPage.jsx";
-import ResendVerificationPage from "./pages/ResendVerificationPage.jsx";
-import VerificationSentPage from "./pages/VerificationSentPage.jsx";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
-import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
+
+// Chat
+import ChatIndicator from "./chat/components/ChatIndicator.jsx";
+
+// Popularity
+import PopularityListPage from "./popularity/PopularityListPage";
+
+// Auth
+import ForgotPasswordPage from "./auth/ForgotPasswordPage.jsx";
+import LoginPage from "./auth/LoginPage.jsx";
+import RegisterPage from "./auth/RegisterPage.jsx";
+import ResendVerificationPage from "./auth/ResendVerificationPage.jsx";
+import ResetPasswordPage from "./auth/ResetPasswordPage.jsx";
+import VerifyEmailPage from "./auth/VerifyEmailPage.jsx";
+import VerificationSentPage from "./auth/VerificationSentPage.jsx";
+
+// Profile
+import ProfilePage from "./profile/ProfilePage.jsx";
+
+// Notifications
 import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
 import NotificationsBell from "./notifications/NotificationsBell.jsx";
-import { useNotifications } from "./notifications/useNotifications.js";
+
+// Realtime
 import { connectRealtime, disconnectRealtime, getRealtimeSocket } from "./realtime/socket.js";
+<<<<<<< Updated upstream
 import { MAX_PHOTO_SIZE_BYTES, MAX_TOTAL_PHOTOS_SIZE_BYTES,
   MAX_PHOTOS_COUNT, validatePhotoFile } from "./utils/photoValidator.js";
 import { buildApiHeaders } from "./utils.js";
@@ -138,6 +158,12 @@ function readStoredUser() {
 function writeStoredUser(user) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
 }
+=======
+
+// Utils
+import { buildApiHeaders } from "./utils.js";
+import { readStoredUser, writeStoredUser, STORAGE_KEY } from "./utils/userStorage.js";
+>>>>>>> Stashed changes
 
 function App() {
   const navigate = useNavigate();

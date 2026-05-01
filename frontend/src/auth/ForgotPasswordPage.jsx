@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { secondaryButtonClass } from "../styles/UIClasses";
+import { useNavigate } from "react-router-dom";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -7,6 +9,7 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [devResetUrl, setDevResetUrl] = useState("");
+  const navigate = useNavigate();
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -102,9 +105,13 @@ export default function ForgotPasswordPage() {
         )}
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          <Link to="/login" className="text-rose-500 hover:text-rose-600 font-semibold">
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className={secondaryButtonClass}
+          >
             Back to login
-          </Link>
+          </button>
         </div>
       </div>
     </div>

@@ -1,0 +1,52 @@
+import { useState, useCallback } from "react";
+
+export default function useTags({ form, setForm, setMessage, tagOptions }) {
+  const [selectedTag, setSelectedTag] = useState("");
+
+  function normalizeTag(tag) {
+    let value = (tag || "").trim().toLowerCase();
+    if (!value) return "";
+
+    if (!value.startsWith("#")) {
+      value = `#${value}`;
+    }
+
+    return /^#[a-z0-9_]{1,30}$/.test(value) ? value : "";
+  }
+
+  const addTag = useCallback((rawTag) => {
+    const tag = normalizeTag(rawTag);
+
+    if (!tag) {
+      setMessage("Error: invalid tag format. Use letters, numbers or underscore.");
+      return;
+    }
+
+    if (form.tags.length >= 10) {
+      setMessage("Error: maximum 10 tags allowed.");
+      return;
+    }
+
+    setForm((prev) => {
+      if (prev.tags.includes(tag)) return prev;
+      return { ...prev, tags: [...prev.tags, tag] };
+    });
+
+    setSelectedTag("");
+    setMessage("");
+  }, [form.tags, setForm, setMessage]);
+
+  const removeTag = useCallback((tagToRemove) => {
+    setForm((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
+    }));
+  }, [setForm]);
+
+  return {
+    selectedTag,
+    setSelectedTag,
+    addTag,
+    removeTag,
+  };
+}

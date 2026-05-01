@@ -5,9 +5,7 @@ import { buildApiHeaders } from "../utils.js";
 import { sanitizeText } from "../utils/xssEscape.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
 import ChatAvatar from "../chat/ChatAvatar.jsx";
-
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
+import { cardClass } from "../styles/UIClasses.jsx";
 
 function MyPopularityPage({ currentUser }) {
   const navigate = useNavigate();
