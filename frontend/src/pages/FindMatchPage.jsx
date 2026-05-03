@@ -9,7 +9,6 @@ import { buildApiHeaders } from "../utils.js";
 import { onRealtimeEvent } from "../realtime/socket.js";
 
 const PAGE_SIZE = 18;
-
 const cardClass =
   "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
 
@@ -26,7 +25,7 @@ function FindMatchPage({ currentUser }) {
   const [draftFilters, setDraftFilters] = useState({
     username: "",
     min_age: 18,
-    max_age: 150,
+    max_age: 100,
     min_fame: 0,
     max_fame: 100,
     city: "",
@@ -477,9 +476,13 @@ function FindMatchPage({ currentUser }) {
   return (
     <section className={cardClass}>
       <div className="flex flex-col gap-1 mb-12">
-
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
+            {!canLikeProfiles && (
+              <p className="text-[11px] text-amber-700 leading-snug max-w-md">
+                Add a primary profile photo in your profile to enable likes.
+              </p>
+            )}
             <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-900">
               <FaUserFriends size={22} aria-hidden="true" />
               <span>Find your match</span>
@@ -490,11 +493,6 @@ function FindMatchPage({ currentUser }) {
               proximity, shared tags, and fame rating.
             </p>
 
-            {!canLikeProfiles && (
-              <p className="text-[11px] text-amber-700 leading-snug max-w-md">
-                Add a primary profile photo in your profile to enable likes.
-              </p>
-            )}
           </div>
 
           <div className="shrink-0">
@@ -505,7 +503,7 @@ function FindMatchPage({ currentUser }) {
               </div>
 
               <div className="leading-tight">
-                <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                   <span>My fame</span>
                 </p>
 
@@ -584,7 +582,7 @@ function FindMatchPage({ currentUser }) {
             <Slider
               range
               min={18}
-              max={150}
+              max={100}
               allowCross={false}
               value={[draftFilters.min_age, draftFilters.max_age]}
               onChange={handleAgeSliderChange}
@@ -676,7 +674,7 @@ function FindMatchPage({ currentUser }) {
 
         <div className="flex flex-col gap-2 col-span-2">
           <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-            <FaSort size={12} className="text-slate-400" aria-hidden="true" />
+            <FaSort size={12} className="text-slate-500" aria-hidden="true" />
             <span>Sort by</span>
           </label>
           <div className="relative">
@@ -693,7 +691,7 @@ function FindMatchPage({ currentUser }) {
               <option value="fame_rating">Fame rating</option>
               <option value="tags">Tags</option>
             </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
               ▾
             </div>
           </div>
@@ -701,7 +699,7 @@ function FindMatchPage({ currentUser }) {
 
         <div className="flex flex-col gap-2 col-span-2">
           <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-            <FaArrowDown size={12} className="text-slate-400" aria-hidden="true" />
+            <FaArrowDown size={12} className="text-slate-500" aria-hidden="true" />
             <span>Order</span>
           </label>
           <div className="relative">
@@ -715,7 +713,7 @@ function FindMatchPage({ currentUser }) {
               <option value="desc">Descending</option>
               <option value="asc">Ascending</option>
             </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
               ▾
             </div>
           </div>
@@ -790,7 +788,7 @@ function FindMatchPage({ currentUser }) {
         </div>
       )}
 
-      <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {(!Array.isArray(users) || users.length === 0) && <p>No users found.</p>}
         {Array.isArray(users) &&
           users.map((user) => (

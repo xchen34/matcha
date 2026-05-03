@@ -3,6 +3,7 @@ const pool = require("../db");
 const { getIO, REALTIME_EVENTS } = require("../realtime");
 
 const router = express.Router();
+const MAX_FAKE_REPORT_REASON_LENGTH = 200;
 
 function parsePositiveInt(value) {
   const parsed = Number(value);
@@ -121,6 +122,11 @@ router.post("/users/:id/report-fake", async (req, res, next) => {
         error: "Please provide a reason (minimum 5 characters)",
       });
     }
+    if (reason.length > MAX_FAKE_REPORT_REASON_LENGTH) {
+      return res.status(400).json({
+        error: `Reason is too long (maximum ${MAX_FAKE_REPORT_REASON_LENGTH} characters)`,
+      });
+    }
 
     const exists = await usersExist([reporterUserId, reportedUserId]);
     if (!exists) {
@@ -135,7 +141,7 @@ router.post("/users/:id/report-fake", async (req, res, next) => {
       SET reason = EXCLUDED.reason
       RETURNING id, created_at
       `,
-      [reporterUserId, reportedUserId, reason.slice(0, 500)],
+      [reporterUserId, reportedUserId, reason],
     );
 
     return res.status(200).json({

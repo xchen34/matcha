@@ -141,7 +141,6 @@ async function initDb() {
       ALTER TABLE users ALTER COLUMN email_verified SET NOT NULL;
       ALTER TABLE users ALTER COLUMN email_verified SET DEFAULT FALSE;
       ALTER TABLE users ALTER COLUMN last_seen_at SET DEFAULT NOW();
-      ALTER TABLE users ALTER COLUMN last_seen_at SET NOT NULL;
       ALTER TABLE users ALTER COLUMN created_at SET DEFAULT NOW();
 
       CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users (email);
@@ -163,19 +162,23 @@ async function initDb() {
     await pool.query(createTagsSql);
     await pool.query(seedDefaultTagsSql);
     await pool.query(createProfileTagsSql);
-    await pool.query(createUserPhotosSql);
     await pool.query(createNotificationsSql);
     await pool.query(createFakeReportsSql);
     await pool.query(createUserBlocksSql);
     await pool.query(createChatSql);
     await pool.query(migrateLegacyUsersSql);
     await pool.query(seedFakeUsersSql);
+<<<<<<< HEAD
     await pool.query(seedUserPhotosSql);
     // const { spawnSync } = require("child_process");
     // const result = spawnSync("node", [path.join(__dirname, "seed_photos_for_existing_users.js")], { stdio: "inherit" });
     // if (result.status !== 0) {
     //   throw new Error("Seeding user photos failed");
     // }
+=======
+    await pool.query(createUserPhotosSql);
+    
+>>>>>>> e4aa0ed109d4b98a8f8e3b3b792116f4fc70de0d
   } catch (error) {
     console.error("Failed to initialize database:", error.message);
     process.exitCode = 1;

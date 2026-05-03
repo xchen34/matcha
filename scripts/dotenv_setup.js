@@ -1,6 +1,6 @@
-// Charge les variables d'environnement depuis .env si présent
+// Load environment variables from .env file at the very beginning of the script
 require("dotenv").config();
 
 // ...existing code...
 
-// Le reste du script reste inchangé, car db.js lit déjà les variables d'environnement
+// The rest of the script remains unchanged, as db.js already reads the environment variables
