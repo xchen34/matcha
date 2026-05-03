@@ -32,6 +32,18 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "const s=require('net').connect(3000,'127.0.0.1');s.on('connect',()=>{s.destroy();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),2000);",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 10s
     ports:
       - "3000:3000"
     volumes:
@@ -48,7 +60,8 @@ services:
       VITE_API_PROXY_TARGET: http://backend:3000
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "5173:5173"
     volumes:
