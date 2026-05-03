@@ -1,3 +1,5 @@
+export const STORAGE_KEY = "matcha.currentUser";
+
 export function readStoredUser() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

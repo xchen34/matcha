@@ -199,8 +199,9 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         {/* TAGS */}
         <div className="mb-2 flex flex-wrap items-center gap-1 text-xs text-slate-600">
           <FaTags size={12} className="text-slate-500" />
+
           {Array.isArray(user.tags) && user.tags.length > 0 ? (
-            user.tags.slice(0, 3).map((tag) => (
+            user.tags.map((tag) => (
               <span
                 key={`${user.id}-${tag}`}
                 className="max-w-[120px] truncate rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600"

@@ -1,0 +1,62 @@
+import { useEffect, useState } from "react";
+import { buildApiHeaders } from "../../../utils.js";
+
+export function useUserModeration(id, currentUser, profileData) {
+  const [reportedFake, setReportedFake] = useState(false);
+  const [blockedUser, setBlockedUser] = useState(false);
+  const [moderationMessage, setModerationMessage] = useState("");
+  const [blocking, setBlocking] = useState(false);
+  const [reporting, setReporting] = useState(false);
+
+  useEffect(() => {
+    setReportedFake(Boolean(profileData?.relation?.reported_fake_by_me));
+    setBlockedUser(Boolean(profileData?.relation?.blocked_by_you));
+  }, [profileData]);
+
+  async function blockUser() {
+    setBlocking(true);
+    try {
+      const res = await fetch(`/api/users/${id}/block`, {
+        method: "POST",
+        headers: buildApiHeaders(currentUser),
+      });
+
+      if (res.ok) setBlockedUser(true);
+    } finally {
+      setBlocking(false);
+    }
+  }
+
+  async function reportFake(reason) {
+    setReporting(true);
+
+    try {
+      const res = await fetch(`/api/users/${id}/report-fake`, {
+        method: "POST",
+        headers: {
+          ...buildApiHeaders(currentUser),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reason }),
+      });
+
+      if (res.ok) {
+        setReportedFake(true);
+        setModerationMessage("Reported successfully");
+      }
+    } finally {
+      setReporting(false);
+    }
+  }
+
+  return {
+    reportedFake,
+    blockedUser,
+    moderationMessage,
+    blocking,
+    reporting,
+    blockUser,
+    reportFake,
+    setModerationMessage,
+  };
+}
