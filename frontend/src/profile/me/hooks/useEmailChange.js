@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { buildApiHeaders } from "../../utils.js";
+import { buildApiHeaders } from "../../../utils.js";
 
 export default function useEmailChange({ userId, setMessage }) {
   const [emailChangeOpen, setEmailChangeOpen] = useState(false);

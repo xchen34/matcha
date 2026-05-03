@@ -1,5 +1,5 @@
 import { FiTag } from "react-icons/fi";
-import { secondaryButtonClass, selectClass } from "../../styles/UIClasses.jsx";
+import { secondaryButtonClass, selectClass } from "../../../styles/UIClasses.jsx";
 
 export default function TagsSelector({
   tagOptions,

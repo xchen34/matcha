@@ -3,15 +3,15 @@ import { Navigate, Route, useNavigate } from "react-router-dom";
 import { FaLocationArrow } from "react-icons/fa";
 import { FiCalendar, FiCompass, FiImage, FiInfo, 
     FiMail, FiMapPin, FiTag, FiUser} from "react-icons/fi";
-import { connectRealtime } from "../realtime/socket.js";
+import { connectRealtime } from "../../realtime/socket.js";
 import { MAX_PHOTO_SIZE_BYTES, MAX_TOTAL_PHOTOS_SIZE_BYTES,
-  MAX_PHOTOS_COUNT } from "../utils/photoValidator.js";
-import { buildApiHeaders } from "../utils.js";
-import { writeStoredUser } from "../utils/userStorage.js";
-import { MIN_BIRTH_DATE_ISO, isValidBirthDateIso, getMaxAdultBirthDateIso } from "../utils/date.js";
-import { bytesToKB } from "../utils/formatUtils.js";
-import { normalizeLocationPrefix, getValidationCacheKey } from "../utils/locationUtils.js";
-import { cardClass, inputClass, primaryButtonClass, secondaryButtonClass, textareaClass, selectClass } from "../styles/UIClasses.jsx";
+  MAX_PHOTOS_COUNT } from "../../utils/photoValidator.js";
+import { buildApiHeaders } from "../../utils.js";
+import { writeStoredUser } from "../../utils/userStorage.js";
+import { MIN_BIRTH_DATE_ISO, isValidBirthDateIso, getMaxAdultBirthDateIso } from "../../utils/date.js";
+import { bytesToKB } from "../../utils/formatUtils.js";
+import { normalizeLocationPrefix, getValidationCacheKey } from "../../utils/locationUtils.js";
+import { cardClass, inputClass, primaryButtonClass, secondaryButtonClass, textareaClass, selectClass } from "../../styles/UIClasses.jsx";
 
 import useLocation from "./hooks/useLocation";
 import usePhoto from "./hooks/usePhoto";

@@ -4,8 +4,8 @@ import {
   MAX_TOTAL_PHOTOS_SIZE_BYTES,
   MAX_PHOTOS_COUNT,
   validatePhotoFile,
-} from "../../utils/photoValidator.js";
-import { bytesToKB } from "../../utils/formatUtils.js";
+} from "../../../utils/photoValidator.js";
+import { bytesToKB } from "../../../utils/formatUtils.js";
 
 export default function usePhoto({ form, setForm, setMessage }) {
   function handlePhotoUpload(event) {

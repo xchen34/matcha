@@ -1,6 +1,6 @@
 import { FiMapPin } from "react-icons/fi";
 import { FaLocationArrow } from "react-icons/fa";
-import { secondaryButtonClass, inputClass, selectClass } from "../../styles/UIClasses.jsx";
+import { secondaryButtonClass, inputClass, selectClass } from "../../../styles/UIClasses.jsx";
 
 export default function LocationSection({
   form,
