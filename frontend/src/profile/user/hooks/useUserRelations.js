@@ -91,6 +91,25 @@ export function useUserRelations(id, currentUser, profile) {
     }
   }
 
+  function applyRealtimeRelationUpdate(type) {
+    if (type === "match") {
+      setLiked(true);
+      setLikedByProfile(true);
+      setIsMatch(true);
+      return;
+    }
+
+    if (type === "like_received") {
+      setLikedByProfile(true);
+      return;
+    }
+
+    if (type === "unlike") {
+      setLikedByProfile(false);
+      setIsMatch(false);
+    }
+  }
+
   return {
     liked,
     likedByProfile,
@@ -99,5 +118,9 @@ export function useUserRelations(id, currentUser, profile) {
     loadingLike,
     likeError,
     toggleLike,
+    applyRealtimeRelationUpdate,
+    setLiked,
+    setLikedByProfile,
+    setIsMatch,
   };
 }

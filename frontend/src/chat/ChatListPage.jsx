@@ -328,6 +328,23 @@ export default function ChatListPage({ currentUser, embedded = false }) {
 
             const displayName = toDisplayHandle(conv.other_user);
             const avatarName = toAvatarName(conv.other_user);
+            const statusBadge = conv.blocked_by_you ? (
+              <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
+                Blocked
+              </span>
+            ) : conv.blocked_you ? (
+              <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
+                Blocked you
+              </span>
+            ) : conv.is_match === false ? (
+              <span className="ml-1 rounded-full border border-yellow-300 bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">
+                Unmatched
+              </span>
+            ) : conv.is_match === true ? (
+              <span className="ml-1 rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+                Matched
+              </span>
+            ) : null;
 
             return (
               <li key={conv.conversation_id}>
@@ -343,36 +360,23 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                     isOnline={Boolean(conv.other_user.is_online)}
                   />
                   {/* Croix supprimée ici, bouton uniquement à droite du temps */}
-                  <div className="flex-1 space-y-1">
+                  <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center gap-2">
-                      <p className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                      <p className="min-w-0 text-base font-semibold text-slate-900">
                         {displayName}
-                        {conv.blocked_by_you && (
-                          <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Blocked</span>
-                        )}
-                        {conv.blocked_you && (
-                          <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Blocked you</span>
-                        )}
-                        {conv.is_match === false && (
-                          <span className="ml-1 rounded-full border border-yellow-300 bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">Unmatched</span>
-                        )}
-                        {conv.is_match === true && !conv.blocked_by_you && !conv.blocked_you && (
-                          <span className="ml-1 rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">Matched</span>
-                        )}
                       </p>
                     </div>
-                    <p className="text-slate-500">
+                    <p className="truncate text-slate-500">
                       {messagePreview}
                     </p>
                   </div>
-                  <div className="flex min-w-[48px] flex-col items-end gap-2 text-right">
-                    <div className="flex items-center gap-2">
-                      {lastMessageTime && (
-                        <span className="text-[0.65rem] uppercase tracking-[0.2em] text-slate-400">
-                          {lastMessageTime}
-                        </span>
-                      )}
-                    </div>
+                  <div className="flex shrink-0 min-w-[64px] flex-col items-end gap-1 text-right">
+                    {statusBadge}
+                    {lastMessageTime && (
+                      <span className="whitespace-nowrap text-[0.65rem] uppercase tracking-[0.2em] text-slate-400">
+                        {lastMessageTime}
+                      </span>
+                    )}
                     {conv.unread_count > 0 && (
                       <span className="rounded-full bg-brand px-2 py-0.5 text-[0.65rem] font-semibold text-white">
                         {conv.unread_count}

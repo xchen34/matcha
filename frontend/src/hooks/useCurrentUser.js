@@ -1,0 +1,81 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { buildApiHeaders } from "../utils.js";
+import {
+  readStoredUser,
+  writeStoredUser,
+  STORAGE_KEY,
+} from "../utils/userStorage.js";
+
+export function useCurrentUser() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [currentUser, setCurrentUser] = useState(readStoredUser());
+
+  const isProfileLocked = Boolean(
+    currentUser && !currentUser.profile_completed,
+  );
+  const isLoginPage = location.pathname === "/login";
+
+  // Redirect logged-in users away from login page
+  useEffect(() => {
+    if (currentUser && isLoginPage) {
+      navigate(isProfileLocked ? "/profile" : "/find-match", { replace: true });
+    }
+  }, [currentUser, isProfileLocked, isLoginPage, navigate]);
+
+  // Sync storage across tabs/windows
+  useEffect(() => {
+    const onStorage = () => setCurrentUser(readStoredUser());
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  function logout() {
+    localStorage.removeItem(STORAGE_KEY);
+    setCurrentUser(null);
+    navigate("/login", { replace: true });
+  }
+
+  async function handleDeleteAccount() {
+    if (!currentUser?.id) return;
+
+    const confirmed = window.confirm(
+      "Delete your account permanently? This action cannot be undone.",
+    );
+    if (!confirmed) return;
+
+    const password = window.prompt("Please enter your password to confirm:");
+    if (password === null) return;
+
+    try {
+      const response = await fetch("/api/auth/delete-account", {
+        method: "DELETE",
+        headers: buildApiHeaders(
+          { id: currentUser.id },
+          { "Content-Type": "application/json" },
+        ),
+        body: JSON.stringify({ password, email: currentUser.email || "" }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        window.alert(data.error || "Failed to delete account.");
+        return;
+      }
+
+      window.alert("Your account has been deleted.");
+      logout();
+    } catch {
+      window.alert("Network error while deleting account.");
+    }
+  }
+
+  return {
+    currentUser,
+    setCurrentUser,
+    isProfileLocked,
+    logout,
+    handleDeleteAccount,
+  };
+}

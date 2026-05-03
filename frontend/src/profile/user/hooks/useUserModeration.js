@@ -6,6 +6,7 @@ export function useUserModeration(id, currentUser, profileData) {
   const [blockedUser, setBlockedUser] = useState(false);
   const [moderationMessage, setModerationMessage] = useState("");
   const [blocking, setBlocking] = useState(false);
+  const [unblocking, setUnblocking] = useState(false);
   const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
@@ -24,6 +25,20 @@ export function useUserModeration(id, currentUser, profileData) {
       if (res.ok) setBlockedUser(true);
     } finally {
       setBlocking(false);
+    }
+  }
+
+  async function unblockUser() {
+    setUnblocking(true);
+    try {
+      const res = await fetch(`/api/users/${id}/block`, {
+        method: "DELETE",
+        headers: buildApiHeaders(currentUser),
+      });
+
+      if (res.ok) setBlockedUser(false);
+    } finally {
+      setUnblocking(false);
     }
   }
 
@@ -54,8 +69,10 @@ export function useUserModeration(id, currentUser, profileData) {
     blockedUser,
     moderationMessage,
     blocking,
+    unblocking,
     reporting,
     blockUser,
+    unblockUser,
     reportFake,
     setModerationMessage,
   };

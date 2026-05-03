@@ -13,12 +13,16 @@ export default function ProfileActions({
   likeError,
   onToggleLike,
   onBlock,
+  onUnblock,
   onOpenReport,
   blockedUser,
   blocking,
+  unblocking,
   menuOpen,
   setMenuOpen,
 }) {
+  const safeSetMenuOpen = typeof setMenuOpen === "function" ? setMenuOpen : () => {};
+  const safeOnUnblock = typeof onUnblock === "function" ? onUnblock : () => {};
   const relationLabel = isMatch ? "Match" : likedByProfile ? "Liked you" : liked ? "You liked" : "Not liked";
   const likeTitle =
     !liked && (!canLikeProfiles || !Array.isArray(profile.photos) || !profile.photos.some((photo) => photo.is_primary))
@@ -57,19 +61,30 @@ export default function ProfileActions({
         )}
       </button>
 
-      <button type="button" onClick={() => setMenuOpen((prev) => !prev)} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50" aria-label="Open actions menu">...</button>
+      <button type="button" onClick={() => safeSetMenuOpen((prev) => !prev)} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50" aria-label="Open actions menu">...</button>
 
       {menuOpen && (
         <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
-          <button type="button" onClick={() => { onOpenReport(); setMenuOpen(false); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Report fake account</button>
-          <button
-            type="button"
-            onClick={onBlock}
-            disabled={blocking || blockedUser}
-            className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {blockedUser ? "User already blocked" : blocking ? "Blocking..." : "Block user"}
-          </button>
+          <button type="button" onClick={() => { onOpenReport(); safeSetMenuOpen(false); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Report fake account</button>
+          {blockedUser ? (
+            <button
+              type="button"
+              onClick={safeOnUnblock}
+              disabled={unblocking}
+              className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {unblocking ? "Unblocking..." : "Unblock user"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onBlock}
+              disabled={blocking}
+              className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {blocking ? "Blocking..." : "Block user"}
+            </button>
+          )}
         </div>
       )}
 
