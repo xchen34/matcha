@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { buildApiHeaders } from "../../utils";
+import { buildApiHeaders } from "@/utils";
 
 const PAGE_SIZE = 18;
 

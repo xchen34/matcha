@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { upsertUserById, removeUserById } from "../utils/popularityUtils.js";
-import { getRealtimeSocket, onRealtimeEvent } from "../../realtime/socket.js";
+import { getRealtimeSocket, onRealtimeEvent } from "@/realtime/socket.js";
 
 function useRealtimeNotifications(currentUser, fetchLists, setLists) {
   useEffect(() => {

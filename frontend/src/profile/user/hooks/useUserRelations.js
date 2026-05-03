@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { buildApiHeaders } from "../../../utils.js";
+import { buildApiHeaders } from "@/utils.js";
 
 export function useUserRelations(id, currentUser, profile) {
   const [liked, setLiked] = useState(false);

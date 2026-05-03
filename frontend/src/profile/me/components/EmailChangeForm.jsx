@@ -1,5 +1,5 @@
 import { FiMail } from "react-icons/fi";
-import { inputClass, primaryButtonClass, secondaryButtonClass } from "../../../styles/UIClasses.jsx";
+import { inputClass, primaryButtonClass, secondaryButtonClass } from "@/styles/UIClasses.jsx";
 
 export default function EmailChangeForm({
   email,

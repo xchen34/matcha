@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
-import { cardClass } from "../../styles/UIClasses.jsx";
-import { sanitizeText } from "../../utils/xssEscape.js";
+import { cardClass } from "@/styles/UIClasses.jsx";
+import { sanitizeText } from "@/utils/xssEscape.js";
 
 import { useUserProfile } from "./hooks/useUserProfile";
 import { useUserRelations } from "./hooks/useUserRelations";

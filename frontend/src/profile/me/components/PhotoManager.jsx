@@ -1,10 +1,8 @@
 import { FiImage } from "react-icons/fi";
-import { bytesToKB } from "../../../utils/formatUtils.js";
-import {
-  MAX_PHOTO_SIZE_BYTES,
-  MAX_TOTAL_PHOTOS_SIZE_BYTES,
-  MAX_PHOTOS_COUNT,
-} from "../../../utils/photoValidator.js";
+import { bytesToKB } from "@/utils/formatUtils.js";
+import { MAX_PHOTO_SIZE_BYTES,
+  MAX_TOTAL_PHOTOS_SIZE_BYTES, MAX_PHOTOS_COUNT,
+} from "@/utils/photoValidator.js";
 
 export default function PhotoManager({
   photos,

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { onRealtimeEvent } from "../../../realtime/socket.js";
+import { onRealtimeEvent } from "@/realtime/socket.js";
 
 export function useUserRealtime({ id, currentUser, setData, onMatchNotification }) {
   useEffect(() => {

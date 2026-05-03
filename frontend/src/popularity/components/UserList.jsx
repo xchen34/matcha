@@ -1,7 +1,7 @@
-import ChatAvatar from "../../chat/components/ChatAvatar.jsx";
+import ChatAvatar from "@/chat/components/ChatAvatar.jsx";
 import ActionButtons from "./ActionsButtons.jsx";
-import { sanitizeText } from "../../utils/xssEscape.js";
-import { formatDateTime } from "../../utils/date.js";
+import { sanitizeText } from "@/utils/xssEscape.js";
+import { formatDateTime } from "@/utils/date.js";
 
 function UserList({ users, mode, unreadUserSet, startingChatFor, startChatWith, navigate, config }) {
   return (

@@ -2,11 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useRegister } from "./hooks/useRegister";
 import PasswordInput from "./components/PasswordInput";
 import { MIN_BIRTH_DATE_ISO } from "../utils/date.js";
-import {
-  cardClass,
-  inputClass,
-  primaryButtonClass,
-  secondaryButtonClass,
+import { cardClass, inputClass,
+  primaryButtonClass, secondaryButtonClass,
 } from "../styles/UIClasses.jsx";
 import FormInput from "./components/FormInput";
 
