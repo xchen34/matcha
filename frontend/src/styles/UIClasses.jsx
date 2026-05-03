@@ -10,7 +10,7 @@ export const secondaryButtonClass =
 
 // Form element classes
 export const inputClass =
-  "w-full border rounded-xl px-4 py-3 text-sm";
+  "w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500";
 
 export const textareaClass =
   "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition min-h-[140px]";

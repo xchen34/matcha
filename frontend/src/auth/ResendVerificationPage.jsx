@@ -1,23 +1,30 @@
 import { useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
+import FormInput from "./components/FormInput";
 
 export default function ResendVerificationPage() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
+
   const initialEmailFromState =
     typeof location.state?.prefillEmail === "string"
       ? location.state.prefillEmail.trim()
       : "";
+
   const initialEmailFromQuery = (searchParams.get("email") || "").trim();
-  const [email, setEmail] = useState(initialEmailFromState || initialEmailFromQuery);
+
+  const [email, setEmail] = useState(
+    initialEmailFromState || initialEmailFromQuery
+  );
+
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState(null); // "success", "error", null
+  const [status, setStatus] = useState(null);
   const [message, setMessage] = useState("");
   const [previewUrl, setPreviewUrl] = useState(
-    location.state?.previewUrl || "",
+    location.state?.previewUrl || ""
   );
   const [devVerifyUrl, setDevVerifyUrl] = useState(
-    location.state?.devVerifyUrl || "",
+    location.state?.devVerifyUrl || ""
   );
 
   const handleSubmit = async (e) => {
@@ -70,20 +77,17 @@ export default function ResendVerificationPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              disabled={isLoading}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:bg-gray-100"
-            />
-          </div>
+
+          {/* EMAIL */}
+          <FormInput
+            label="Email Address"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            disabled={isLoading}
+          />
 
           {status === 'success' && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">

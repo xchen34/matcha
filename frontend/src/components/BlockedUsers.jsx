@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
 import { cardClass } from "../styles/UIClasses.jsx";
 
-function BlockedUsersPage({ currentUser }) {
+function BlockedUsers({ currentUser }) {
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -124,4 +124,4 @@ function BlockedUsersPage({ currentUser }) {
   );
 }
 
-export default BlockedUsersPage;
+export default BlockedUsers;

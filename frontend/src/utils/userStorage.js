@@ -1,4 +1,4 @@
-const STORAGE_KEY = "matcha.currentUser";
+export const STORAGE_KEY = "matcha.currentUser";
 
 export function readStoredUser() {
   try {

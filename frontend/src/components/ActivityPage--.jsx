@@ -4,9 +4,6 @@ import { buildApiHeaders } from "../utils.js";
 import { useNotifications } from "../notifications/useNotifications.js";
 import { cardClass } from "../styles/UIClasses.jsx";
 
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
-
 function ActivityPage({ currentUser }) {
   const [tab, setTab] = useState("views");
   const [viewsList, setViewsList] = useState([]);

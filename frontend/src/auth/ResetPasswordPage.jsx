@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PasswordInput from "./components/PasswordInput";
+import FormInput from "./components/FormInput";
 import { secondaryButtonClass } from "../styles/UIClasses.jsx";
 
 export default function ResetPasswordPage() {
@@ -85,35 +86,25 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          <div>
-            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              New Password
-            </label>
+          {/* NEW PASSWORD */}
+          <FormInput
+            label="New Password"
+            name="new_password"
+            type="password"
+            value={form.new_password}
+            onChange={handleChange}
+            placeholder="New password"
+          />
 
-            <PasswordInput
-              name="new_password"
-              value={form.new_password}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
-              placeholder="New password"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Confirm Password
-            </label>
-
-            <PasswordInput
-              name="confirm_password"
-              value={form.confirm_password}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
-              placeholder="Confirm password"
-              required
-            />
-          </div>
+          {/* CONFIRM PASSWORD */}
+          <FormInput
+            label="Confirm Password"
+            name="confirm_password"
+            type="password"
+            value={form.confirm_password}
+            onChange={handleChange}
+            placeholder="Confirm password"
+          />
 
           {/* ONLY ONE SIMPLE MESSAGE */}
           {form.confirm_password &&

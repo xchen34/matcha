@@ -40,3 +40,41 @@ export function isValidBirthDateIso(value, minIso, maxIso) {
     if (date < min || date > max) return false;
         return true;
 }
+
+export function getInteractionTimeMs(user, mode) {
+  const rawValue = mode === "matches" ? user?.matched_at : user?.created_at;
+  const ts = new Date(rawValue || 0).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
+}
+
+export function formatDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleString("en-GB", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+export function formatLastSeen(value) {
+    if (!value) return "Unknown";
+    
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Unknown";
+    
+    return new Intl.DateTimeFormat("en-GB", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+}

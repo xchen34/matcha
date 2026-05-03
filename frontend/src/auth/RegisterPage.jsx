@@ -2,7 +2,13 @@ import { useNavigate } from "react-router-dom";
 import { useRegister } from "./hooks/useRegister";
 import PasswordInput from "./components/PasswordInput";
 import { MIN_BIRTH_DATE_ISO } from "../utils/date.js";
-import { cardClass, inputClass, primaryButtonClass, secondaryButtonClass } from "../styles/UIClasses.jsx";
+import {
+  cardClass,
+  inputClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from "../styles/UIClasses.jsx";
+import FormInput from "./components/FormInput";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -30,100 +36,65 @@ export default function RegisterPage() {
 
       <form onSubmit={handleSubmit} className="space-y-3">
 
-        {/* EMAIL */}
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            Email address
-          </label>
-          <input
-            name="email"
-            type="email"
-            placeholder="you@example.com"
-            value={form.email}
-            onChange={handleChange}
-            className={inputClass}
-            required
-          />
-          <p className="text-xs text-slate-500">
-            Used for account recovery and notifications.
-          </p>
-        </div>
+        <FormInput
+          label="Email address"
+          name="email"
+          type="email"
+          value={form.email}
+          onChange={handleChange}
+          placeholder="you@example.com"
+          description="Used for account recovery and notifications."
+          required
+        />
 
-        {/* USERNAME */}
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            Username
-          </label>
-          <input
-            name="username"
-            placeholder="Choose a unique username"
-            value={form.username}
-            onChange={handleChange}
-            className={inputClass}
-            pattern="[A-Za-z0-9._\-]{2,20}"
-            title="2-20 characters: letters, numbers, dot, underscore, hyphen"
-            required
-          />
-          <p className="text-xs text-slate-500">
-            2-20 chars, letters/numbers and . _ - only.
-          </p>
-        </div>
+        <FormInput
+          label="Username"
+          name="username"
+          value={form.username}
+          onChange={handleChange}
+          placeholder="Choose a unique username"
+          description="2-20 chars, letters/numbers and . _ - only."
+          pattern="[A-Za-z0-9._\-]{2,20}"
+          title="2-20 characters: letters, numbers, dot, underscore, hyphen"
+          required
+        />
 
-        {/* FIRST NAME */}
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            First name
-          </label>
-          <input
-            name="first_name"
-            placeholder="Your first name"
-            value={form.first_name}
-            onChange={handleChange}
-            className={inputClass}
-            required
-          />
-        </div>
+        <FormInput
+          label="First name"
+          name="first_name"
+          value={form.first_name}
+          onChange={handleChange}
+          placeholder="Your first name"
+          required
+        />
 
-        {/* LAST NAME */}
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            Last name
-          </label>
-          <input
-            name="last_name"
-            placeholder="Your last name"
-            value={form.last_name}
-            onChange={handleChange}
-            className={inputClass}
-            required
-          />
-        </div>
+        <FormInput
+          label="Last name"
+          name="last_name"
+          value={form.last_name}
+          onChange={handleChange}
+          placeholder="Your last name"
+          required
+        />
 
-        {/* BIRTH DATE */}
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            Birth date
-          </label>
-          <input
-            name="birth_date"
-            type="date"
-            value={form.birth_date}
-            onChange={handleChange}
-            className={inputClass}
-            min={MIN_BIRTH_DATE_ISO}
-            max={maxAdultBirthDateIso}
-            required
-          />
-          <p className="text-xs text-slate-500">
-            You must be at least 18 years old.
-          </p>
-        </div>
+        <FormInput
+          label="Birth date"
+          name="birth_date"
+          type="date"
+          value={form.birth_date}
+          onChange={handleChange}
+          min={MIN_BIRTH_DATE_ISO}
+          max={maxAdultBirthDateIso}
+          description="You must be at least 18 years old."
+          required
+        />
 
-        {/* PASSWORDS*/}
+        {/* PASSWORDS */}
         <div className="space-y-1">
           <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
             Password
           </label>
+
           <PasswordInput
             name="password"
             value={form.password}
@@ -136,6 +107,7 @@ export default function RegisterPage() {
           <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
             Reenter Password
           </label>
+
           <PasswordInput
             name="confirmPassword"
             value={form.confirmPassword}
@@ -145,11 +117,12 @@ export default function RegisterPage() {
             required
           />
 
-          {form.confirmPassword && form.password !== form.confirmPassword && (
-            <p className="text-xs text-red-500">
-              Passwords do not match
-            </p>
-          )}
+          {form.confirmPassword &&
+            form.password !== form.confirmPassword && (
+              <p className="text-xs text-red-500">
+                Passwords do not match
+              </p>
+            )}
         </div>
 
         {/* SUBMIT */}
@@ -157,6 +130,7 @@ export default function RegisterPage() {
           <button type="submit" className={primaryButtonClass}>
             Register
           </button>
+
           <button
             type="button"
             onClick={() => navigate("/login")}
@@ -168,7 +142,9 @@ export default function RegisterPage() {
       </form>
 
       {/* VERIFICATION PREVIEW */}
-      {message && <p className="text-sm text-slate-600">{message}</p>}
+      {message && (
+        <p className="text-sm text-slate-600">{message}</p>
+      )}
 
       {previewUrl && (
         <p className="text-sm text-slate-700">
@@ -198,7 +174,6 @@ export default function RegisterPage() {
         </p>
       )}
 
-      {/* ACTIONS */}
       {(previewUrl || devVerifyUrl) && (
         <div className="pt-2">
           <div className="flex flex-wrap gap-2">
@@ -220,7 +195,7 @@ export default function RegisterPage() {
             </button>
           </div>
         </div>
-)}
+      )}
     </section>
   );
 }

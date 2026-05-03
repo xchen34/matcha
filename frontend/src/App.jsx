@@ -5,14 +5,13 @@ import { FiLogOut, FiMessageCircle, FiSettings,
 
 // Components
 import TopNav from "./components/TopNav.jsx";
-import MessagesPage from "./components/MessagesPage.jsx";
+import MessagesBloc from "./components/MessagesBloc.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import UserCard from "./components/UserCard";
+import BlockedUsers from "./components/BlockedUsers";
 
-// Pages
-import FindMatchPage from "./pages/FindMatchPage";
-import BlockedUsersPage from "./pages/BlockedUsersPage";
-import UserProfilePage from "./pages/UserProfilePage";
+// Matching
+import FindMatchPage from "./matching/FindMatchPage";
 
 // Chat
 import ChatIndicator from "./chat/components/ChatIndicator.jsx";
@@ -30,7 +29,8 @@ import VerifyEmailPage from "./auth/VerifyEmailPage.jsx";
 import VerificationSentPage from "./auth/VerificationSentPage.jsx";
 
 // Profile
-import ProfilePage from "./profile/ProfilePage.jsx";
+import ProfilePage from "./profile/me/ProfilePage.jsx";
+import UserProfilePage from "./profile/user/UserProfilePage";
 
 // Notifications
 import { NotificationsProvider } from "./notifications/NotificationsProvider.jsx";
@@ -38,132 +38,10 @@ import NotificationsBell from "./notifications/NotificationsBell.jsx";
 
 // Realtime
 import { connectRealtime, disconnectRealtime, getRealtimeSocket } from "./realtime/socket.js";
-<<<<<<< Updated upstream
-import { MAX_PHOTO_SIZE_BYTES, MAX_TOTAL_PHOTOS_SIZE_BYTES,
-  MAX_PHOTOS_COUNT, validatePhotoFile } from "./utils/photoValidator.js";
-import { buildApiHeaders } from "./utils.js";
-import ChatIndicator from "./chat/ChatIndicator.jsx";
-import TopNav from "./components/TopNav.jsx";
-import RegisterPage from "./pages/RegisterPage.jsx";
-import ProfilePage from "./pages/ProfilePage.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-
-const STORAGE_KEY = "matcha.currentUser";
-const MAX_BIO_LENGTH = 500;
-const MIN_BIRTH_DATE_ISO = (() => {
-  const now = new Date();
-  const year = now.getFullYear() - 100;
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-})();
-
-const cardClass =
-  "bg-white/90 border border-slate-200 rounded-2xl p-6 shadow-lg shadow-slate-200/70 space-y-4";
-const inputClass =
-  "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition";
-const textareaClass =
-  "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition min-h-[140px]";
-const selectClass =
-  "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition bg-white";
-const primaryButtonClass =
-  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-deep px-5 py-2.5 text-sm font-semibold shadow-md shadow-orange-200 hover:-translate-y-0.5 hover:shadow-lg transition disabled:opacity-60";
-const secondaryButtonClass =
-  "inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition";
-
-function getMaxAdultBirthDateIso() {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCFullYear(date.getUTCFullYear() - 18);
-  return date.toISOString().slice(0, 10);
-}
-
-function isValidBirthDateIso(value, minIso, maxIso) {
-  if (typeof value !== "string") return false;
-  const trimmed = value.trim();
-  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return false;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
-
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  if (
-    parsed.getUTCFullYear() !== year ||
-    parsed.getUTCMonth() !== month - 1 ||
-    parsed.getUTCDate() !== day
-  ) {
-    return false;
-  }
-
-  if (trimmed < minIso || trimmed > maxIso) return false;
-  return true;
-}
-
-function ProtectedRoute({ currentUser, requireCompletedProfile = true, children }) {
-  if (!currentUser) {
-    return <Navigate to="/login" replace />;
-  }
-  if (requireCompletedProfile && !currentUser.profile_completed) {
-    return <Navigate to="/profile" replace />;
-  }
-  return children;
-}
-
-function bytesToKB(value) {
-  return Math.round(value / 1024);
-}
-
-function normalizeLocationPrefix(value) {
-  return (value || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function getValidationCacheKey(city, neighborhood, latitude, longitude) {
-  return [
-    normalizeLocationPrefix(city),
-    normalizeLocationPrefix(neighborhood),
-    latitude || "",
-    longitude || "",
-  ].join("|");
-}
-
-function readStoredUser() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw);
-    const userId = parsed?.id ?? parsed?.user_id ?? parsed?.userId;
-    if (!parsed || !Number.isInteger(Number(userId))) {
-      return null;
-    }
-
-    return {
-      ...parsed,
-      id: Number(userId),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredUser(user) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-}
-=======
 
 // Utils
 import { buildApiHeaders } from "./utils.js";
 import { readStoredUser, writeStoredUser, STORAGE_KEY } from "./utils/userStorage.js";
->>>>>>> Stashed changes
 
 function App() {
   const navigate = useNavigate();
@@ -444,9 +322,6 @@ function App() {
           <h1 className="text-5xl sm:text-6xl font-bold text-slate-900 leading-none">
             Matcha
           </h1>
-          <p className="text-slate-600">
-            Clean routes, clear session flow, no fake current user.
-          </p>
         </header>
 
         <TopNav currentUser={currentUser} profileLocked={isProfileLocked} />
@@ -517,7 +392,7 @@ function App() {
           path="/blocked-users"
           element={
             <ProtectedRoute currentUser={currentUser}>
-              <BlockedUsersPage currentUser={currentUser} />
+              <BlockedUsers currentUser={currentUser} />
             </ProtectedRoute>
           }
         />
@@ -525,7 +400,7 @@ function App() {
           path="/messages"
           element={
             <ProtectedRoute currentUser={currentUser}>
-              <MessagesPage currentUser={currentUser} />
+              <MessagesBloc currentUser={currentUser} />
             </ProtectedRoute>
           }
         />
@@ -533,7 +408,7 @@ function App() {
           path="/messages/:conversationId"
           element={
             <ProtectedRoute currentUser={currentUser}>
-              <MessagesPage currentUser={currentUser} />
+              <MessagesBloc currentUser={currentUser} />
             </ProtectedRoute>
           }
         />

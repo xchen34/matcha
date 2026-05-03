@@ -1,8 +1,8 @@
 import { Navigate, useParams } from "react-router-dom";
-import ChatConversationPage from "./ChatConversationPage.jsx";
-import ChatListPage from "./ChatListPage.jsx";
+import ChatConversationPage from "../chat/ChatConversationPage.jsx";
+import ChatListPage from "../chat/ChatListPage.jsx";
 
-export default function MessagesPage({ currentUser }) {
+export default function MessagesBloc({ currentUser }) {
   const { conversationId } = useParams();
 
   if (!currentUser?.id) {

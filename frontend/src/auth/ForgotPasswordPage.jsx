@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { secondaryButtonClass } from "../styles/UIClasses";
 import { useNavigate } from "react-router-dom";
+import FormInput from "./components/FormInput";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -54,18 +55,16 @@ export default function ForgotPasswordPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
-              required
-              disabled={isLoading}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:bg-gray-100"
-            />
-          </div>
+
+          {/* EMAIL */}
+          <FormInput
+            label="Email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+          />
 
           <button
             type="submit"
