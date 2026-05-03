@@ -1,4 +1,4 @@
-const pool = require("../../db");
+const profileService = require("../../services/profileService");
 const { getIO, REALTIME_EVENTS } = require("../../realtime");
 const {
   resolveCurrentUserId,
@@ -12,7 +12,7 @@ const {
   isAtLeast18YearsOld,
   getAge,
   isProfileCompleted,
-} = require("../../routes/profileHelpers");
+} = require("./helpers");
 const { forwardGeocode } = require("./shared");
 const {
   validatePhotoMimeType,
@@ -22,9 +22,6 @@ const {
 const MAX_BIO_LENGTH = 500;
 
 async function updateMyProfile(req, res, next) {
-  const client = await pool.connect();
-  let inTransaction = false;
-
   try {
     const currentUserId = await resolveCurrentUserId(req);
     if (!currentUserId) {
@@ -163,242 +160,85 @@ async function updateMyProfile(req, res, next) {
       normalizedBirthDate = parsedBirthDate.toISOString().slice(0, 10);
     }
 
-    await client.query("BEGIN");
-    inTransaction = true;
-
-    if (normalizedFirstName || normalizedLastName || normalizedUsername) {
-      await client.query(
-        `
-        UPDATE users
-        SET
-          first_name = COALESCE($1, first_name),
-          last_name = COALESCE($2, last_name),
-          username = COALESCE($3, username)
-        WHERE id = $4
-        `,
-        [normalizedFirstName, normalizedLastName, normalizedUsername, currentUserId],
-      );
-    }
-
-    const updated = await client.query(
-      `
-      INSERT INTO profiles (
-        user_id,
-        gender,
-        sexual_preference,
-        biography,
-        birth_date,
-        city,
-        neighborhood,
-        gps_consent,
-        latitude,
-        longitude,
-        fame_rating
-      )
-      VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        COALESCE($5, (SELECT birth_date FROM profiles WHERE user_id = $1), (CURRENT_DATE - INTERVAL '18 years')::date),
-        $6,
-        $7,
-        $8,
-        $9,
-        $10,
-        COALESCE((SELECT fame_rating FROM profiles WHERE user_id = $1), 0)
-      )
-      ON CONFLICT (user_id)
-      DO UPDATE SET
-        biography = EXCLUDED.biography,
-        gender = COALESCE(EXCLUDED.gender, profiles.gender),
-        sexual_preference = COALESCE(EXCLUDED.sexual_preference, profiles.sexual_preference),
-        city = EXCLUDED.city,
-        neighborhood = EXCLUDED.neighborhood,
-        gps_consent = EXCLUDED.gps_consent,
-        latitude = EXCLUDED.latitude,
-        longitude = EXCLUDED.longitude,
-        birth_date = COALESCE(EXCLUDED.birth_date, profiles.birth_date)
-      RETURNING
-        user_id,
-        biography,
-        gender,
-        sexual_preference,
-        city,
-        neighborhood,
-        gps_consent,
-        birth_date,
-        latitude,
-        longitude,
-        fame_rating
-      `,
-      [
-        currentUserId,
-        safeGender,
-        safeSexualPreference,
-        safeBiography,
-        normalizedBirthDate,
-        safeCity,
-        safeNeighborhood,
-        gpsConsent,
-        hasLatitude ? parsedLatitude : null,
-        hasLongitude ? parsedLongitude : null,
-      ],
+    const result = await profileService.updateProfile(
+      currentUserId,
+      {
+        first_name: normalizedFirstName,
+        last_name: normalizedLastName,
+        username: normalizedUsername,
+        gender: safeGender,
+        sexual_preference: safeSexualPreference,
+        biography: safeBiography,
+        birth_date: normalizedBirthDate,
+        city: safeCity,
+        neighborhood: safeNeighborhood,
+        gps_consent: gpsConsent,
+        latitude: hasLatitude ? parsedLatitude : null,
+        longitude: hasLongitude ? parsedLongitude : null
+      },
+      normalizedTags,
+      normalizedPhotos
     );
 
-    if (normalizedTags !== null) {
-      await client.query("DELETE FROM user_profile_tags WHERE user_id = $1", [currentUserId]);
-      for (const tag of normalizedTags) {
-        const tagResult = await client.query(
-          `
-          INSERT INTO tags (name)
-          VALUES ($1)
-          ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
-          RETURNING id
-          `,
-          [tag],
-        );
-
-        await client.query(
-          `
-          INSERT INTO user_profile_tags (user_id, tag_id)
-          VALUES ($1, $2)
-          ON CONFLICT DO NOTHING
-          `,
-          [currentUserId, tagResult.rows[0].id],
-        );
-      }
-    }
-
-    const tagsResult = await client.query(
-      `
-      SELECT t.name
-      FROM user_profile_tags upt
-      JOIN tags t ON t.id = upt.tag_id
-      WHERE upt.user_id = $1
-      ORDER BY t.name ASC
-      `,
-      [currentUserId],
-    );
-
-    if (normalizedPhotos !== null) {
-      await client.query("DELETE FROM user_photos WHERE user_id = $1", [currentUserId]);
-      for (const photo of normalizedPhotos) {
-        await client.query(
-          `
-          INSERT INTO user_photos (user_id, data_url, is_primary)
-          VALUES ($1, $2, $3)
-          `,
-          [currentUserId, photo.data_url, photo.is_primary],
-        );
-      }
-    }
-
-    const updatedUserResult = await client.query(
-      `
-      SELECT id, email, username, first_name, last_name, email_verified, created_at
-      FROM users
-      WHERE id = $1
-      LIMIT 1
-      `,
-      [currentUserId],
-    );
-
-    await client.query("COMMIT");
-    inTransaction = false;
-
-    const profile = updated.rows[0];
-    const updatedUser = updatedUserResult.rows[0];
-    const photosResult = await client.query(
-      `
-      SELECT id, data_url, is_primary
-      FROM user_photos
-      WHERE user_id = $1
-      ORDER BY is_primary DESC, id ASC
-      `,
-      [currentUserId],
-    );
-
-    const io = getIO();
-    if (io && updatedUser) {
-      const primaryPhoto = photosResult.rows.find((item) => item.is_primary);
-      io.emit(REALTIME_EVENTS.PROFILE_UPDATED, {
-        user_id: Number(updatedUser.id),
-        profile: {
-          username: updatedUser.username,
-          gender: profile.gender || "",
-          sexual_preference: profile.sexual_preference || "",
-          city: profile.city || "",
-          neighborhood: profile.neighborhood || "",
-          age: getAge(profile.birth_date),
-          fame_rating: profile.fame_rating ?? 0,
-          tags: tagsResult.rows.map((entry) => entry.name),
-          primary_photo_url: primaryPhoto ? primaryPhoto.data_url : null,
-        },
-      });
-    }
+    const updatedProfile = result.profileRow;
+    const userResult = result.userRow;
+    const photosResultData = result.photosRow;
+    const tagsResultRows = result.tagsRow;
 
     const profilePayload = {
-      gender: profile.gender,
-      sexual_preference: profile.sexual_preference,
-      biography: profile.biography,
-      birth_date: profile.birth_date,
-      city: profile.city,
-      neighborhood: profile.neighborhood,
-      gps_consent: Boolean(profile.gps_consent),
-      latitude: profile.latitude,
-      longitude: profile.longitude,
-      tags: tagsResult.rows.map((entry) => entry.name),
-      fame_rating: profile.fame_rating,
-      photos: photosResult.rows.map((item) => ({
+      gender: updatedProfile.gender || "",
+      sexual_preference: updatedProfile.sexual_preference || "",
+      biography: updatedProfile.biography || "",
+      birth_date: updatedProfile.birth_date,
+      age: getAge(updatedProfile.birth_date),
+      city: updatedProfile.city || "",
+      neighborhood: updatedProfile.neighborhood || "",
+      gps_consent: Boolean(updatedProfile.gps_consent),
+      latitude: updatedProfile.latitude,
+      longitude: updatedProfile.longitude,
+      fame_rating: updatedProfile.fame_rating ?? 0,
+      tags: tagsResultRows ? tagsResultRows.map((row) => row.name) : (tags || []),
+      photos: photosResultData.map((item) => ({
         id: item.id,
         data_url: item.data_url,
         is_primary: item.is_primary,
       })),
     };
 
+    const isCompletedNow = isProfileCompleted(userResult, profilePayload);
+    const io = getIO();
+    if (io) {
+      const socketPayload = {
+        user_id: currentUserId,
+        updates: { ...profilePayload },
+        profile_completed: isCompletedNow,
+      };
+      if (userResult.username) socketPayload.updates.username = userResult.username;
+      if (userResult.first_name) socketPayload.updates.first_name = userResult.first_name;
+      if (userResult.last_name) socketPayload.updates.last_name = userResult.last_name;
+
+      io.emit(REALTIME_EVENTS.USER_PROFILE_UPDATED, socketPayload);
+    }
+
     return res.json({
       message: "Profile updated successfully",
-      user: updatedUser
-        ? {
-            id: updatedUser.id,
-            email: updatedUser.email,
-            username: updatedUser.username,
-            first_name: updatedUser.first_name,
-            last_name: updatedUser.last_name,
-            email_verified: updatedUser.email_verified,
-            profile_completed: isProfileCompleted(
-              {
-                username: updatedUser.username,
-                first_name: updatedUser.first_name,
-                last_name: updatedUser.last_name,
-                email: updatedUser.email,
-              },
-              profilePayload,
-            ),
-            created_at: updatedUser.created_at,
-          }
-        : undefined,
+      user: {
+        id: updatedProfile.user_id,
+        email: userResult.email,
+        username: userResult.username,
+        first_name: userResult.first_name,
+        last_name: userResult.last_name,
+        email_verified: userResult.email_verified,
+        profile_completed: isCompletedNow,
+        created_at: userResult.created_at,
+      },
       profile: profilePayload,
     });
   } catch (error) {
-    if (inTransaction) {
-      await client.query("ROLLBACK");
+    if (error.code === "23505" && error.constraint === "users_username_key") {
+      return res.status(409).json({ error: "Username already exists" });
     }
-
-    if (error.code === "23505") {
-      if (error.constraint === "users_email_key") {
-        return res.status(409).json({ error: "Email already exists" });
-      }
-      if (error.constraint === "users_username_key") {
-        return res.status(409).json({ error: "Username already exists" });
-      }
-      return res.status(409).json({ error: "Email or username already exists" });
-    }
-
     return next(error);
-  } finally {
-    client.release();
   }
 }
 

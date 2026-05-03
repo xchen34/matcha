@@ -1,4 +1,4 @@
-const pool = require("../db");
+
 
 function normalizeTag(tag) {
   if (typeof tag !== "string") return "";
@@ -34,22 +34,9 @@ function parseTagsQueryParam(rawTags) {
   return unique.length > 0 ? unique : null;
 }
 
-async function userHasPrimaryPhoto(userId) {
-  const result = await pool.query(
-    `
-    SELECT 1
-    FROM user_photos
-    WHERE user_id = $1
-      AND is_primary = TRUE
-    LIMIT 1
-    `,
-    [userId],
-  );
-  return result.rowCount > 0;
-}
+
 
 module.exports = {
   normalizeTag,
   parseTagsQueryParam,
-  userHasPrimaryPhoto,
 };

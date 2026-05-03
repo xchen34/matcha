@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
-const pool = require("../../db");
+const authService = require("../../services/authService");
 const { createRealtimeToken } = require("./shared");
-const { isProfileCompleted } = require("../../routes/authHelpers");
+const { isProfileCompleted } = require("./helpers");
 
 async function login(req, res, next) {
   try {
@@ -14,33 +14,12 @@ async function login(req, res, next) {
       return res.status(400).json({ error: "username and password are required" });
     }
 
-    const result = await pool.query(
-      `
-      SELECT
-        u.id,
-        u.email,
-        u.username,
-        u.first_name,
-        u.last_name,
-        u.password_hash,
-        u.email_verified,
-        u.created_at,
-        p.gender,
-        p.birth_date,
-        p.city
-      FROM users u
-      LEFT JOIN profiles p ON p.user_id = u.id
-      WHERE LOWER(u.username) = LOWER($1) OR LOWER(u.email) = LOWER($1)
-      LIMIT 1
-      `,
-      [identifier],
-    );
+    const user = await authService.findUserForLogin(identifier);
 
-    if (result.rows.length === 0) {
+    if (!user) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
-    const user = result.rows[0];
     let isPasswordValid = await bcrypt.compare(rawPassword, user.password_hash);
     if (!isPasswordValid && normalizedPassword !== rawPassword) {
       isPasswordValid = await bcrypt.compare(normalizedPassword, user.password_hash);
@@ -57,14 +36,7 @@ async function login(req, res, next) {
       });
     }
 
-    await pool.query(
-      `
-      UPDATE users
-      SET last_seen_at = NOW()
-      WHERE id = $1
-      `,
-      [user.id],
-    );
+    await authService.updateLastSeen(user.id);
 
     return res.json({
       message: "Login successful",

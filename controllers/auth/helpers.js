@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
-const pool = require("../db");
+
 
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72;
@@ -75,29 +75,10 @@ function isProfileCompleted(user) {
   );
 }
 
-let pendingEmailColumnReady = false;
 
-async function ensurePendingEmailColumn() {
-  if (pendingEmailColumnReady) return;
-
-  await pool.query(
-    `
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS pending_email VARCHAR(255)
-    `,
-  );
-
-  await pool.query(
-    `
-    CREATE INDEX IF NOT EXISTS idx_users_pending_email ON users(pending_email)
-    `,
-  );
-
-  pendingEmailColumnReady = true;
-}
 
 function getCommonPasswords() {
-  const commonPasswordsPath = path.join(__dirname, "..", "common_passwords.txt");
+  const commonPasswordsPath = path.join(__dirname, "..", "..", "common_passwords.txt");
   try {
     const fileContent = fs.readFileSync(commonPasswordsPath, "utf-8");
     return fileContent
@@ -159,7 +140,6 @@ module.exports = {
   generateVerificationToken,
   generateResetToken,
   isProfileCompleted,
-  ensurePendingEmailColumn,
   getCommonPasswords,
   validatePasswordStrength,
 };

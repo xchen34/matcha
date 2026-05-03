@@ -41,21 +41,7 @@ import { connectRealtime, disconnectRealtime, getRealtimeSocket } from "./realti
 
 // Utils
 import { buildApiHeaders } from "./utils.js";
-<<<<<<< HEAD
-import ChatIndicator from "./chat/ChatIndicator.jsx";
-import TopNav from "./components/TopNav.jsx";
-import RegisterPage from "./pages/RegisterPage.jsx";
-import ProfilePage from "./pages/ProfilePage.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-import { readStoredUser, writeStoredUser } from "./utils/userStorage.js";
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import { bytesToKB } from "./utils/formatUtils.js";
-import { normalizeLocationPrefix, getValidationCacheKey } from "./utils/locationUtils.js";
-
-const STORAGE_KEY = "matcha.currentUser";
-=======
 import { readStoredUser, writeStoredUser, STORAGE_KEY } from "./utils/userStorage.js";
->>>>>>> chrhu
 
 function App() {
   const navigate = useNavigate();

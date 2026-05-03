@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const pool = require("../../db");
+const authService = require("../../services/authService");
 
 async function deleteAccount(req, res, next) {
   try {
@@ -15,23 +15,12 @@ async function deleteAccount(req, res, next) {
       return res.status(400).json({ error: "password is required" });
     }
 
-    const result = await pool.query(
-      `
-      SELECT id, password_hash, email
-      FROM users
-      WHERE ($1::bigint IS NOT NULL AND id = $1)
-         OR ($2 <> '' AND LOWER(email) = LOWER($2))
-      ORDER BY CASE WHEN $1::bigint IS NOT NULL AND id = $1 THEN 0 ELSE 1 END
-      LIMIT 1
-      `,
-      [Number.isInteger(currentUserId) && currentUserId > 0 ? currentUserId : null, rawEmail],
-    );
+    const user = await authService.findUserForDeletion(currentUserId, rawEmail);
 
-    if (result.rowCount === 0) {
+    if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const user = result.rows[0];
     let isPasswordValid = await bcrypt.compare(rawPassword, user.password_hash);
     if (!isPasswordValid && normalizedPassword !== rawPassword) {
       isPasswordValid = await bcrypt.compare(normalizedPassword, user.password_hash);
@@ -40,7 +29,7 @@ async function deleteAccount(req, res, next) {
       return res.status(401).json({ error: "Invalid password" });
     }
 
-    await pool.query(`DELETE FROM users WHERE id = $1`, [user.id]);
+    await authService.deleteUser(user.id);
     return res.json({ message: "Account deleted successfully" });
   } catch (error) {
     return next(error);

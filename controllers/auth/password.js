@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
-const pool = require("../../db");
+const authService = require("../../services/authService");
 const { sendPasswordResetEmail, getFrontendBaseUrl, buildEmailDeliveryFromResult, buildFailedEmailDelivery } = require("./shared");
-const { isValidEmail, generateResetToken, getCommonPasswords, validatePasswordStrength } = require("../../routes/authHelpers");
+const { isValidEmail, generateResetToken, getCommonPasswords, validatePasswordStrength } = require("./helpers");
 
 async function forgotPassword(req, res, next) {
   try {
@@ -12,23 +12,16 @@ async function forgotPassword(req, res, next) {
       return res.status(400).json({ error: "Valid email is required" });
     }
 
-    const result = await pool.query(
-      `SELECT id, email FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
-      [normalizedEmail],
-    );
+    const user = await authService.findUserByEmail(normalizedEmail);
 
-    if (result.rowCount === 0) {
+    if (!user) {
       return res.json({ message: "If an account with this email exists, a password reset link has been sent." });
     }
 
-    const user = result.rows[0];
     const resetToken = generateResetToken();
     const resetExpiry = new Date(Date.now() + 60 * 60 * 1000);
 
-    await pool.query(
-      `UPDATE users SET password_reset_token = $1, password_reset_token_expiry = $2 WHERE id = $3`,
-      [resetToken, resetExpiry, user.id],
-    );
+    await authService.setPasswordResetToken(user.id, resetToken, resetExpiry);
 
     const frontendBaseUrl = getFrontendBaseUrl();
     let emailDelivery = buildFailedEmailDelivery("unknown");
@@ -66,19 +59,13 @@ async function resetPassword(req, res, next) {
       return res.status(400).json({ error: passwordValidation.error });
     }
 
-    const result = await pool.query(
-      `SELECT id FROM users WHERE password_reset_token = $1 AND password_reset_token_expiry > NOW() LIMIT 1`,
-      [normalizedToken],
-    );
-    if (result.rowCount === 0) {
+    const user = await authService.findUserByResetToken(normalizedToken);
+    if (!user) {
       return res.status(400).json({ error: "Invalid or expired reset token" });
     }
 
     const passwordHash = await bcrypt.hash(normalizedPassword, 10);
-    await pool.query(
-      `UPDATE users SET password_hash = $1, password_reset_token = NULL, password_reset_token_expiry = NULL WHERE id = $2`,
-      [passwordHash, result.rows[0].id],
-    );
+    await authService.updatePassword(user.id, passwordHash);
 
     return res.json({ message: "Password reset successful. You can now log in." });
   } catch (error) {

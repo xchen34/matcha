@@ -1,0 +1,51 @@
+const likeService = require("../../services/likeService");
+const { createNotification } = require("../../services/notificationService");
+const { insertSystemMessage } = require("../../utils/chatSystemMessage");
+
+async function unlikeUser(req, res, next) {
+  try {
+    const likerId = req.header("x-user-id");
+    const likedId = req.params.id;
+    if (!likerId || !likedId) {
+      return res.status(400).json({ error: "x-user-id header and user id param required" });
+    }
+    if (String(likerId) === String(likedId)) {
+      return res.status(400).json({ error: "Cannot unlike yourself" });
+    }
+
+    const removed = await likeService.removeLike(likerId, likedId);
+    if (!removed) {
+      return res.status(200).json({ message: "Like already removed or non-existent" });
+    }
+
+    const isMatch = await likeService.checkLikeExists(likedId, likerId);
+    if (isMatch) {
+      await insertSystemMessage(likerId, likedId, "You are no longer matched. You cannot send messages.");
+      await insertSystemMessage(likedId, likerId, "You are no longer matched. You cannot send messages.");
+
+      try {
+        const { getIO } = require("../../realtime");
+        const { REALTIME_EVENTS } = require("../../realtime/events");
+        const io = getIO && getIO();
+        if (io) {
+          io.to(`user:${likerId}`).emit(REALTIME_EVENTS.MATCH_STATUS_CHANGED, { userId: Number(likedId), matched: false });
+          io.to(`user:${likedId}`).emit(REALTIME_EVENTS.MATCH_STATUS_CHANGED, { userId: Number(likerId), matched: false });
+        }
+      } catch (e) {}
+    }
+
+    await createNotification({
+      userId: likedId,
+      actorUserId: likerId,
+      type: "unlike",
+      message: "A connected user unliked you.",
+      metadata: { unliked_by_user_id: likerId },
+    });
+
+    return res.status(200).json({ message: "Like removed" });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports = { unlikeUser };

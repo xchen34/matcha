@@ -1,4 +1,4 @@
-const pool = require("../db");
+
 
 const MAX_BIO_LENGTH = 500;
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]{2,20}$/;
@@ -88,11 +88,9 @@ function parseUserIdFromRequest(req) {
 async function resolveCurrentUserId(req) {
   const requestedUserId = parseUserIdFromRequest(req);
   if (!requestedUserId) return null;
-  const userResult = await pool.query("SELECT id FROM users WHERE id = $1", [
-    requestedUserId,
-  ]);
-  if (userResult.rows.length === 0) return null;
-  return userResult.rows[0].id;
+  const user = await require("../../services/profileService").getUserById(requestedUserId);
+  if (!user) return null;
+  return user.id;
 }
 
 function normalizeTag(tag) {

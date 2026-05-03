@@ -1,4 +1,4 @@
-const { isNonEmptyString, parseUserIdFromRequest, resolveCurrentUserId, parseOptionalCoordinate, reverseGeocode } = require("../../routes/profileHelpers");
+const { isNonEmptyString, parseUserIdFromRequest, resolveCurrentUserId, parseOptionalCoordinate, reverseGeocode } = require("./helpers");
 const {
   normalizeLocationText,
   locationTextMatches,

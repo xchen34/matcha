@@ -5,7 +5,7 @@ const {
   isNonEmptyString,
   parseOptionalCoordinate,
   extractAddressParts,
-} = require("../../routes/profileHelpers");
+} = require("./helpers");
 
 function normalizeLocationText(value) {
   if (!isNonEmptyString(value)) return "";

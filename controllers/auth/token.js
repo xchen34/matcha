@@ -1,4 +1,4 @@
-const pool = require("../../db");
+const authService = require("../../services/authService");
 const { createRealtimeToken } = require("./shared");
 
 async function getRealtimeToken(req, res, next) {
@@ -9,17 +9,9 @@ async function getRealtimeToken(req, res, next) {
       return res.status(400).json({ error: "x-user-id header is required" });
     }
 
-    const result = await pool.query(
-      `
-      SELECT id
-      FROM users
-      WHERE id = $1
-      LIMIT 1
-      `,
-      [userId],
-    );
+    const exists = await authService.checkUserExists(userId);
 
-    if (result.rowCount === 0) {
+    if (!exists) {
       return res.status(404).json({ error: "User not found" });
     }
 
