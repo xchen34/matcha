@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { buildApiHeaders } from "@/utils.js";
 import { writeStoredUser } from "@/utils/userStorage.js";
 
@@ -16,14 +16,25 @@ export default function useProfileData({
   const currentUsername = currentUser?.username ?? "";
   const currentEmail = currentUser?.email ?? "";
   const currentProfileCompleted = Boolean(currentUser?.profile_completed);
+  const lastLoadedUserIdRef = useRef(null);
+  const loadingRef = useRef(false);
 
-  const loadProfile = useCallback(async () => {
+  const loadProfile = useCallback(async (options = {}) => {
+    const { force = false } = options;
     if (!userId) {
       setMessage("Please login first.");
       setLoading(false);
       return;
     }
 
+    if (!force && loadingRef.current) {
+      return;
+    }
+    if (!force && lastLoadedUserIdRef.current === userId) {
+      return;
+    }
+
+    loadingRef.current = true;
     setLoading(true);
     setMessage("");
 
@@ -95,6 +106,8 @@ export default function useProfileData({
     } catch (error) {
       setMessage(`Error: ${error.message}`);
     } finally {
+      lastLoadedUserIdRef.current = userId;
+      loadingRef.current = false;
       setLoading(false);
     }
   }, [
@@ -111,6 +124,7 @@ export default function useProfileData({
   ]);
 
   useEffect(() => {
+    lastLoadedUserIdRef.current = null;
     loadProfile();
   }, [loadProfile]);
 

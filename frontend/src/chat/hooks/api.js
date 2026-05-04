@@ -96,6 +96,10 @@ export async function deleteChatConversation(currentUser, conversationId) {
     method: "DELETE",
     headers: buildApiHeaders(currentUser),
   });
+  // Consider already-deleted/missing conversations as successful client state.
+  if (response.status === 404) {
+    return { success: true, conversation_id: conversationId };
+  }
   return handleResponse(response, "Unable to delete conversation.");
 }
 

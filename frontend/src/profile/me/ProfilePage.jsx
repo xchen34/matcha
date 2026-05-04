@@ -238,7 +238,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
             canAttemptSaveProfile={canAttemptSaveProfile}
             canSaveProfile={canSaveProfile}
             missingRequiredFields={missingRequiredFields}
-            onReload={loadProfile}
+            onReload={() => loadProfile({ force: true })}
           />
         </form>
       )}
