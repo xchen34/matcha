@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { onRealtimeEvent } from "../../realtime/socket";
+import { onRealtimeEvent } from "@/realtime/socket";
 
 export function useMatchRealtime(currentUser, setUsers) {
   useEffect(() => {

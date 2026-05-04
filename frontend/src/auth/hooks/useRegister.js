@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  MIN_BIRTH_DATE_ISO,
-  isValidBirthDateIso,
-  getMaxAdultBirthDateIso,
-} from "../../utils/date.js";
+import { MIN_BIRTH_DATE_ISO, isValidBirthDateIso, getMaxAdultBirthDateIso } from "@/utils/date.js";
 
 export function useRegister() {
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { buildApiHeaders } from "../../../utils.js";
+import { buildApiHeaders } from "@/utils.js";
 
 const MAX_FAKE_REPORT_REASON_LENGTH = 200;
 

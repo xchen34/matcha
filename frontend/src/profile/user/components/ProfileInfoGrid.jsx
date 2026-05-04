@@ -1,7 +1,7 @@
 import { FiActivity, FiCalendar, FiCompass, FiMapPin, FiUser } from "react-icons/fi";
-import { sanitizeText } from "../../../utils/xssEscape.js";
+import { sanitizeText } from "@/utils/xssEscape.js";
 import { FieldLabel } from "./FieldLabel.jsx";
-import { formatLastSeen } from "../../../utils/date.js";
+import { formatLastSeen } from "@/utils/date.js";
 
 export default function ProfileInfoGrid({ user, profile, isOwnProfile }) {
   return (

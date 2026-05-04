@@ -1,4 +1,4 @@
-import { inputClass } from "../../styles/UIClasses.jsx";
+import { inputClass } from "@/styles/UIClasses.jsx";
 
 export default function FormInput({
   label,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { buildApiHeaders } from "../../../utils.js";
+import { buildApiHeaders } from "@/utils.js";
 
 export default function useLocation(userId, setForm, setMessage) {
   const [loadingGeo, setLoadingGeo] = useState(false);

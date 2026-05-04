@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { buildApiHeaders } from "../../utils.js";
+import { buildApiHeaders } from "@/utils.js";
 
 export function usePopularity(currentUser, mode, MODE_CONFIG) {
   const [lists, setLists] = useState([]);

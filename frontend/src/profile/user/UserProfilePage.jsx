@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
-import { cardClass } from "../../styles/UIClasses.jsx";
-import { sanitizeText } from "../../utils/xssEscape.js";
+import { cardClass } from "@/styles/UIClasses.jsx";
+import { sanitizeText } from "@/utils/xssEscape.js";
 
 import { useUserProfile } from "./hooks/useUserProfile";
 import { useUserRelations } from "./hooks/useUserRelations";
@@ -16,6 +17,7 @@ import { ProfilePhotosGrid } from "./components/ProfilePhotosGrid.jsx";
 
 function UserProfilePage({ currentUser }) {
   const { id } = useParams();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // DATA
   const { data, loading, error, setData } = useUserProfile(id, currentUser);
@@ -29,9 +31,7 @@ function UserProfilePage({ currentUser }) {
     loadingLike,
     likeError,
     toggleLike,
-    setLiked,
-    setLikedByProfile,
-    setIsMatch,
+    applyRealtimeRelationUpdate,
   } = useUserRelations(id, currentUser, data);
 
   // MODERATION (block / report API state)
@@ -40,7 +40,9 @@ function UserProfilePage({ currentUser }) {
     blockedUser,
     moderationMessage,
     blocking,
+    unblocking,
     blockUser,
+    unblockUser,
     setModerationMessage,
   } = useUserModeration(id, currentUser, data);
 
@@ -58,16 +60,7 @@ function UserProfilePage({ currentUser }) {
     currentUser,
     setData,
     onMatchNotification: (evt) => {
-      if (evt?.type === "match") {
-        setLiked(true);
-        setLikedByProfile(true);
-        setIsMatch(true);
-      } else if (evt?.type === "like_received") {
-        setLikedByProfile(true);
-      } else if (evt?.type === "unlike") {
-        setLikedByProfile(false);
-        setIsMatch(false);
-      }
+      applyRealtimeRelationUpdate?.(evt?.type);
     },
   });
 
@@ -119,11 +112,13 @@ function UserProfilePage({ currentUser }) {
               likeError={likeError}
               onToggleLike={toggleLike}
               onBlock={blockUser}
+              onUnblock={unblockUser}
               onOpenReport={report.openReportForm}
               blockedUser={blockedUser}
               blocking={blocking}
-              menuOpen={report.menuOpen}
-              setMenuOpen={report.setMenuOpen}
+              unblocking={unblocking}
+              menuOpen={menuOpen}
+              setMenuOpen={setMenuOpen}
               relationLabel={relationLabel}
             />
           )}

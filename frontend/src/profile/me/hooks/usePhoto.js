@@ -1,11 +1,8 @@
 import { useCallback } from "react";
-import {
-  MAX_PHOTO_SIZE_BYTES,
-  MAX_TOTAL_PHOTOS_SIZE_BYTES,
-  MAX_PHOTOS_COUNT,
-  validatePhotoFile,
-} from "../../../utils/photoValidator.js";
-import { bytesToKB } from "../../../utils/formatUtils.js";
+import { MAX_PHOTO_SIZE_BYTES, MAX_TOTAL_PHOTOS_SIZE_BYTES,
+  MAX_PHOTOS_COUNT, validatePhotoFile,
+} from "@/utils/photoValidator.js";
+import { bytesToKB } from "@/utils/formatUtils.js";
 
 export default function usePhoto({ form, setForm, setMessage }) {
   function handlePhotoUpload(event) {

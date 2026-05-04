@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { buildApiHeaders } from "../../utils.js";
+import { buildApiHeaders } from "@/utils.js";
 
 export function useMatchFilters(currentUser) {
   const [draftFilters, setDraftFilters] = useState({
