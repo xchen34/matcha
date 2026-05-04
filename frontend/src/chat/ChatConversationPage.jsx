@@ -22,9 +22,41 @@ import {
   formatDayLabel,
   formatTime,
 } from "./utils/messageFormat.js";
+import { parseQuotedMessageContent } from "./hooks/quoteUtils.js";
 
 const PAGE_SIZE = 18;
-const MAX_CHAT_MESSAGE_LENGTH = 1200;
+const MAX_CHAT_MESSAGE_LENGTH = 500;
+
+const renderMessageContent = (content, isMine) => {
+  const lines = content.split('\n');
+  const quoteLines = [];
+  const normalLines = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith('> ')) {
+      quoteLines.push(lines[i].substring(2));
+    } else if (lines[i].startsWith('Replying to message #')) {
+      // Ignore header
+    } else {
+      normalLines.push(lines[i]);
+    }
+  }
+
+  if (quoteLines.length === 0 && !content.includes('Replying to message #')) {
+    return <p className="whitespace-pre-wrap break-words">{content}</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      {quoteLines.length > 0 && (
+        <div className={`border-l-[3px] pl-2 text-xs italic opacity-90 line-clamp-3 break-all ${isMine ? "border-white/50 bg-white/10" : "border-slate-400 bg-slate-200/50"} py-1 pr-2 rounded-r-md`}>
+          {quoteLines.join('\n')}
+        </div>
+      )}
+      <p className="whitespace-pre-wrap break-words">{normalLines.join('\n').trim()}</p>
+    </div>
+  );
+};
 
 export default function ChatConversationPage({ currentUser, embedded = false }) {
   const { conversationId } = useParams();
@@ -166,8 +198,10 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
     if (!trimmed || !conversation?.other_user?.id || !currentUserId) return;
     let content = trimmed;
     if (quotedMessage?.content) {
+      const parsed = parseQuotedMessageContent(quotedMessage.content);
+      const actualQuoteText = parsed.replyText || quotedMessage.content;
       const quoteHeader = `Replying to message #${quotedMessage.id}:`;
-      content = `${quoteHeader}\n> ${String(quotedMessage.content).replace(/\n/g, "\n> ")}\n\n${trimmed}`;
+      content = `${quoteHeader}\n> ${String(actualQuoteText).replace(/\n/g, "\n> ")}\n\n${trimmed}`;
     }
 
     setSending(true);
@@ -262,7 +296,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
               )}
               <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[68%] rounded-2xl px-3 py-2 text-sm ${isMine ? "bg-brand text-white" : "bg-slate-100 text-slate-900"}`}>
-                  <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                  {renderMessageContent(msg.content, isMine)}
                   <div className={`mt-1 flex items-center gap-2 text-[11px] ${isMine ? "text-white/80 justify-end" : "text-slate-500"}`}>
                     <span>{formatTime(msg.created_at)}</span>
                     <button type="button" onClick={() => setQuotedMessage(msg)} className="underline inline-flex items-center gap-1">
@@ -284,17 +318,22 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       {canSend && (
         <form onSubmit={handleSend} className="space-y-2">
           {quotedMessage && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-              <div className="flex items-center justify-between">
-                <span>Replying to #{quotedMessage.id}</span>
-                <button type="button" onClick={() => setQuotedMessage(null)} className="underline">Clear</button>
+            <div className="mb-2 flex items-center justify-between rounded-lg border-l-4 border-brand bg-slate-50 p-2.5 text-xs text-slate-600 shadow-sm">
+              <div className="flex-1 overflow-hidden pr-2">
+                <span className="block font-semibold text-brand mb-0.5">Replying to:</span>
+                <p className="truncate opacity-80 break-all">{parseQuotedMessageContent(quotedMessage.content).replyText || quotedMessage.content}</p>
               </div>
-              <p className="mt-1 line-clamp-2">{quotedMessage.content}</p>
+              <button type="button" onClick={() => setQuotedMessage(null)} className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition-colors">
+                <FiTrash2 size={16} />
+              </button>
             </div>
           )}
           <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} className={chatInputClass} placeholder="Write a message..." disabled={sending} maxLength={MAX_CHAT_MESSAGE_LENGTH} />
-          <div className="flex justify-end">
-            <button type="submit" disabled={sending || !body.trim()} className={chatButtonClass(sending || !body.trim())}>{sending ? "Sending…" : "Send"}</button>
+          <div className="flex items-center justify-between mt-2">
+            <span className={`text-xs font-medium ${body.length >= MAX_CHAT_MESSAGE_LENGTH ? "text-red-500" : "text-slate-400"}`}>
+              {body.length}/{MAX_CHAT_MESSAGE_LENGTH}
+            </span>
+            <button type="submit" disabled={sending || !body.trim() || body.length > MAX_CHAT_MESSAGE_LENGTH} className={chatButtonClass(sending || !body.trim() || body.length > MAX_CHAT_MESSAGE_LENGTH)}>{sending ? "Sending…" : "Send"}</button>
           </div>
         </form>
       )}

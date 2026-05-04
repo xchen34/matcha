@@ -12,8 +12,18 @@ export function parseQuotedMessageContent(content) {
     return { quoteHeader: null, quoteLines: [], replyText: text };
   }
 
-  const headerMatch = lines[0].match(/^(.*) wrote:\s*$/i);
-  if (!headerMatch) {
+  let isQuote = false;
+  let headerText = "";
+  const matchWrote = lines[0].match(/^(.*) wrote:\s*$/i);
+  if (matchWrote) {
+    isQuote = true;
+    headerText = matchWrote[1].trim();
+  } else if (lines[0].startsWith('Replying to message #')) {
+    isQuote = true;
+    headerText = "Reply";
+  }
+
+  if (!isQuote) {
     return { quoteHeader: null, quoteLines: [], replyText: text };
   }
 
@@ -31,7 +41,7 @@ export function parseQuotedMessageContent(content) {
   }
 
   return {
-    quoteHeader: headerMatch[1].trim(),
+    quoteHeader: headerText,
     quoteLines,
     replyText: lines.slice(index).join("\n").trim(),
   };

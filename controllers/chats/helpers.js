@@ -1,14 +1,14 @@
 const { getIO, REALTIME_EVENTS } = require("../../realtime");
 const chatService = require("../../services/chatService");
 
-const MAX_CHAT_MESSAGE_LENGTH = 1200;
+const MAX_CHAT_MESSAGE_LENGTH = 500;
 
 function parseQuotedReplyText(content) {
   const text = String(content || "");
   const lines = text.replace(/\r\n/g, "\n").split("\n");
   if (!lines.length) return null;
 
-  const headerMatch = lines[0].match(/^(.*) wrote:\s*$/i);
+  const headerMatch = lines[0].match(/^(.*) wrote:\s*$/i) || lines[0].startsWith('Replying to message #');
   if (!headerMatch) return null;
 
   let index = 1;
