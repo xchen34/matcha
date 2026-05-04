@@ -42,13 +42,14 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const listRef = useRef(null); const prependingRef = useRef(null);
+  const listRef = useRef(null);
+  const prependingRef = useRef(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
   const activeConversationId = Number(conversation?.id) || null;
   const canSend = Boolean(conversation?.is_match) && !conversation?.blocked_by_you && !conversation?.blocked_you;
-  const conversationTitle =
-    conversation?.other_user?.username
-      ? `@${conversation.other_user.username}`
-      : conversation?.other_user?.first_name || "Conversation";
+  const conversationTitle = conversation?.other_user?.username
+    ? `@${conversation.other_user.username}`
+    : "?";
 
   const loadConversation = useCallback(async () => {
     if (!currentUser?.id || !conversationId) return;
@@ -102,6 +103,17 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
     listRef.current.scrollTop = top + (nextHeight - height);
     prependingRef.current = null;
   }, [messages]);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    if (prependingRef.current) return;
+    const lastMsg = messages[messages.length - 1];
+    const isLastMine = Number(lastMsg?.sender_user_id) === currentUserId;
+    if (isNearBottom || isLastMine) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [messages, isNearBottom, currentUserId]);
 
   useEffect(() => {
     const id = Number(conversationId);
@@ -212,7 +224,11 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
           <ChatAvatar name={conversation?.other_user?.username || "?"} photoUrl={conversation?.other_user?.primary_photo_url} isOnline={Boolean(conversation?.other_user?.is_online)} />
           <div>
             <h2 className="text-2xl font-bold text-slate-900">{conversationTitle}</h2>
-            <p className="text-sm text-slate-500">{canSend ? "Matched" : "Messaging unavailable"}</p>
+            {canSend ? (
+              <span className="ml-1 rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">Matched</span>
+            ) : (
+              <p className="text-sm text-slate-500">Messaging unavailable</p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

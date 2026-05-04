@@ -66,6 +66,7 @@ async function onSocketConnect(io, userId, socketId) {
 
 async function onSocketDisconnect(io, userId, socketId) {
   const totalSockets = unregisterSocketForUser(userId, socketId);
+  console.log(`[onSocketDisconnect] userId=${userId}, socketId=${socketId}, totalSockets=${totalSockets}`);
   if (totalSockets > 0) return;
 
   let lastSeenAt = new Date().toISOString();
@@ -82,10 +83,11 @@ async function onSocketDisconnect(io, userId, socketId) {
     if (result.rowCount > 0 && result.rows[0].last_seen_at) {
       lastSeenAt = result.rows[0].last_seen_at;
     }
-  } catch {
-    // Ignore to keep websocket teardown robust.
+  } catch (err) {
+    console.error(`[onSocketDisconnect error] userId=${userId}:`, err);
   }
 
+  console.log(`[emitPresence OFFLINE] userId=${userId}, isOnline=false, lastSeenAt=${lastSeenAt}`);
   emitPresence(io, userId, false, lastSeenAt);
 }
 

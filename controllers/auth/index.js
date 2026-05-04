@@ -5,6 +5,7 @@ const { getRealtimeToken } = require("./token");
 const { verifyEmail, requestEmailChange, resendVerificationEmail } = require("./verification");
 const { forgotPassword, resetPassword } = require("./password");
 const { deleteAccount } = require("./account");
+const { logout } = require("./logout");
 
 module.exports = {
   register,
@@ -16,6 +17,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   deleteAccount,
+  logout,
   authLimiter,
   authSensitiveLimiter,
 };

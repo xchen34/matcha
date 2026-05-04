@@ -32,6 +32,13 @@ function ensureSocket() {
   let isUnloading = false;
   window.addEventListener("beforeunload", () => {
     isUnloading = true;
+    console.log("[socket] beforeunload: sending presence:disconnect and disconnecting");
+    try {
+      socket.emit("presence:disconnect");
+      socket.disconnect();
+    } catch (err) {
+      console.error("[socket] beforeunload error:", err);
+    }
   });
 
   socket.on("connect", () => {
@@ -44,9 +51,7 @@ function ensureSocket() {
     if (reason === "io server disconnect") {
       console.warn("realtime.disconnect", { reason });
       alert(
-        "You no longer have access to this conversation or the connection was closed.\n\n" +
-          "Vous n'avez plus accès à cette conversation ou la connexion a été coupée.",
-      );
+        "You no longer have access to this conversation or the connection was closed.\n\n"      );
     }
   });
 
@@ -67,9 +72,7 @@ function ensureSocket() {
 
     alert(
       "Real-time connection failed: " +
-        (err?.message || "Unknown error") +
-        "\n\nConnexion temps réel impossible: " +
-        (err?.message || "Erreur inconnue"),
+        (err?.message || "Unknown error")
     );
   });
 
@@ -99,9 +102,27 @@ export function connectRealtime(userId, token) {
 }
 
 export function disconnectRealtime() {
+  console.log("[socket] disconnectRealtime called");
   if (pingIntervalId) {
     window.clearInterval(pingIntervalId);
     pingIntervalId = null;
+  }
+  const s = socket;
+  if (s && s.connected) {
+    console.log("[socket] emitting presence:disconnect");
+    try {
+      s.emit("presence:disconnect");
+    } catch (err) {
+      console.error("[socket] emit presence:disconnect error:", err);
+    }
+    try {
+      console.log("[socket] calling disconnect");
+      s.disconnect();
+    } catch (err) {
+      console.error("[socket] disconnect error:", err);
+    }
+  } else {
+    console.log("[socket] socket not connected, skipping emit/disconnect");
   }
 }
 

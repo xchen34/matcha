@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
+import { disconnectRealtime } from "../realtime/socket.js";
 import {
   readStoredUser,
   writeStoredUser,
@@ -32,6 +33,23 @@ export function useCurrentUser() {
   }, []);
 
   function logout() {
+    // Notify backend and disconnect realtime immediately
+    console.log("[useCurrentUser] logout: calling disconnectRealtime");
+    disconnectRealtime();
+
+    // Try to notify the backend (fire-and-forget)
+    if (currentUser?.id) {
+      fetch("/api/auth/logout", {
+        method: "POST",
+        headers: buildApiHeaders(currentUser, {
+          "Content-Type": "application/json",
+        }),
+      }).catch(() => {
+        // ignore errors - logout succeeds even if API call fails
+      });
+    }
+
+    // Clear local state
     localStorage.removeItem(STORAGE_KEY);
     setCurrentUser(null);
     navigate("/login", { replace: true });

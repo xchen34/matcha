@@ -37,6 +37,18 @@ function registerRealtimeSocketHandlers(io, socket) {
     onSocketConnect(io, userId, socket.id).catch(() => {});
   });
 
+  socket.on(REALTIME_EVENTS.PRESENCE_DISCONNECT, () => {
+    console.log(`[presence:disconnect] userId=${userId}, socketId=${socket.id}`);
+    onSocketDisconnect(io, userId, socket.id).catch((err) => {
+      console.error(`[presence:disconnect error] userId=${userId}:`, err);
+    });
+  });
+
+  socket.on("disconnect", () => {
+    console.log(`[socket.disconnect] userId=${userId}, socketId=${socket.id}`);
+    onSocketDisconnect(io, userId, socket.id).catch(() => {});
+  });
+
   socket.on("disconnect", () => {
     onSocketDisconnect(io, userId, socket.id).catch(() => {});
   });

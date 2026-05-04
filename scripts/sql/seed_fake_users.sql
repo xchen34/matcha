@@ -122,24 +122,37 @@ inserted_profiles AS (
     ])[1 + floor(random() * 36)],
     ROUND((random() * 180 - 90)::numeric, 6),
     ROUND((random() * 360 - 180)::numeric, 6),
-    0
+    ROUND((random() * 100)::numeric, 2)
   FROM new_users u
   LEFT JOIN profiles p ON p.user_id = u.id
   WHERE p.user_id IS NULL
   RETURNING user_id
 ),
 inserted_tags AS (
+  WITH user_tag_targets AS (
+    SELECT
+      u.id AS user_id,
+      floor(random() * 11)::int AS tag_count
+    FROM new_users u
+  ),
+  ranked_tags AS (
+    SELECT
+      utt.user_id,
+      t.id AS tag_id,
+      utt.tag_count,
+      row_number() OVER (
+        PARTITION BY utt.user_id
+        ORDER BY md5(utt.user_id::text || ':' || t.id::text || ':' || random()::text)
+      ) AS rn
+    FROM user_tag_targets utt
+    CROSS JOIN tags t
+  )
   INSERT INTO user_profile_tags (user_id, tag_id)
   SELECT
-    u.id,
-    t.id
-  FROM new_users u
-  JOIN LATERAL (
-    SELECT id
-    FROM tags
-    ORDER BY random()
-    LIMIT (1 + floor(random() * 5))::int
-  ) t ON TRUE
+    rt.user_id,
+    rt.tag_id
+  FROM ranked_tags rt
+  WHERE rt.rn <= rt.tag_count
   ON CONFLICT DO NOTHING
   RETURNING user_id
 ),
@@ -147,11 +160,16 @@ seed_views AS (
   INSERT INTO profile_views (viewer_user_id, viewed_user_id, created_at)
   SELECT
     viewer.id AS viewer_user_id,
-    viewed.id AS viewed_user_id,
+    targets.viewed_user_id,
     NOW() - (random() * INTERVAL '30 days')
   FROM new_users viewer
-  JOIN new_users viewed ON viewer.id <> viewed.id
-  WHERE random() < 0.03
+  JOIN LATERAL (
+    SELECT viewed.id AS viewed_user_id
+    FROM new_users viewed
+    WHERE viewed.id <> viewer.id
+    ORDER BY random()
+    LIMIT 60
+  ) targets ON TRUE
   ON CONFLICT (viewer_user_id, viewed_user_id) DO NOTHING
   RETURNING viewer_user_id, viewed_user_id
 ),
@@ -159,11 +177,16 @@ seed_likes AS (
   INSERT INTO likes (liker_user_id, liked_user_id, created_at)
   SELECT
     liker.id AS liker_user_id,
-    liked.id AS liked_user_id,
+    targets.liked_user_id,
     NOW() - (random() * INTERVAL '6 days')
   FROM new_users liker
-  JOIN new_users liked ON liker.id <> liked.id
-  WHERE random() < 0.012
+  JOIN LATERAL (
+    SELECT liked.id AS liked_user_id
+    FROM new_users liked
+    WHERE liked.id <> liker.id
+    ORDER BY random()
+    LIMIT 22
+  ) targets ON TRUE
   ON CONFLICT (liker_user_id, liked_user_id) DO NOTHING
   RETURNING liker_user_id, liked_user_id
 ),

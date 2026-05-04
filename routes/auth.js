@@ -9,6 +9,7 @@ const {
   forgotPassword,
   resetPassword,
   deleteAccount,
+  logout,
   authLimiter,
   authSensitiveLimiter,
 } = require("../controllers/auth");
@@ -23,6 +24,8 @@ router.post("/auth/request-email-change", authSensitiveLimiter, requestEmailChan
 router.post("/auth/resend-verification-email", authSensitiveLimiter, resendVerificationEmail);
 router.post("/auth/forgot-password", authSensitiveLimiter, forgotPassword);
 router.post("/auth/reset-password", authSensitiveLimiter, resetPassword);
+router.post("/auth/logout", logout);
 router.delete("/auth/delete-account", authSensitiveLimiter, deleteAccount);
 
 module.exports = router;
+

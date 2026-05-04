@@ -1,7 +1,7 @@
 require("dotenv").config();
 const pool = require("../db");
 
-const MIN_PHOTOS = 1;
+const MIN_PHOTOS = 0;
 const MAX_PHOTOS = 5;
 
 const photoThemes = [
@@ -34,13 +34,26 @@ async function main() {
     console.log("📸 Seeding photos...");
 
     const { rows: users } = await client.query(`
-      SELECT u.id, p.gender
+      SELECT
+        u.id,
+        p.gender,
+        COUNT(up.id)::int AS photo_count
       FROM users u
       JOIN profiles p ON p.user_id = u.id
+      LEFT JOIN user_photos up ON up.user_id = u.id
+      GROUP BY u.id, p.gender
     `);
 
     for (const user of users) {
+      if (Number(user.photo_count) > 0) {
+        continue;
+      }
+
       const count = rand(MIN_PHOTOS, MAX_PHOTOS);
+      if (count === 0) {
+        console.log(`✔ user ${user.id} seeded (0 photos)`);
+        continue;
+      }
 
       for (let i = 0; i < count; i++) {
         let url;
@@ -64,7 +77,7 @@ async function main() {
         );
       }
 
-      console.log(`✔ user ${user.id} seeded`);
+      console.log(`✔ user ${user.id} seeded (${count} photos)`);
     }
 
     console.log("✅ Photo seeding done");
