@@ -127,6 +127,8 @@ class ChatService {
   }
 
   async findOrCreateConversation(userA, userB) {
+    const normalizedA = Math.min(userA, userB);
+    const normalizedB = Math.max(userA, userB);
     const result = await pool.query(
       `
       WITH inserted AS (
@@ -140,9 +142,24 @@ class ChatService {
       SELECT id FROM chat_conversations WHERE user_a_id = $1 AND user_b_id = $2
       LIMIT 1
       `,
-      [Math.min(userA, userB), Math.max(userA, userB)]
+      [normalizedA, normalizedB]
     );
-    return result.rows[0]?.id;
+    const conversationId = result.rows[0]?.id;
+    if (!conversationId) {
+      return null;
+    }
+
+    // Reopening a conversation should make it visible again for both participants.
+    await pool.query(
+      `
+      DELETE FROM chat_deleted_conversations
+      WHERE conversation_id = $1
+        AND user_id IN ($2, $3)
+      `,
+      [conversationId, normalizedA, normalizedB]
+    );
+
+    return conversationId;
   }
 
   async checkMessageExistsAndValid(messageId, conversationId) {

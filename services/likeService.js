@@ -161,7 +161,9 @@ class LikeService {
 
     const sql = `
       WITH me AS (
-        SELECT city, gender, sexual_preference FROM profiles WHERE user_id = $1
+        SELECT city, gender, sexual_preference, latitude, longitude
+        FROM profiles
+        WHERE user_id = $1
       ),
       me_tags AS (
         SELECT tag_id FROM user_profile_tags WHERE user_id = $1
@@ -180,6 +182,23 @@ class LikeService {
         p.gender, p.sexual_preference, p.city, p.neighborhood,
         uf.fame_rating, p.birth_date, ph.primary_photo_url,
         EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.birth_date))::int AS age_value,
+        CASE
+          WHEN me.latitude IS NULL OR me.longitude IS NULL OR p.latitude IS NULL OR p.longitude IS NULL
+            THEN NULL
+          ELSE (
+            6371 * acos(
+              least(
+                1,
+                greatest(
+                  -1,
+                  cos(radians(me.latitude::double precision)) * cos(radians(p.latitude::double precision)) *
+                  cos(radians((p.longitude::double precision) - (me.longitude::double precision))) +
+                  sin(radians(me.latitude::double precision)) * sin(radians(p.latitude::double precision))
+                )
+              )
+            )
+          )
+        END AS distance_km,
         COUNT(DISTINCT mt.tag_id)::int AS common_tags_count,
         COALESCE(ARRAY_REMOVE(ARRAY_AGG(DISTINCT t.name), NULL), ARRAY[]::varchar[]) AS tags
       FROM users u
@@ -206,7 +225,10 @@ class LikeService {
         AND ($7::text[] IS NULL OR EXISTS (SELECT 1 FROM user_profile_tags uptf JOIN tags tf ON tf.id = uptf.tag_id WHERE uptf.user_id = u.id AND tf.name = ANY($7::text[])))
         AND ($8::text IS NULL OR (p.city IS NOT NULL AND LOWER(p.city) = LOWER($8::text)))
         AND (
-          COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'both'
+          (
+            COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'both'
+            AND p.gender IN ('male', 'female')
+          )
           OR (COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'male' AND p.gender = 'male')
           OR (COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'female' AND p.gender = 'female')
           OR (COALESCE(NULLIF(me.sexual_preference, ''), 'both') = 'other' AND p.gender IN ('non_binary', 'other'))
@@ -218,7 +240,11 @@ class LikeService {
           OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'female' AND me.gender = 'female')
           OR (COALESCE(NULLIF(p.sexual_preference, ''), 'both') = 'other' AND me.gender IN ('non_binary', 'other'))
         )
-      GROUP BY u.id, u.username, u.email, u.last_seen_at, p.gender, p.sexual_preference, p.city, p.neighborhood, uf.fame_rating, p.birth_date, ph.primary_photo_url, me.city
+      GROUP BY
+        u.id, u.username, u.email, u.last_seen_at,
+        p.gender, p.sexual_preference, p.city, p.neighborhood, p.latitude, p.longitude,
+        uf.fame_rating, p.birth_date, ph.primary_photo_url,
+        me.city, me.latitude, me.longitude
       ORDER BY ${orderBySql}
       LIMIT $9::int OFFSET $10::int
     `;

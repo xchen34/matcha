@@ -1,11 +1,12 @@
 import { FaUser, FaCommentDots } from "react-icons/fa";
 
-export default function ActionButtons({ user, mode, startingChatFor, navigate }) {
-  const startChatWith = async (userId) => {
-    if (!userId) return;
-    navigate(`/messages/${userId}`);
-  };
-
+export default function ActionButtons({
+  user,
+  mode,
+  startingChatFor,
+  navigate,
+  startChatWith,
+}) {
   return (
     <div className="flex items-center gap-2">
       <button
@@ -19,7 +20,7 @@ export default function ActionButtons({ user, mode, startingChatFor, navigate })
       {mode === "matches" && (
         <button
           type="button"
-          onClick={() => startChatWith(user.id)}
+          onClick={() => startChatWith?.(user.id)}
           disabled={startingChatFor === user.id}
           className="inline-flex items-center justify-center rounded-full border border-brand bg-brand px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-deep disabled:opacity-60 disabled:cursor-not-allowed"
         >

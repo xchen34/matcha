@@ -1,4 +1,5 @@
 const { getIO, REALTIME_EVENTS } = require("../../realtime");
+const chatService = require("../../services/chatService");
 
 const MAX_CHAT_MESSAGE_LENGTH = 1200;
 
@@ -98,6 +99,10 @@ function ensureMatchRequired(status) {
   }
 }
 
+async function fetchConnectionStatus(userA, userB) {
+  return chatService.fetchConnectionStatus(userA, userB);
+}
+
 module.exports = {
   MAX_CHAT_MESSAGE_LENGTH,
   parseQuotedReplyText,
@@ -108,4 +113,5 @@ module.exports = {
   parseNonNegativeInt,
   ensureConnectionAllowed,
   ensureMatchRequired,
+  fetchConnectionStatus,
 };

@@ -47,7 +47,12 @@ async function getSuggestions(req, res, next) {
     if (normalizedSortBy === "age") {
       orderBySql = `age_value ${normalizedSortDir} NULLS LAST, u.id ASC`;
     } else if (normalizedSortBy === "location") {
-      orderBySql = `p.city ${normalizedSortDir} NULLS LAST, p.neighborhood ${normalizedSortDir} NULLS LAST, u.id ASC`;
+      orderBySql = `
+        (me.city IS NOT NULL AND p.city IS NOT NULL AND LOWER(p.city) = LOWER(me.city)) DESC,
+        p.city ${normalizedSortDir} NULLS LAST,
+        p.neighborhood ${normalizedSortDir} NULLS LAST,
+        u.id ASC
+      `;
     } else if (normalizedSortBy === "fame" || normalizedSortBy === "fame_rating") {
       orderBySql = `fame_rating ${normalizedSortDir} NULLS LAST, u.id ASC`;
     } else if (normalizedSortBy === "tags") {

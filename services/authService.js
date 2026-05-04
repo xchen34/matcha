@@ -56,6 +56,14 @@ class AuthService {
     return result.rows[0];
   }
 
+  async checkUserExists(userId) {
+    const result = await pool.query(
+      `SELECT 1 FROM users WHERE id = $1 LIMIT 1`,
+      [userId]
+    );
+    return result.rowCount > 0;
+  }
+
   async setPasswordResetToken(userId, token, expiry) {
     await pool.query(
       `UPDATE users SET password_reset_token = $1, password_reset_token_expiry = $2 WHERE id = $3`,

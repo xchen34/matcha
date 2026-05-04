@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { cardClass } from "@/styles/UIClasses.jsx";
 import { sanitizeText } from "@/utils/xssEscape.js";
+import { buildApiHeaders } from "@/utils.js";
 
 import { useUserProfile } from "./hooks/useUserProfile";
 import { useUserRelations } from "./hooks/useUserRelations";
@@ -18,6 +19,7 @@ import { ProfilePhotosGrid } from "./components/ProfilePhotosGrid.jsx";
 function UserProfilePage({ currentUser }) {
   const { id } = useParams();
   const [menuOpen, setMenuOpen] = useState(false);
+  const recordedViewsRef = useRef(new Set());
 
   // DATA
   const { data, loading, error, setData } = useUserProfile(id, currentUser);
@@ -63,6 +65,25 @@ function UserProfilePage({ currentUser }) {
       applyRealtimeRelationUpdate?.(evt?.type);
     },
   });
+
+  useEffect(() => {
+    const viewedUserId = Number(id);
+    const viewerUserId = Number(currentUser?.id);
+    if (!Number.isInteger(viewedUserId) || viewedUserId <= 0) return;
+    if (!Number.isInteger(viewerUserId) || viewerUserId <= 0) return;
+    if (viewerUserId === viewedUserId) return;
+
+    const dedupeKey = `${viewerUserId}:${viewedUserId}`;
+    if (recordedViewsRef.current.has(dedupeKey)) return;
+    recordedViewsRef.current.add(dedupeKey);
+
+    void fetch(`/api/users/${viewedUserId}/view`, {
+      method: "POST",
+      headers: buildApiHeaders(currentUser, {
+        "Content-Type": "application/json",
+      }),
+    }).catch(() => {});
+  }, [id, currentUser]);
 
   // AUTH GUARD
   if (!currentUser) return <Navigate to="/login" replace />;
