@@ -278,7 +278,6 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
               deletingMessageId={deletingMessageId}
               onQuote={setQuotedMessage}
               onDelete={handleDeleteMessage}
-              conversation={conversation.messages}
             />
           ))}
           <ChatConversationStatusBadge
