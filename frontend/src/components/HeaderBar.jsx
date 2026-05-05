@@ -1,16 +1,17 @@
-import { FiLogOut, FiMessageCircle, FiSettings, FiSlash, FiTrash2, FiUser } from "react-icons/fi";
+import { FiLogOut, FiMessageCircle, FiSlash, FiTrash2, FiUser } from "react-icons/fi";
 import NotificationsBell from "../notifications/NotificationsBell.jsx";
 import ChatIndicator from "../chat/components/ChatIndicator.jsx";
+import { Cog } from "lucide-react";
 
-export function HeaderBar({ 
-  currentUser, 
-  isLoginPage, 
-  isSettingsOpen, 
-  setIsSettingsOpen, 
+export function HeaderBar({
+  currentUser,
+  isLoginPage,
+  isSettingsOpen,
+  setIsSettingsOpen,
   settingsMenuRef,
   navigateTo,
   logout,
-  handleDeleteAccount 
+  handleDeleteAccount
 }) {
   if (!currentUser || isLoginPage) return null;
 
@@ -28,7 +29,7 @@ export function HeaderBar({
               aria-label="Open settings menu"
               title="Settings"
             >
-              <FiSettings size={18} />
+              <Cog color="#f163cf" />
             </button>
 
             {isSettingsOpen && (

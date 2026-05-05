@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { FiEye, FiHeart, FiLogIn, FiUser, FiUserPlus, FiUsers } from "react-icons/fi";
 import { useNotifications } from "../notifications/hooks/useNotifications.js";
 import { secondaryButtonClass } from "../styles/UIClasses.jsx";
+import { Zap } from "lucide-react";
 
 export default function TopNav({ currentUser, profileLocked }) {
   const location = useLocation();
@@ -29,15 +30,17 @@ export default function TopNav({ currentUser, profileLocked }) {
     matches: Number(attentionBadges.matches || 0),
   };
 
-  const navItem = (icon, mobile, full, count) => (
+  const navItem = (icon, mobile, full, count, isActive) => (
     <span className="relative flex items-center justify-center sm:justify-start gap-1.5">
-      <span aria-hidden="true">{icon}</span>
+      <span aria-hidden="true" className={`transition-colors ${isActive ? "text-white" : "text-[#f163cf] group-hover:text-white"}`}>
+        {icon}
+      </span>
 
-      <span className="sm:hidden text-xs font-medium text-neutral-dark">
+      <span className={`sm:hidden text-xxs font-medium transition-colors ${isActive ? "text-white" : "text-neutral-dark group-hover:text-white"}`}>
         {mobile}
       </span>
 
-      <span className="hidden sm:inline text-sm font-medium text-neutral-dark">
+      <span className={`hidden sm:inline text-xs font-medium transition-colors ${isActive ? "text-white" : "text-neutral-dark group-hover:text-white"}`}>
         {full}
       </span>
 
@@ -55,13 +58,15 @@ export default function TopNav({ currentUser, profileLocked }) {
         <NavLink
           to="/login"
           className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
+            `group ${secondaryButtonClass} ${isActive ? "!bg-primary-medium !border-primary" : ""}`
           }
         >
-          <span className="flex items-center gap-1.5 justify-center">
-            <FiLogIn size={15} />
-            <span>Login</span>
-          </span>
+          {({ isActive }) => (
+            <span className="flex items-center gap-1.5 justify-center">
+              <FiLogIn size={15} className={`transition-colors ${isActive ? "text-white" : "text-neutral-dark group-hover:text-white"}`} />
+              <span className={`transition-colors ${isActive ? "text-white" : "text-neutral-dark group-hover:text-white"}`}>Login</span>
+            </span>
+          )}
         </NavLink>
       )}
 
@@ -69,14 +74,16 @@ export default function TopNav({ currentUser, profileLocked }) {
         <NavLink
           to="/register"
           className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
+            `group ${secondaryButtonClass} ${isActive ? "!bg-primary-medium !border-primary" : ""}`
           }
         >
-          <span className="flex items-center gap-1.5 justify-center">
-            <FiUserPlus size={15} />
-            <span className="sm:inline hidden">Create Account</span>
-            <span className="sm:hidden">Join</span>
-          </span>
+          {({ isActive }) => (
+            <span className="flex items-center gap-1.5 justify-center">
+              <FiUserPlus size={15} className={`transition-colors ${isActive ? "text-white" : "text-neutral-dark group-hover:text-white"}`} />
+              <span className={`sm:inline hidden transition-colors ${isActive ? "text-white" : "text-neutral-dark group-hover:text-white"}`}>Create Account</span>
+              <span className={`sm:hidden transition-colors ${isActive ? "text-white" : "text-neutral-dark group-hover:text-white"}`}>Join</span>
+            </span>
+          )}
         </NavLink>
       )}
 
@@ -84,14 +91,16 @@ export default function TopNav({ currentUser, profileLocked }) {
         <NavLink
           to="/profile"
           className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
+            `group ${secondaryButtonClass} ${isActive ? "!bg-primary-medium !border-primary" : ""}`
           }
         >
-          <span className="flex items-center gap-1.5 justify-center">
-            <FiUser size={15} />
-            <span className="sm:inline hidden">Complete Profile</span>
-            <span className="sm:hidden">Profile</span>
-          </span>
+          {({ isActive }) => (
+            <span className="flex items-center gap-1.5 justify-center">
+              <FiUser size={15} className={`transition-colors ${isActive ? "text-white" : "text-neutral-dark group-hover:text-white"}`} />
+              <span className={`sm:inline hidden transition-colors ${isActive ? "text-white" : "text-neutral-dark group-hover:text-white"}`}>Complete Profile</span>
+              <span className={`sm:hidden transition-colors ${isActive ? "text-white" : "text-neutral-dark group-hover:text-white"}`}>Profile</span>
+            </span>
+          )}
         </NavLink>
       )}
 
@@ -100,44 +109,42 @@ export default function TopNav({ currentUser, profileLocked }) {
           <NavLink
             to="/find-match"
             className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
+              `group ${secondaryButtonClass} ${isActive ? "!bg-primary-medium !border-primary" : ""}`
             }
           >
-            {navItem(<FiUsers size={15} />, "Find", "Find your match")}
+            {({ isActive }) => navItem(<FiUsers size={24} />, "Find", "Find my match", 0, isActive)}
           </NavLink>
 
           <NavLink
             to="/popularity/views"
             className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
+              `group ${secondaryButtonClass} ${isActive ? "!bg-primary-medium !border-primary" : ""}`
             }
           >
-            {navItem(<FiEye size={15} />, "Views", "Who viewed me", modeCounts.views)}
+            {({ isActive }) => navItem(<FiEye size={24} />, "Views", "Who viewed me", modeCounts.views, isActive)}
           </NavLink>
 
           <NavLink
             to="/popularity/likes"
             className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
+              `group ${secondaryButtonClass} ${isActive ? "!bg-primary-medium !border-primary" : ""}`
             }
           >
-            {navItem(<FiHeart size={15} />, "Likes", "Who liked me", modeCounts.likes)}
+            {({ isActive }) => navItem(<FiHeart size={24} />, "Likes", "Who liked me", modeCounts.likes, isActive)}
           </NavLink>
 
           <NavLink
             to="/popularity/matches"
             className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
+              `group ${secondaryButtonClass} ${isActive ? "!bg-primary-medium !border-primary" : ""}`
             }
           >
-            {navItem(
-              <span className="relative inline-flex h-4 w-5 items-center justify-center text-neutral">
-                <FiHeart size={11} className="absolute left-0" />
-                <FiHeart size={11} className="absolute right-0" />
-              </span>,
+            {({ isActive }) => navItem(
+              <Zap size={24} />,
               "Matches",
-              "Matches",
-              modeCounts.matches
+              "My matches",
+              modeCounts.matches,
+              isActive
             )}
           </NavLink>
         </>

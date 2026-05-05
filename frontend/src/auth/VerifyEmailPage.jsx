@@ -113,7 +113,7 @@ export default function VerifyEmailPage() {
             <p className="text-gray-700 mb-4">{message}</p>
             <p className="text-gray-600 mb-6">Email: <strong>{email}</strong></p>
             <p className="text-gray-600 mb-4">Redirecting in 3 seconds...</p>
-            <Link 
+            <Link
               to={successRedirectPath}
               className="inline-block bg-rose-500 text-white px-6 py-2 rounded-lg hover:bg-rose-600 transition"
             >
@@ -125,19 +125,17 @@ export default function VerifyEmailPage() {
         {status === 'error' && (
           <div className="text-center">
             <div className="inline-block bg-red-100 rounded-full p-3 mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <BellRing />
             </div>
             <h1 className="text-2xl font-bold text-red-600 mb-2">Verification Failed</h1>
             <p className="text-gray-700 mb-6">{message}</p>
-            
+
             <div className="space-y-3">
               <p className="text-gray-600">
                 <span className="font-semibold">Token expired or invalid?</span>
               </p>
-              <Link 
-                to="/resend-verification" 
+              <Link
+                to="/resend-verification"
                 className="inline-block bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition"
               >
                 Resend Verification Email

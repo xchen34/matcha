@@ -1,0 +1,35 @@
+- generic [ref=e2]:
+  - main [ref=e3]:
+    - generic [ref=e4]:
+      - paragraph [ref=e5]: 42 Matchmaking Playground
+      - heading "Matcha" [level=1] [ref=e6]
+    - navigation [ref=e7]:
+      - link "Login" [ref=e8] [cursor=pointer]:
+        - /url: /login
+        - generic [ref=e9]:
+          - img [ref=e10]
+          - generic [ref=e13]: Login
+      - link "Create Account" [ref=e14] [cursor=pointer]:
+        - /url: /register
+        - generic [ref=e15]:
+          - img [ref=e16]
+          - generic [ref=e19]: Create Account
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - paragraph [ref=e22]: Welcome back
+        - heading "Login" [level=2] [ref=e23]
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - text: Username or email
+          - textbox "Enter username or email" [ref=e26]
+        - generic [ref=e27]:
+          - text: Password
+          - generic [ref=e28]:
+            - textbox "Enter your password" [ref=e29]
+            - button "Show password" [ref=e30] [cursor=pointer]:
+              - img [ref=e31]
+        - button "Login" [ref=e34] [cursor=pointer]
+        - link "Forgot password?" [ref=e36] [cursor=pointer]:
+          - /url: /forgot-password
+  - contentinfo [ref=e37]:
+    - paragraph [ref=e39]: © 2026 Matcha — 42 Dating Playground

@@ -38,14 +38,14 @@ function App() {
   const location = useLocation();
   const { currentUser, setCurrentUser, isProfileLocked, logout, handleDeleteAccount } = useCurrentUser();
   const isLoginPage = location.pathname === "/login";
-  
+
   useRealtimeConnection(currentUser, setCurrentUser);
-  
+
   const { isSettingsOpen, setIsSettingsOpen, settingsMenuRef, navigateTo } = useSettings();
 
   return (
     <NotificationsProvider currentUser={currentUser}>
-      <HeaderBar 
+      <HeaderBar
         currentUser={currentUser}
         isLoginPage={isLoginPage}
         isSettingsOpen={isSettingsOpen}
@@ -55,15 +55,15 @@ function App() {
         logout={logout}
         handleDeleteAccount={handleDeleteAccount}
       />
-      
+
       <main className="max-w-5xl mx-auto px-5 py-10 space-y-10">
-        <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.16em] text-primary-dark font-semibold">
-            42 Matchmaking Playground
-          </p>
-          <h1 className="text-5xl sm:text-6xl font-bold text-neutral-dark leading-none">
-            Matcha
+        <header className="flex flex-col">
+          <h1 className="-ml-1 text-5xl sm:text-6xl font-bold text-primary leading-none font-jersey tracking-wider">
+            MATCHA
           </h1>
+          <p className="-mt-1 text-xs tracking-[0.16em] text-primary-dark font-semibold">
+            Match! Match! Matcha!
+          </p>
         </header>
 
         <TopNav currentUser={currentUser} profileLocked={isProfileLocked} />
@@ -86,7 +86,7 @@ function App() {
               currentUser ? (
                 <ProfilePage
                   currentUser={currentUser}
-                  onUnauthorized={() => {}}
+                  onUnauthorized={() => { }}
                   onProfileUpdate={setCurrentUser}
                 />
               ) : (
