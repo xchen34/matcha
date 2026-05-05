@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const apiProxyTarget =
-  process.env.VITE_API_PROXY_TARGET || "http://localhost:3000";
+  import.meta.env.VITE_API_PROXY_TARGET || "http://localhost:3000";
 
 export default defineConfig({
   plugins: [react()],
