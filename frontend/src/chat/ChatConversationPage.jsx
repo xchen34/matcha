@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { FiArrowLeft, FiCornerUpLeft, FiTrash2 } from "react-icons/fi";
 import ChatAvatar from "./components/ChatAvatar.jsx";
+import ChatConversationMessage from "./components/ChatConversationMessage.jsx";
+import ChatConversationStatusBadge from "./components/ChatConversationStatusBadge.jsx";
 import {
   deleteChatConversation,
   deleteChatMessage,
@@ -9,54 +11,16 @@ import {
   markConversationAsRead,
   sendChatMessage,
 } from "./hooks/api.js";
-import {
-  joinConversationRoom,
-  leaveConversationRoom,
-  onRealtimeEvent,
-} from "../realtime/socket.js";
-import { REALTIME_EVENTS } from "../realtime/events.js";
+import { useChatConversationRealtime } from "./hooks/useChatConversationRealtime.js";
 import { chatButtonClass, chatInputClass } from "../styles/UIClasses.jsx";
 import {
   dateKey,
   dedupeMessages,
-  formatDayLabel,
-  formatTime,
 } from "./utils/messageFormat.js";
 import { parseQuotedMessageContent } from "./hooks/quoteUtils.js";
 
 const PAGE_SIZE = 18;
 const MAX_CHAT_MESSAGE_LENGTH = 500;
-
-const renderMessageContent = (content, isMine) => {
-  const lines = content.split('\n');
-  const quoteLines = [];
-  const normalLines = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith('> ')) {
-      quoteLines.push(lines[i].substring(2));
-    } else if (lines[i].startsWith('Replying to message #')) {
-      // Ignore header
-    } else {
-      normalLines.push(lines[i]);
-    }
-  }
-
-  if (quoteLines.length === 0 && !content.includes('Replying to message #')) {
-    return <p className="whitespace-pre-wrap break-words">{content}</p>;
-  }
-
-  return (
-    <div className="flex flex-col gap-1.5 w-full">
-      {quoteLines.length > 0 && (
-        <div className={`border-l-[3px] pl-2 text-xs italic opacity-90 line-clamp-3 break-all ${isMine ? "border-white/50 bg-white/10" : "border-slate-400 bg-slate-200/50"} py-1 pr-2 rounded-r-md`}>
-          {quoteLines.join('\n')}
-        </div>
-      )}
-      <p className="whitespace-pre-wrap break-words">{normalLines.join('\n').trim()}</p>
-    </div>
-  );
-};
 
 export default function ChatConversationPage({ currentUser, embedded = false }) {
   const { conversationId } = useParams();
@@ -77,6 +41,9 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
   const listRef = useRef(null);
   const prependingRef = useRef(null);
   const [isNearBottom, setIsNearBottom] = useState(true);
+  const [unmatchedAt, setUnmatchedAt] = useState(null);
+  const [wasMatchedBefore, setWasMatchedBefore] = useState(false);
+  const [expandedMessageId, setExpandedMessageId] = useState(null);
   const activeConversationId = Number(conversation?.id) || null;
   const canSend = Boolean(conversation?.is_match) && !conversation?.blocked_by_you && !conversation?.blocked_you;
   const conversationTitle = conversation?.other_user?.username
@@ -90,12 +57,22 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
     try {
       const data = await fetchConversationMessages(currentUser, conversationId, { limit: PAGE_SIZE, offset: 0 });
       const nextMessages = dedupeMessages(data?.messages || []);
-      setConversation(data?.conversation || null);
+      const conv = data?.conversation || null;
+      
+      setConversation(conv);
       setMessages(nextMessages);
+      
+      // Check if this was previously matched (by checking for unmatch messages)
+      const hasUnmatchMessage = nextMessages.some((msg) => msg.content?.includes("You are no longer matched"));
+      if (hasUnmatchMessage && !conv?.is_match) {
+        setWasMatchedBefore(true);
+        setUnmatchedAt(new Date()); // Will be updated if we find the exact message time
+      }
+      
       setOffset(nextMessages.length);
       setHasMore(Boolean(data?.paging?.has_more));
-      if (data?.conversation?.id) {
-        await markConversationAsRead(currentUser, data.conversation.id).catch(() => {});
+      if (conv?.id) {
+        await markConversationAsRead(currentUser, conv.id).catch(() => {});
       }
     } catch (err) {
       setError(err?.message || "Unable to load conversation");
@@ -147,50 +124,19 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
     }
   }, [messages, isNearBottom, currentUserId]);
 
-  useEffect(() => {
-    const id = Number(conversationId);
-    if (!Number.isInteger(id) || id <= 0) return undefined;
-    joinConversationRoom(id);
-    return () => leaveConversationRoom(id);
-  }, [conversationId]);
-
-  useEffect(() => {
-    if (!activeConversationId || !currentUserId) return undefined;
-    const offCreated = onRealtimeEvent(REALTIME_EVENTS.CHAT_MESSAGE_CREATED, ({ message }) => {
-      if (Number(message?.conversation_id) !== activeConversationId) return;
-      setMessages((prev) => dedupeMessages([...prev, message]));
-      if (Number(message?.sender_user_id) !== currentUserId) {
-        void markConversationAsRead({ id: currentUserId }, activeConversationId).catch(() => {});
-      }
-    });
-
-    const offDeleted = onRealtimeEvent(REALTIME_EVENTS.CHAT_MESSAGE_DELETED, (payload) => {
-      if (Number(payload?.conversation_id) !== activeConversationId) return;
-      const messageId = Number(payload?.message_id);
-      if (!Number.isInteger(messageId)) return;
-      setMessages((prev) => prev.filter((m) => Number(m.id) !== messageId));
-      setQuotedMessage((prev) => (Number(prev?.id) === messageId ? null : prev));
-    });
-
-    const offConversationDeleted = onRealtimeEvent(REALTIME_EVENTS.CHAT_CONVERSATION_DELETED, (payload) => {
-      if (Number(payload?.conversation_id) !== activeConversationId) return;
-      navigate("/messages", { replace: true });
-    });
-
-    return () => {
-      offCreated();
-      offDeleted();
-      offConversationDeleted();
-    };
-  }, [activeConversationId, currentUserId, navigate]);
-
   const groupedMessages = useMemo(() => {
-    return messages.map((msg, index) => ({
+    const allGrouped = messages.map((msg, index) => ({
       msg,
       showDay: index === 0 || dateKey(messages[index - 1]?.created_at) !== dateKey(msg?.created_at),
       isMine: Number(msg?.sender_user_id) === currentUserId,
+      showMatchBadge: index === 0 && conversation?.is_match && conversation?.match_created_at,
     }));
-  }, [messages, currentUserId]);
+    
+    return allGrouped.filter((item) => 
+      !item.msg.content?.includes("You are no longer matched") &&
+      !item.msg.content?.includes("You matched with")
+    );
+  }, [messages, currentUserId, conversation?.is_match, conversation?.match_created_at]);
 
   const handleSend = useCallback(async (event) => {
     event.preventDefault();
@@ -249,19 +195,49 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       setDeletingMessageId(null);
     }
   }, [activeConversationId, currentUserId]);
+
+  useChatConversationRealtime({
+    conversationId,
+    activeConversationId,
+    currentUserId,
+    otherUserId: conversation?.other_user?.id,
+    loadConversation,
+    navigate,
+    setConversation,
+    setMessages,
+    setQuotedMessage,
+    setWasMatchedBefore,
+    setUnmatchedAt,
+  });
+
   if (!currentUser) return <Navigate to="/login" replace />;
 
   return (
     <section className="space-y-3">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <ChatAvatar name={conversation?.other_user?.username || "?"} photoUrl={conversation?.other_user?.primary_photo_url} isOnline={Boolean(conversation?.other_user?.is_online)} />
+          <button 
+            type="button" 
+            onClick={() => navigate(`/users/${conversation?.other_user?.id}`)}
+            className="hover:opacity-75 transition-opacity"
+          >
+            <ChatAvatar name={conversation?.other_user?.username || "?"} photoUrl={conversation?.other_user?.primary_photo_url} isOnline={Boolean(conversation?.other_user?.is_online)} />
+          </button>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">{conversationTitle}</h2>
-            {canSend ? (
+            <h2 
+              className="text-2xl font-bold text-slate-900 cursor-pointer hover:text-slate-700 transition-colors"
+              onClick={() => navigate(`/users/${conversation?.other_user?.id}`)}
+            >
+              {conversationTitle}
+            </h2>
+            {conversation?.blocked_by_you ? (
+              <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Blocked by you</span>
+            ) : conversation?.blocked_you ? (
+              <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Blocked you</span>
+            ) : conversation?.is_match ? (
               <span className="ml-1 rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">Matched</span>
             ) : (
-              <p className="text-sm text-slate-500">Messaging unavailable</p>
+              <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Unmatched</span>
             )}
           </div>
         </div>
@@ -290,28 +266,28 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         )}
         <ul className="space-y-2">
           {groupedMessages.map(({ msg, showDay, isMine }) => (
-            <li key={msg.id} className="space-y-1">
-              {showDay && (
-                <div className="text-center text-[11px] text-slate-500">{formatDayLabel(msg.created_at)}</div>
-              )}
-              <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[68%] rounded-2xl px-3 py-2 text-sm ${isMine ? "bg-brand text-white" : "bg-slate-100 text-slate-900"}`}>
-                  {renderMessageContent(msg.content, isMine)}
-                  <div className={`mt-1 flex items-center gap-2 text-[11px] ${isMine ? "text-white/80 justify-end" : "text-slate-500"}`}>
-                    <span>{formatTime(msg.created_at)}</span>
-                    <button type="button" onClick={() => setQuotedMessage(msg)} className="underline inline-flex items-center gap-1">
-                      <FiCornerUpLeft size={10} /> Quote
-                    </button>
-                    {isMine && (
-                      <button type="button" onClick={() => handleDeleteMessage(msg)} disabled={deletingMessageId === msg.id} className="underline">
-                        {deletingMessageId === msg.id ? "Deleting…" : "Delete"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </li>
+            <ChatConversationMessage
+              key={`msg-${msg.id}`}
+              msg={msg}
+              showDay={showDay}
+              isMine={isMine}
+              conversation={conversation}
+              currentUserId={currentUserId}
+              expandedMessageId={expandedMessageId}
+              setExpandedMessageId={setExpandedMessageId}
+              deletingMessageId={deletingMessageId}
+              onQuote={setQuotedMessage}
+              onDelete={handleDeleteMessage}
+              conversation={conversation.messages}
+            />
           ))}
+          <ChatConversationStatusBadge
+            conversation={conversation}
+            groupedMessages={groupedMessages}
+            messages={messages}
+            wasMatchedBefore={wasMatchedBefore}
+            unmatchedAt={unmatchedAt}
+          />
         </ul>
       </div>
 

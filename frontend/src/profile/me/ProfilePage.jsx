@@ -101,6 +101,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
     emailChangeDevVerifyUrl,
     handleEmailChangeInput,
     handleEmailChangeSubmit,
+    emailChangeError,
   } = useEmailChange({ userId, setMessage });
 
   const { handleSubmit } = useProfileSubmit({
@@ -187,6 +188,9 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
             handleEmailChangeInput={handleEmailChangeInput}
             handleEmailChangeSubmit={handleEmailChangeSubmit}
             setEmailChangeForm={setEmailChangeForm}
+            emailChangePreviewUrl={emailChangePreviewUrl}
+            emailChangeDevVerifyUrl={emailChangeDevVerifyUrl}
+            emailChangeError={emailChangeError}
           />
 
           <GenderSelector form={form} handleChange={handleChange} selectClass={selectClass} />
@@ -244,37 +248,6 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
       )}
 
       {message && <p className="text-sm text-slate-600">{message}</p>}
-
-      {(emailChangePreviewUrl || emailChangeDevVerifyUrl) && (
-        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-          {emailChangePreviewUrl && (
-            <p>
-              Ethereal preview: {" "}
-              <a
-                href={emailChangePreviewUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-brand-deep underline"
-              >
-                Open verification email
-              </a>
-            </p>
-          )}
-          {emailChangeDevVerifyUrl && (
-            <p>
-              Fallback verify link: {" "}
-              <a
-                href={emailChangeDevVerifyUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-brand-deep underline"
-              >
-                Verify directly in app
-              </a>
-            </p>
-          )}
-        </div>
-      )}
     </section>
   );
 }

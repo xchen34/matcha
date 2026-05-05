@@ -1,19 +1,31 @@
 const chatService = require("../../services/chatService");
 const { isUserOnline } = require("../../realtime/presence");
-const { parsePositiveInt, parseNonNegativeInt, fetchConnectionStatus } = require("./helpers");
+const {
+  parsePositiveInt,
+  parseNonNegativeInt,
+  fetchConnectionStatus,
+} = require("./helpers");
 
 async function getMessages(req, res, next) {
   try {
     const currentUserId = parsePositiveInt(req.header("x-user-id"));
     const conversationId = parsePositiveInt(req.params.conversationId);
-    const limit = Math.min(100, Math.max(1, parseNonNegativeInt(req.query.limit, 20) || 20));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseNonNegativeInt(req.query.limit, 20) || 20),
+    );
     const offset = parseNonNegativeInt(req.query.offset, 0);
 
     if (!currentUserId || !conversationId) {
-      return res.status(400).json({ error: "x-user-id header and conversation id are required" });
+      return res
+        .status(400)
+        .json({ error: "x-user-id header and conversation id are required" });
     }
 
-    const conversation = await chatService.checkConversationValidAndUndeleted(currentUserId, conversationId);
+    const conversation = await chatService.checkConversationValidAndUndeleted(
+      currentUserId,
+      conversationId,
+    );
     if (!conversation) {
       return res.status(404).json({ error: "Conversation not found" });
     }
@@ -24,7 +36,12 @@ async function getMessages(req, res, next) {
 
     await chatService.markMessagesAsRead(currentUserId, conversationId);
 
-    const historyRows = await chatService.getMessages(currentUserId, conversationId, limit, offset);
+    const historyRows = await chatService.getMessages(
+      currentUserId,
+      conversationId,
+      limit,
+      offset,
+    );
     const hasMore = historyRows.length > limit;
     const pagedRows = hasMore ? historyRows.slice(0, limit) : historyRows;
     const messages = pagedRows.reverse();
@@ -41,6 +58,7 @@ async function getMessages(req, res, next) {
           is_online: isUserOnline(otherUserId),
         },
         is_match: !!status.is_match,
+        match_created_at: status.match_created_at || null,
         blocked_by_you: Boolean(status.blocked_by_you),
         blocked_you: Boolean(status.blocked_you),
       },

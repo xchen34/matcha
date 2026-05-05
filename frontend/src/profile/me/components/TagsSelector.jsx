@@ -25,10 +25,12 @@ export default function TagsSelector({
           className={selectClass}
         >
           <option value="">Select an interest tag</option>
-          {tagOptions.map((item) => (
-            <option key={item.name} value={item.name}>
-              {item.name}
-            </option>
+          {tagOptions
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((item) => (
+              <option key={item.name} value={item.name}>
+                {item.name}
+              </option>
           ))}
         </select>
 

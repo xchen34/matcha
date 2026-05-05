@@ -13,14 +13,20 @@ export default function useEmailChange({ userId, setMessage }) {
   const [emailChangePreviewUrl, setEmailChangePreviewUrl] = useState("");
   const [emailChangeDevVerifyUrl, setEmailChangeDevVerifyUrl] = useState("");
 
+  const [emailChangeError, setEmailChangeError] = useState("");
+
   function handleEmailChangeInput(event) {
     const { name, value } = event.target;
+
     setEmailChangeForm((prev) => ({ ...prev, [name]: value }));
+    setEmailChangeError(""); // reset erreur quand user tape
   }
 
   const handleEmailChangeSubmit = useCallback(async () => {
+    setEmailChangeError("");
+
     if (!userId) {
-      setMessage("Please login first.");
+      setEmailChangeError("Please login first.");
       return;
     }
 
@@ -28,7 +34,7 @@ export default function useEmailChange({ userId, setMessage }) {
     const password = emailChangeForm.password || "";
 
     if (!newEmail || !password) {
-      setMessage("Error: new email and password are required.");
+      setEmailChangeError("New email and password are required.");
       return;
     }
 
@@ -41,7 +47,7 @@ export default function useEmailChange({ userId, setMessage }) {
         method: "POST",
         headers: buildApiHeaders(
           { id: userId },
-          { "Content-Type": "application/json" },
+          { "Content-Type": "application/json" }
         ),
         body: JSON.stringify({ new_email: newEmail, password }),
       });
@@ -49,14 +55,12 @@ export default function useEmailChange({ userId, setMessage }) {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setMessage(`Error: ${data.error || "Unable to request email change"}`);
+        const errorMsg = data.error || "Unable to request email change";
+        setEmailChangeError(errorMsg);
         return;
       }
 
-      let successMessage =
-        data.message ||
-        "A verification email has been sent. Your email will change only after verification.";
-
+      // URLs
       if (data?.email_delivery?.preview_url) {
         setEmailChangePreviewUrl(data.email_delivery.preview_url);
       }
@@ -65,11 +69,11 @@ export default function useEmailChange({ userId, setMessage }) {
         setEmailChangeDevVerifyUrl(data.dev_verify_url);
       }
 
-      setMessage(successMessage);
+      // succès
       setEmailChangeForm({ new_email: "", password: "" });
-      setEmailChangeOpen(false);
+      setMessage(""); // optionnel : éviter doublon avec message global
     } catch (error) {
-      setMessage(`Error: ${error.message}`);
+      setEmailChangeError(error.message);
     } finally {
       setEmailChangeLoading(false);
     }
@@ -83,6 +87,7 @@ export default function useEmailChange({ userId, setMessage }) {
     setEmailChangeForm,
     emailChangePreviewUrl,
     emailChangeDevVerifyUrl,
+    emailChangeError,
     handleEmailChangeInput,
     handleEmailChangeSubmit,
   };

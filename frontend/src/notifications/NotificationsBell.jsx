@@ -197,7 +197,7 @@ export default function NotificationsBell() {
                         {createCardMessage(group.primaryActor, group.verb, group.count)}
                       </p>
                       {group.latestAt && (
-                        <p className="mt-1 text-[11px] text-slate-400">{formatNotificationDateTime(group.latestAt)}</p>
+                        <p className="mt-1 text-center text-[11px] text-slate-400 sm:text-left">{formatNotificationDateTime(group.latestAt)}</p>
                       )}
                     </div>
                   </div>

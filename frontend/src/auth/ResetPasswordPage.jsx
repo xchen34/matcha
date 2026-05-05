@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PasswordInput from "./components/PasswordInput";
-import FormInput from "./components/FormInput";
 import { secondaryButtonClass } from "../styles/UIClasses.jsx";
 
 export default function ResetPasswordPage() {
@@ -86,25 +85,34 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
+
           {/* NEW PASSWORD */}
-          <FormInput
-            label="New Password"
-            name="new_password"
-            type="password"
-            value={form.new_password}
-            onChange={handleChange}
-            placeholder="New password"
-          />
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              New password
+            </label>
+            <PasswordInput
+              name="new_password"
+              value={form.new_password}
+              onChange={handleChange}
+              placeholder="New password"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            />
+          </div>
 
           {/* CONFIRM PASSWORD */}
-          <FormInput
-            label="Confirm Password"
-            name="confirm_password"
-            type="password"
-            value={form.confirm_password}
-            onChange={handleChange}
-            placeholder="Confirm password"
-          />
+          <div className="space-y-1">
+            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              Reenter password
+            </label>
+            <PasswordInput
+              name="confirm_password"
+              value={form.confirm_password}
+              onChange={handleChange}
+              placeholder="Reenter password"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            />
+          </div>
 
           {/* ONLY ONE SIMPLE MESSAGE */}
           {form.confirm_password &&

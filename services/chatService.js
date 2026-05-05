@@ -4,7 +4,7 @@ class ChatService {
   async getConversationParticipants(conversationId) {
     const result = await pool.query(
       `SELECT user_a_id, user_b_id FROM chat_conversations WHERE id = $1 LIMIT 1`,
-      [conversationId]
+      [conversationId],
     );
     return result.rowCount > 0 ? result.rows[0] : null;
   }
@@ -19,7 +19,7 @@ class ChatService {
         ON CONFLICT (user_id, conversation_id)
         DO UPDATE SET deleted_at = EXCLUDED.deleted_at
         `,
-        [userId, conversationId]
+        [userId, conversationId],
       );
       await pool.query(
         `
@@ -30,7 +30,7 @@ class ChatService {
         ON CONFLICT (user_id, message_id)
         DO UPDATE SET deleted_at = EXCLUDED.deleted_at
         `,
-        [userId, conversationId]
+        [userId, conversationId],
       );
       await pool.query("COMMIT");
     } catch (err) {
@@ -142,7 +142,7 @@ class ChatService {
       SELECT id FROM chat_conversations WHERE user_a_id = $1 AND user_b_id = $2
       LIMIT 1
       `,
-      [normalizedA, normalizedB]
+      [normalizedA, normalizedB],
     );
     const conversationId = result.rows[0]?.id;
     if (!conversationId) {
@@ -156,7 +156,7 @@ class ChatService {
       WHERE conversation_id = $1
         AND user_id IN ($2, $3)
       `,
-      [conversationId, normalizedA, normalizedB]
+      [conversationId, normalizedA, normalizedB],
     );
 
     return conversationId;
@@ -171,7 +171,7 @@ class ChatService {
         AND conversation_id = $2
       LIMIT 1
       `,
-      [messageId, conversationId]
+      [messageId, conversationId],
     );
     return messageResult.rowCount > 0;
   }
@@ -184,7 +184,7 @@ class ChatService {
       ON CONFLICT (user_id, message_id)
       DO UPDATE SET deleted_at = EXCLUDED.deleted_at
       `,
-      [userId, messageId, conversationId]
+      [userId, messageId, conversationId],
     );
   }
 
@@ -207,7 +207,7 @@ class ChatService {
         )
       LIMIT 1
       `,
-      [userId, conversationId]
+      [userId, conversationId],
     );
     return conversationResult.rowCount > 0 ? conversationResult.rows[0] : null;
   }
@@ -231,7 +231,7 @@ class ChatService {
       WHERE id = $1
       LIMIT 1
       `,
-      [otherUserId]
+      [otherUserId],
     );
     return otherUserResult.rowCount > 0 ? otherUserResult.rows[0] : null;
   }
@@ -251,22 +251,22 @@ class ChatService {
             AND cdm.message_id = chat_messages.id
         )
       `,
-      [conversationId, userId]
+      [conversationId, userId],
     );
     return updateResult.rowCount || 0;
   }
 
   async markSingleMessageAsReadAndReturn(messageId) {
-     const readResult = await pool.query(
-        `
+    const readResult = await pool.query(
+      `
         UPDATE chat_messages
         SET is_read = TRUE
         WHERE id = $1
         RETURNING id, conversation_id, sender_user_id, recipient_user_id, content, created_at, is_read
         `,
-        [messageId]
-      );
-      return readResult.rows[0];
+      [messageId],
+    );
+    return readResult.rows[0];
   }
 
   async getMessages(userId, conversationId, limit, offset) {
@@ -285,14 +285,17 @@ class ChatService {
       LIMIT $2
       OFFSET $3
       `,
-      [conversationId, limit + 1, offset, userId]
+      [conversationId, limit + 1, offset, userId],
     );
     return historyResult.rows;
   }
 
   async checkUserExists(userId) {
-     const result = await pool.query(`SELECT 1 FROM users WHERE id = $1 LIMIT 1`, [userId]);
-     return result.rowCount > 0;
+    const result = await pool.query(
+      `SELECT 1 FROM users WHERE id = $1 LIMIT 1`,
+      [userId],
+    );
+    return result.rowCount > 0;
   }
 
   async insertMessageAndUpdateLastMessageAt(senderId, recipientId, content) {
@@ -307,7 +310,7 @@ class ChatService {
       DO UPDATE SET last_message_at = NOW()
       RETURNING id
       `,
-      [userA, userB]
+      [userA, userB],
     );
 
     const conversationId = conversationResult.rows[0].id;
@@ -318,7 +321,7 @@ class ChatService {
       WHERE conversation_id = $1
         AND user_id IN ($2, $3)
       `,
-      [conversationId, senderId, recipientId]
+      [conversationId, senderId, recipientId],
     );
 
     const insertResult = await pool.query(
@@ -327,12 +330,12 @@ class ChatService {
       VALUES ($1, $2, $3, $4)
       RETURNING id, conversation_id, sender_user_id, recipient_user_id, content, created_at, is_read
       `,
-      [conversationId, senderId, recipientId, content]
+      [conversationId, senderId, recipientId, content],
     );
 
     return {
       conversationId,
-      message: insertResult.rows[0]
+      message: insertResult.rows[0],
     };
   }
   async fetchConnectionStatus(userA, userB) {
@@ -342,14 +345,29 @@ class ChatService {
         EXISTS(SELECT 1 FROM likes WHERE liker_user_id = $1 AND liked_user_id = $2) AS liked_a,
         EXISTS(SELECT 1 FROM likes WHERE liker_user_id = $2 AND liked_user_id = $1) AS liked_b,
         EXISTS(SELECT 1 FROM user_blocks WHERE blocker_user_id = $1 AND blocked_user_id = $2) AS blocked_by_a,
-        EXISTS(SELECT 1 FROM user_blocks WHERE blocker_user_id = $2 AND blocked_user_id = $1) AS blocked_by_b
+        EXISTS(SELECT 1 FROM user_blocks WHERE blocker_user_id = $2 AND blocked_user_id = $1) AS blocked_by_b,
+        CASE 
+          WHEN EXISTS(SELECT 1 FROM likes WHERE liker_user_id = $1 AND liked_user_id = $2) 
+            AND EXISTS(SELECT 1 FROM likes WHERE liker_user_id = $2 AND liked_user_id = $1)
+          THEN GREATEST(
+            (SELECT created_at FROM likes WHERE liker_user_id = $1 AND liked_user_id = $2),
+            (SELECT created_at FROM likes WHERE liker_user_id = $2 AND liked_user_id = $1)
+          )
+          ELSE NULL
+        END AS match_created_at
       `,
-      [userA, userB]
+      [userA, userB],
     );
 
     const row = result.rows[0];
     if (!row) {
-      return { is_match: false, is_blocked: false, blocked_by_you: false, blocked_you: false };
+      return {
+        is_match: false,
+        is_blocked: false,
+        blocked_by_you: false,
+        blocked_you: false,
+        match_created_at: null,
+      };
     }
 
     const blockedByYou = Boolean(row.blocked_by_a);
@@ -360,6 +378,7 @@ class ChatService {
       is_blocked: blockedByYou || blockedYou,
       blocked_by_you: blockedByYou,
       blocked_you: blockedYou,
+      match_created_at: row.match_created_at,
     };
   }
 }

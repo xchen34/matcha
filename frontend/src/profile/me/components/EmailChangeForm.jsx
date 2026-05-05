@@ -6,11 +6,21 @@ export default function EmailChangeForm({
   emailChangeOpen,
   setEmailChangeOpen,
   emailChangeForm,
+  emailChangePreviewUrl,
+  emailChangeDevVerifyUrl,
   emailChangeLoading,
   handleEmailChangeInput,
   handleEmailChangeSubmit,
   setEmailChangeForm,
+  emailChangeError,
 }) {
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleEmailChangeSubmit();
+    }
+  };
+
   return (
     <div className="space-y-1">
       <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
@@ -56,6 +66,7 @@ export default function EmailChangeForm({
               value={emailChangeForm.new_email}
               onChange={handleEmailChangeInput}
               className={inputClass}
+              onKeyDown={handleKeyDown}
             />
           </div>
 
@@ -70,8 +81,16 @@ export default function EmailChangeForm({
               value={emailChangeForm.password}
               onChange={handleEmailChangeInput}
               className={inputClass}
+              onKeyDown={handleKeyDown}
             />
           </div>
+
+          {/* ERROR HANDLER */}
+          {emailChangeError && (
+            <p className="text-sm text-red-600 font-medium">
+              {emailChangeError}
+            </p>
+          )}
 
           <div className="flex gap-2 pt-1">
             <button
@@ -94,6 +113,38 @@ export default function EmailChangeForm({
               Cancel
             </button>
           </div>
+        </div>
+      )}
+
+      {/* LINK FOR RESET EMAIL */}
+      {(emailChangePreviewUrl || emailChangeDevVerifyUrl) && (
+        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          {emailChangePreviewUrl && (
+            <p>
+              Email preview:{" "}
+              <a
+                href={emailChangePreviewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-brand-deep underline"
+              >
+                Open verification email
+              </a>
+            </p>
+          )}
+          {emailChangeDevVerifyUrl && (
+            <p>
+              Fallback verify link:{" "}
+              <a
+                href={emailChangeDevVerifyUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-brand-deep underline"
+              >
+                Verify directly in app
+              </a>
+            </p>
+          )}
         </div>
       )}
     </div>

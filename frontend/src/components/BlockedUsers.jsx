@@ -82,9 +82,6 @@ function BlockedUsers({ currentUser }) {
   return (
     <section className={cardClass}>
       <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
-          Safety
-        </p>
         <h2 className="text-2xl font-semibold text-slate-900">Blocked users</h2>
       </div>
 
