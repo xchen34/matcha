@@ -7,7 +7,7 @@ function UserList({ users, mode, unreadUserSet, startingChatFor, startChatWith, 
   return (
     <div className="space-y-2 mt-3">
       {users.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-slate-600">
+        <div className="rounded-xl border border-dashed border-primary-medium bg-slate-50 px-4 py-5 text-center text-slate-600">
           No users to display.
         </div>
       ) : (
@@ -21,7 +21,7 @@ function UserList({ users, mode, unreadUserSet, startingChatFor, startChatWith, 
                 showPresence={false}
               />
               <div>
-                <p className="inline-flex items-center gap-2 font-semibold text-slate-900">
+                <p className="inline-flex items-center gap-2 font-semibold text-neutral-dark">
                   @{sanitizeText(user.username)}
                   {unreadUserSet.has(String(user.id)) && (
                     <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold uppercase">NEW</span>

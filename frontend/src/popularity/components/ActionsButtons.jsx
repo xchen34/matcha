@@ -12,7 +12,7 @@ export default function ActionButtons({
       <button
         type="button"
         onClick={() => navigate(`/users/${user.id}`)}
-        className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-2 sm:px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+        className="inline-flex items-center justify-center rounded-full border border-primary-medium bg-white px-2 sm:px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-primary-light"
       >
         <FaUser size={12} aria-hidden="true" />
         <span className="ml-1">View profile</span>
@@ -22,7 +22,7 @@ export default function ActionButtons({
           type="button"
           onClick={() => startChatWith?.(user.id)}
           disabled={startingChatFor === user.id}
-          className="inline-flex items-center justify-center rounded-full border border-brand bg-brand px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-deep disabled:opacity-60 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center rounded-full border border-primary-dark bg-primary-dark px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-dark-deep disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <FaCommentDots size={12} />
           <span className="ml-1">

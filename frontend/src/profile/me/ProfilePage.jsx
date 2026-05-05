@@ -155,7 +155,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
   return (
     <section className={cardClass}>
       <div className="space-y-1">
-        <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-900">
+        <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-neutral-dark">
           <FiUser size={20} aria-hidden="true" />
           <span>Your details</span>
         </h2>

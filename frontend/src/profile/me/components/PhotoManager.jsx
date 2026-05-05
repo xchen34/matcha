@@ -38,7 +38,7 @@ export default function PhotoManager({
           <div
             key={`${photo.id || "new"}-${index}`}
             className={`relative overflow-hidden rounded-xl border ${
-              photo.is_primary ? "border-brand" : "border-slate-200"
+              photo.is_primary ? "border-primary-dark" : "border-slate-200"
             }`}
           >
             <img
@@ -69,7 +69,7 @@ export default function PhotoManager({
 
         {/* EMPTY STATE */}
         {photos.length === 0 && (
-          <div className="col-span-2 sm:col-span-3 rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+          <div className="col-span-2 sm:col-span-3 rounded-xl border border-dashed border-primary-medium p-4 text-sm text-slate-500">
             No photos yet. Upload up to {MAX_PHOTOS_COUNT} images (
             {bytesToKB(MAX_PHOTO_SIZE_BYTES)}KB each,{" "}
             {bytesToKB(MAX_TOTAL_PHOTOS_SIZE_BYTES)}KB total).

@@ -49,8 +49,8 @@ export default function ChatConversationMessage({
             className={`max-w-[68%] border-l-4 px-2 py-1 rounded-2xl text-sm break-words whitespace-pre-wrap
                 ${
                 isMine
-                    ? "border-orange-400 bg-orange-50 text-orange-700"
-                    : "border-slate-300 bg-slate-100 text-slate-600"
+                    ? "border-primary bg-primary-light text-primary-dark"
+                    : "border-primary-medium bg-slate-100 text-slate-600"
                 }
             `}
             >
@@ -65,7 +65,7 @@ export default function ChatConversationMessage({
         <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
           <div
             className={`max-w-[68%] rounded-2xl px-3 py-2 text-sm cursor-pointer transition-all
-              ${isMine ? "bg-brand text-white" : "bg-slate-100 text-slate-900"}
+              ${isMine ? "bg-primary-dark text-white" : "bg-slate-100 text-neutral-dark"}
             `}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -98,7 +98,7 @@ export default function ChatConversationMessage({
                 <button
                   type="button"
                   onClick={() => onQuote(msg)}
-                  className="inline-flex items-center gap-1 border border-slate-300 hover:bg-slate-100 rounded-[10px] px-1"
+                  className="inline-flex items-center gap-1 border border-primary-medium hover:bg-slate-100 rounded-[10px] px-1"
                 >
                   <FiCornerUpLeft size={10} /> Quote
                 </button>

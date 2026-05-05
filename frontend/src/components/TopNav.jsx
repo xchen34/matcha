@@ -33,16 +33,16 @@ export default function TopNav({ currentUser, profileLocked }) {
     <span className="relative flex items-center justify-center sm:justify-start gap-1.5">
       <span aria-hidden="true">{icon}</span>
 
-      <span className="sm:hidden text-xs font-medium text-slate-700">
+      <span className="sm:hidden text-xs font-medium text-neutral-dark">
         {mobile}
       </span>
 
-      <span className="hidden sm:inline text-sm font-medium text-slate-700">
+      <span className="hidden sm:inline text-sm font-medium text-neutral-dark">
         {full}
       </span>
 
       {count > 0 && (
-        <span className="absolute -right-4 -top-3 inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+        <span className="absolute -right-4 -top-3 inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
           {count > 99 ? "99+" : count}
         </span>
       )}
@@ -55,7 +55,7 @@ export default function TopNav({ currentUser, profileLocked }) {
         <NavLink
           to="/login"
           className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+            `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
           }
         >
           <span className="flex items-center gap-1.5 justify-center">
@@ -69,7 +69,7 @@ export default function TopNav({ currentUser, profileLocked }) {
         <NavLink
           to="/register"
           className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+            `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
           }
         >
           <span className="flex items-center gap-1.5 justify-center">
@@ -84,7 +84,7 @@ export default function TopNav({ currentUser, profileLocked }) {
         <NavLink
           to="/profile"
           className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+            `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
           }
         >
           <span className="flex items-center gap-1.5 justify-center">
@@ -100,7 +100,7 @@ export default function TopNav({ currentUser, profileLocked }) {
           <NavLink
             to="/find-match"
             className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
             }
           >
             {navItem(<FiUsers size={15} />, "Find", "Find your match")}
@@ -109,7 +109,7 @@ export default function TopNav({ currentUser, profileLocked }) {
           <NavLink
             to="/popularity/views"
             className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
             }
           >
             {navItem(<FiEye size={15} />, "Views", "Who viewed me", modeCounts.views)}
@@ -118,7 +118,7 @@ export default function TopNav({ currentUser, profileLocked }) {
           <NavLink
             to="/popularity/likes"
             className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
             }
           >
             {navItem(<FiHeart size={15} />, "Likes", "Who liked me", modeCounts.likes)}
@@ -127,11 +127,11 @@ export default function TopNav({ currentUser, profileLocked }) {
           <NavLink
             to="/popularity/matches"
             className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-slate-900 border-slate-900" : ""}`
+              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
             }
           >
             {navItem(
-              <span className="relative inline-flex h-4 w-5 items-center justify-center text-slate-500">
+              <span className="relative inline-flex h-4 w-5 items-center justify-center text-neutral">
                 <FiHeart size={11} className="absolute left-0" />
                 <FiHeart size={11} className="absolute right-0" />
               </span>,

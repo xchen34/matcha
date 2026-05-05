@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
               value={form.new_password}
               onChange={handleChange}
               placeholder="New password"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="w-full rounded-lg border border-primary-medium px-3 py-2"
             />
           </div>
 
@@ -110,7 +110,7 @@ export default function ResetPasswordPage() {
               value={form.confirm_password}
               onChange={handleChange}
               placeholder="Reenter password"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="w-full rounded-lg border border-primary-medium px-3 py-2"
             />
           </div>
 

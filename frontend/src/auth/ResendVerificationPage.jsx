@@ -90,13 +90,13 @@ export default function ResendVerificationPage() {
           />
 
           {status === 'success' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="bg-green-50 border border-valid rounded-lg p-4">
               <p className="text-green-800 text-sm">{message}</p>
             </div>
           )}
 
           {status === 'error' && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="bg-red-50 border border-error rounded-lg p-4">
               <p className="text-red-800 text-sm">{message}</p>
             </div>
           )}

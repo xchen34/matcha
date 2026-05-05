@@ -294,7 +294,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
     <section className={embedded ? "space-y-4" : "space-y-6"}>
       {!embedded && (
         <header>
-          <h2 className="text-3xl font-bold text-slate-900">Direct Messages</h2>
+          <h2 className="text-3xl font-bold text-neutral-dark">Direct Messages</h2>
           <p className="text-sm text-slate-500">
             Reach out to anyone you are connected with. Chats are end-to-end in this interface.
           </p>
@@ -350,7 +350,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
               <li key={conv.conversation_id}>
                 <Link
                   to={`/messages/${conv.conversation_id}`}
-                  className={`flex items-center gap-3 rounded-2xl border border-slate-200 bg-white text-sm shadow-sm transition hover:border-slate-300 ${
+                  className={`flex items-center gap-3 rounded-2xl border border-slate-200 bg-white text-sm shadow-sm transition hover:border-primary-medium ${
                     embedded ? "p-3" : "p-4"
                   }`}
                 >
@@ -362,7 +362,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                   {/* Croix supprimée ici, bouton uniquement à droite du temps */}
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center gap-2">
-                      <p className="min-w-0 text-base font-semibold text-slate-900">
+                      <p className="min-w-0 text-base font-semibold text-neutral-dark">
                         {displayName}
                       </p>
                     </div>
@@ -378,7 +378,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                       </span>
                     )}
                     {conv.unread_count > 0 && (
-                      <span className="rounded-full bg-brand px-2 py-0.5 text-[0.65rem] font-semibold text-white">
+                      <span className="rounded-full bg-primary-dark px-2 py-0.5 text-[0.65rem] font-semibold text-white">
                         {conv.unread_count}
                       </span>
                     )}

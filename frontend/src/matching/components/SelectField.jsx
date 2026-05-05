@@ -6,7 +6,7 @@ export function SelectField({ label, icon, name, value, onChange, options }) {
           value={value}
           onChange={onChange}
           className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm
-                     focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
+                     focus:outline-none focus:ring-2 focus:ring-brand focus:border-primary-dark"
         >
           {options.map(opt => (
             <option key={opt.value} value={opt.value}>

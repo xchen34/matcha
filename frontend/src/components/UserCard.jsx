@@ -20,12 +20,15 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   );
 
   const liked =
-    optimistic?.userId === user?.id ? optimistic.liked : Boolean(user?.liked);
-  const isMatch =
-    optimistic?.userId === user?.id ? optimistic.isMatch : Boolean(user?.is_match);
+    optimistic?.userId === user?.id
+      ? optimistic.liked
+      : Boolean(user?.liked);
 
-  const likeDisabledBecauseNoOwnPhoto =
-    !liked && !canLikeProfiles && user?.id !== currentUser?.id;
+  const isMatch =
+    optimistic?.userId === user?.id
+      ? optimistic.isMatch
+      : Boolean(user?.is_match);
+
   const fameValue = Number(user?.fame_rating);
   const hasFameValue = Number.isFinite(fameValue);
 
@@ -66,7 +69,9 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
       const matchRes = await fetch(`/api/users/${user.id}/is-match`, {
         headers: { "x-user-id": currentUser.id },
       });
+
       const matchData = await matchRes.json();
+
       setOptimistic({
         userId: user.id,
         liked: nextLiked,
@@ -80,9 +85,17 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   }
 
   return (
-    <div className="relative mx-auto flex h-full w-full max-w-[19rem] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md hover:scale-105">
+    <div className="
+      relative mx-auto flex h-full w-full max-w-[19rem] flex-col overflow-hidden
+      rounded-2xl border border-light
+      bg-white
+      shadow-sm
+      transition hover:shadow-md hover:scale-[1.015]
+    ">
+
       {/* IMAGE */}
-      <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-100 sm:aspect-[3/4]">
+      <div className="relative aspect-[4/5] w-full overflow-hidden bg-neutral-light">
+
         {profilePhotoUrl ? (
           <img
             src={profilePhotoUrl}
@@ -90,140 +103,133 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs font-medium text-slate-500">
+          <div className="flex h-full w-full items-center justify-center text-sm text-neutral">
             No profile photo
           </div>
         )}
 
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent pointer-events-none" />
+        {/* GRADIENT BOTTOM */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white/100 via-white/30 to-transparent" />
 
+        {/* ONLINE / OFFLINE */}
         <span
-          className={`absolute top-3 right-3 px-2 py-0.5 rounded-full text-[11px] font-medium border border-white/60 backdrop-blur
-            ${user.is_online ? "bg-emerald-100/95 text-emerald-700" : "bg-slate-100/95 text-slate-600"}`}
+          className={`absolute top-3 left-3 px-3 py-1 rounded-full text-[11px] font-semibold border
+          ${
+            user.is_online
+              ? "bg-valid text-white border-valid-dark"
+              : "bg-neutral-light text-neutral border-neutral"
+          }`}
         >
           {user.is_online ? "Online" : "Offline"}
         </span>
 
-        {/* LIKE BUTTON + STATUS INLINE */}
-        <div className="group absolute bottom-3 right-3 flex items-center gap-2">
+        {/* LIKE + STATUS */}
+        <div className="absolute bottom-3 right-3 flex items-center gap-2">
+
           <span
-            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full backdrop-blur
-              ${isMatch
-                ? "bg-red-600 text-white"
-                : liked
-                ? "bg-orange-500 text-white"
-                : "bg-slate-800/70 text-white"
-              }`}
+            className={`
+              px-2 py-1 rounded-full text-[11px] font-semibold border
+              ${
+                isMatch
+                  ? "bg-primary text-white border-primary"
+                  : liked
+                  ? "bg-primary-light text-primary border-primary"
+                  : "bg-white text-neutral border-neutral"
+              }
+            `}
           >
-            {isMatch ? "Match" : liked ? "Liked" : "Not liked"}
+            {isMatch ? "Match" : liked ? "Liked" : "Like"}
           </span>
 
-          {/* BUTTON */}
           <button
             onClick={handleToggleLike}
-            disabled={
-              loading ||
-              user.id === currentUser.id ||
-              (!liked && (!canLikeProfiles || !profilePhotoUrl))
-            }
-            className={`relative flex h-11 w-11 items-center justify-center rounded-full border-2 shadow-lg transition
-              ${isMatch
-                ? "border-red-700 bg-red-600"
-                : liked
-                ? "border-orange-300 bg-orange-500"
-                : "border-white/80 bg-slate-700/70 backdrop-blur"
-              } ${likeDisabledBecauseNoOwnPhoto ? "cursor-not-allowed" : ""}`}
+            disabled={loading || user.id === currentUser.id}
+            className={`
+              h-11 w-11 rounded-full flex items-center justify-center
+              border transition shadow-sm
+              ${liked
+                ? "bg-primary border-primary"
+                : "bg-white border-neutral hover:border-primary"
+              }
+            `}
           >
-            <FaHeart size={18} color="#fff" />
-            {likeDisabledBecauseNoOwnPhoto && (
-              <span className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white shadow-sm">
-                <FaBan size={10} />
-              </span>
-            )}
+            <FaHeart className={liked ? "text-white" : "text-primary"} size={18} />
           </button>
 
-          {/* TOOLTIP */}
-          {likeDisabledBecauseNoOwnPhoto && (
-            <div className="pointer-events-none absolute bottom-full right-0 mb-2 w-52 rounded-lg bg-black/80 px-3 py-2 text-xs font-medium text-white shadow-lg opacity-0 group-hover:opacity-100 transition">
-              Add a primary profile photo to enable likes.
-            </div>
-          )}
         </div>
       </div>
 
       {/* CONTENT */}
-      <div className="flex flex-1 flex-col p-3 sm:p-4">
-        {/* HEADER */}
-        <div className="mb-2">
-          <h3 className="truncate text-xl font-semibold text-slate-900">
-            @{user.username}
-          </h3>
-        </div>
+      <div className="flex flex-1 flex-col p-4 text-neutral-dark">
+
+        <h3 className="text-lg font-semibold text-neutral-dark">
+          @{user.username}
+        </h3>
 
         {/* INFOS */}
-        <div className="mb-2 flex flex-wrap gap-2 text-sm text-slate-600">
-          <span className="inline-flex items-center gap-1">
-            <FaTransgender size={13} />
-            <span className="font-semibold text-slate-800">
-              {sanitizeText(user.gender) || "-"}
-            </span>
+        <div className="mt-2 flex flex-wrap gap-2 text-sm text-neutral">
+
+          <span className="flex items-center gap-1">
+            <FaTransgender className="text-primary" />
+            {sanitizeText(user.gender) || "-"}
           </span>
 
-          <span className="inline-flex items-center gap-1">
-            <span className="font-semibold text-slate-500">Pref:</span>
-            <span className="font-semibold text-slate-800">
-              {sanitizeText(user.sexual_preference) || "-"}
-            </span>
+          <span className="flex items-center gap-1">
+            <FaUser className="text-primary" />
+            {user.age ?? "-"}
           </span>
 
-          <span className="inline-flex items-center gap-1">
-            <FaUser size={13} />
-            <span className="font-semibold text-slate-800">{user.age ?? "-"}</span>
+          <span className="flex items-center gap-1">
+            <FaMapMarkerAlt className="text-primary" />
+            {sanitizeText(user.city) || "-"}
           </span>
 
-          <span className="inline-flex min-w-0 items-center gap-1">
-            <FaMapMarkerAlt size={13} />
-            <span className="truncate font-semibold text-slate-800">
-              {sanitizeText(user.city) || "-"}
-              {user.neighborhood ? ` - ${sanitizeText(user.neighborhood)}` : ""}
-              </span>
+          {hasFameValue && (
+            <span className="flex items-center gap-1 text-primary font-medium">
+              <FaStar />
+              {Math.floor(fameValue)}
             </span>
-            {hasFameValue && (
-              <span className="inline-flex items-center gap-1">
-                <FaStar size={13} />
-                <span className="font-semibold text-slate-800">{Math.floor(fameValue)}</span>
-              </span>
-            )}
-          </div>
+          )}
+
+        </div>
 
         {/* TAGS */}
-        <div className="mb-2 flex flex-wrap items-center gap-1 text-xs text-slate-600">
-          <FaTags size={12} className="text-slate-500" />
-
-          {Array.isArray(user.tags) && user.tags.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-1 text-xs">
+          {Array.isArray(user.tags) &&
             user.tags.map((tag) => (
               <span
-                key={`${user.id}-${tag}`}
-                className="max-w-[120px] truncate rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600"
+                key={tag}
+                className="
+                  rounded-full px-2 py-0.5
+                  bg-primary-light
+                  text-primary
+                  border border-primary
+                "
               >
                 {sanitizeText(tag)}
               </span>
-            ))
-          ) : (
-            <span className="font-semibold text-slate-800">-</span>
-          )}
+            ))}
         </div>
 
         {/* ERROR */}
-        {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
+        {error && (
+          <p className="mt-2 text-xs text-error">{error}</p>
+        )}
 
-        {/* BUTTON BOTTOM */}
-        <div className="mt-auto flex justify-end pt-2">
+        <div className="mt-auto pt-4">
           <button
             onClick={() => navigate(`/users/${user.id}`)}
-            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-black border border-slate-300 hover:bg-slate-100 transition"
+            className="
+              w-full rounded-xl
+              border border-primary-medium
+              bg-primary-light
+              px-3 py-2 text-sm font-semibold
+              text-primary
+              hover:bg-primary
+              hover:text-white
+              transition
+            "
           >
-            <FaUser size={12} />
             View profile
           </button>
         </div>

@@ -126,7 +126,7 @@ export default function EmailChangeForm({
                 href={emailChangePreviewUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="font-semibold text-brand-deep underline"
+                className="font-semibold text-primary-dark underline"
               >
                 Open verification email
               </a>
@@ -139,7 +139,7 @@ export default function EmailChangeForm({
                 href={emailChangeDevVerifyUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="font-semibold text-brand-deep underline"
+                className="font-semibold text-primary-dark underline"
               >
                 Verify directly in app
               </a>

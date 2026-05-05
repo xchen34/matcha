@@ -30,7 +30,7 @@ export function ProfilePhotosGrid({ photos }) {
         {photos.map((photo, idx) => (
           <div
             key={photo.id}
-            className={`flex items-center justify-center bg-slate-100 overflow-hidden rounded-xl border group ${photo.is_primary ? "border-brand" : "border-slate-200"}`}
+            className={`flex items-center justify-center bg-slate-100 overflow-hidden rounded-xl border group ${photo.is_primary ? "border-primary-dark" : "border-slate-200"}`}
             style={{ width: FRAME_SIZE, height: FRAME_SIZE, minWidth: FRAME_SIZE, minHeight: FRAME_SIZE, maxWidth: FRAME_SIZE, maxHeight: FRAME_SIZE, position: 'relative', zIndex: 1 }}
           >
             <div className="relative w-full h-full">

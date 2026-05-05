@@ -225,7 +225,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
           </button>
           <div>
             <h2 
-              className="text-2xl font-bold text-slate-900 cursor-pointer hover:text-slate-700 transition-colors"
+              className="text-2xl font-bold text-neutral-dark cursor-pointer hover:text-slate-700 transition-colors"
               onClick={() => navigate(`/users/${conversation?.other_user?.id}`)}
             >
               {conversationTitle}
@@ -293,7 +293,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       {canSend && (
         <form onSubmit={handleSend} className="space-y-2">
           {quotedMessage && (
-            <div className="mb-2 flex items-center justify-between rounded-lg border-l-4 border-brand bg-slate-50 p-2.5 text-xs text-slate-600 shadow-sm">
+            <div className="mb-2 flex items-center justify-between rounded-lg border-l-4 border-primary-dark bg-slate-50 p-2.5 text-xs text-slate-600 shadow-sm">
               <div className="flex-1 overflow-hidden pr-2">
                 <span className="block font-semibold text-brand mb-0.5">Replying to:</span>
                 <p className="truncate opacity-80 break-all">{parseQuotedMessageContent(quotedMessage.content).replyText || quotedMessage.content}</p>

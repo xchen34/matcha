@@ -58,10 +58,10 @@ function App() {
       
       <main className="max-w-5xl mx-auto px-5 py-10 space-y-10">
         <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.16em] text-brand-deep font-semibold">
+          <p className="text-xs uppercase tracking-[0.16em] text-primary-dark font-semibold">
             42 Matchmaking Playground
           </p>
-          <h1 className="text-5xl sm:text-6xl font-bold text-slate-900 leading-none">
+          <h1 className="text-5xl sm:text-6xl font-bold text-neutral-dark leading-none">
             Matcha
           </h1>
         </header>

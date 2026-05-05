@@ -31,7 +31,7 @@ function getGroupAccentClass(type) {
     return "bg-blue-100 text-blue-700";
   }
   if (type === "like_received") {
-    return "bg-orange-100 text-orange-700";
+    return "bg-primary-medium text-primary-dark";
   }
   if (type === "unlike") {
     return "bg-slate-200 text-slate-700";
@@ -48,10 +48,10 @@ function getGroupBorderClass(type) {
     return "border-blue-200";
   }
   if (type === "like_received") {
-    return "border-orange-200";
+    return "border-primary";
   }
   if (type === "unlike") {
-    return "border-slate-300";
+    return "border-primary-medium";
   }
   if (type === "match") {
     return "border-red-200";
@@ -133,7 +133,7 @@ export default function NotificationsBell() {
         disabled={!isAuthenticated}
         aria-label="Ouvrir les notifications"
         title="Notifications"
-        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-orange-300 bg-orange-500 text-white shadow-md shadow-orange-200 transition enabled:hover:-translate-y-0.5 enabled:hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary bg-primary text-white transition enabled:hover:-translate-y-0.5 enabled:hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
       >
         <svg
           viewBox="0 0 24 24"
@@ -149,7 +149,7 @@ export default function NotificationsBell() {
           <path d="M9 17a3 3 0 0 0 6 0" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 inline-flex min-w-6 h-6 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold text-white">
+          <span className="absolute -right-1 -top-1 inline-flex min-w-5 h-5 items-center justify-center rounded-full border border-slate-200 bg-red-600 px-1.5 text-xs font-bold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -158,11 +158,11 @@ export default function NotificationsBell() {
       {open && (
         <div className="fixed left-2 right-2 top-16 z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 w-auto max-w-[98vw] sm:w-[340px]">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
+            <h3 className="text-sm font-semibold text-neutral-dark">Notifications</h3>
             {notifications.length > 0 && (
               <button
                 type="button"
-                className="text-xs font-semibold text-slate-600 hover:text-slate-900"
+                className="text-xs font-semibold text-slate-600 hover:text-neutral-dark"
                 onClick={handleGotItClick}
               >
                 Got it
@@ -187,13 +187,13 @@ export default function NotificationsBell() {
                   onClick={() => void handleGroupClick(group)}
                   className="w-full text-left"
                 >
-                  <div className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-2xl border bg-slate-50 p-3 transition duration-200 hover:bg-white ${getGroupBorderClass(group.type)} ${dismissingGroups.includes(group.type) ? "translate-x-5 opacity-0 scale-95" : "hover:border-slate-300"}`}>
+                  <div className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-2xl border bg-slate-50 p-3 transition duration-200 hover:bg-white ${getGroupBorderClass(group.type)} ${dismissingGroups.includes(group.type) ? "translate-x-5 opacity-0 scale-95" : "hover:border-primary-medium"}`}>
                     <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-lg font-semibold mx-auto sm:mx-0 ${getGroupAccentClass(group.type)}`} >
                       <GroupTypeIcon type={group.type} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="break-words text-sm text-slate-700 text-center sm:text-left">
-                        <span className="font-semibold text-slate-900">{sanitizeText(group.primaryActor)}</span>{" "}
+                        <span className="font-semibold text-neutral-dark">{sanitizeText(group.primaryActor)}</span>{" "}
                         {createCardMessage(group.primaryActor, group.verb, group.count)}
                       </p>
                       {group.latestAt && (

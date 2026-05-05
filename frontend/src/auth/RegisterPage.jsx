@@ -25,10 +25,10 @@ export default function RegisterPage() {
   return (
     <section className={cardClass}>
       <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
+        <p className="text-xs uppercase tracking-[0.14em] text-primary-dark font-semibold">
           Get started
         </p>
-        <h2 className="text-2xl font-semibold text-slate-900">Register</h2>
+        <h2 className="text-2xl font-semibold text-neutral-dark">Register</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -150,7 +150,7 @@ export default function RegisterPage() {
             href={previewUrl}
             target="_blank"
             rel="noreferrer"
-            className="text-brand-deep underline"
+            className="text-primary-dark underline"
           >
             Open verification email
           </a>
@@ -164,7 +164,7 @@ export default function RegisterPage() {
             href={devVerifyUrl}
             target="_blank"
             rel="noreferrer"
-            className="text-brand-deep underline"
+            className="text-primary-dark underline"
           >
             Verify directly on local app
           </a>

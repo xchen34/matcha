@@ -114,7 +114,7 @@ export default function LocationSection({
                       applyCitySuggestion(option);
                     }}
                     onClick={() => applyCitySuggestion(option)}
-                    className="block w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-50 border-b last:border-b-0 border-slate-100"
+                    className="block w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-primary-light border-b last:border-b-0 border-slate-100"
                   >
                     {option.label}
                   </button>

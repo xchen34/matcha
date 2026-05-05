@@ -165,7 +165,7 @@ export default function ChatIndicator({ currentUser }) {
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-orange-200 bg-white/90 text-slate-700 hover:bg-white"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary bg-white/90 text-slate-700 hover:bg-white"
         aria-label="Open direct messages shortcuts"
         title="Messages"
       >
@@ -192,7 +192,7 @@ export default function ChatIndicator({ currentUser }) {
                     key={conv.conversation_id}
                     type="button"
                     onClick={() => openConversation(conv.conversation_id)}
-                    className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-slate-50"
+                    className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-primary-light"
                   >
                     <ChatAvatar
                       name={avatarName}
@@ -205,7 +205,7 @@ export default function ChatIndicator({ currentUser }) {
                       <p className="truncate text-xs text-slate-500">{formatPreview(conv.last_message)}</p>
                     </div>
                     {Number(conv.unread_count) > 0 && (
-                      <span className="inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-brand px-1.5 py-0.5 text-[0.65rem] font-semibold text-white">
+                      <span className="inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-primary-dark px-1.5 py-0.5 text-[0.65rem] font-semibold text-white">
                         {conv.unread_count}
                       </span>
                     )}
@@ -219,7 +219,7 @@ export default function ChatIndicator({ currentUser }) {
             <button
               type="button"
               onClick={openInbox}
-              className="w-full rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+              className="w-full rounded-xl bg-primary-light px-3 py-2 text-sm font-semibold text-primary-dark hover:bg-primary-medium hover:text-white border border-primary"
             >
               View more
             </button>

@@ -108,13 +108,13 @@ function UserProfilePage({ currentUser }) {
     <section className={cardClass}>
       {/* HEADER */}
       <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
+        <p className="text-xs uppercase tracking-[0.14em] text-primary-dark font-semibold">
           Profile
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 break-words">
+            <h2 className="text-xl sm:text-2xl font-semibold text-neutral-dark break-words">
               {fullName || `@${user.username}`}
             </h2>
             <p className="text-sm text-slate-500">@{user.username}</p>
@@ -159,7 +159,7 @@ function UserProfilePage({ currentUser }) {
           <textarea
             value={report.reportReason}
             onChange={(e) => report.setReportReason(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-primary-dark focus:outline-none focus:ring-2 focus:ring-brand"
             rows={4}
             maxLength={200}
             placeholder="Explain why this profile looks fake"
@@ -173,7 +173,7 @@ function UserProfilePage({ currentUser }) {
             <button
               type="submit"
               disabled={report.reporting}
-              className="rounded-full bg-brand px-4 py-2 text-xs font-semibold text-white"
+              className="rounded-full bg-primary-dark px-4 py-2 text-xs font-semibold text-white"
             >
               {report.reporting ? "Submitting..." : "Submit report"}
             </button>
@@ -226,7 +226,7 @@ function UserProfilePage({ currentUser }) {
       </div>
 
       {/* FAME RATING */}
-      <div className="rounded-2xl bg-gradient-to-br from-brand to-brand-deep p-5 text-white">
+      <div className="rounded-2xl bg-primary-dark p-5 text-white">
         <p className="text-xs uppercase tracking-widest opacity-80">
           Fame rating
         </p>

@@ -10,10 +10,10 @@ export default function LoginPage({ onLogin }) {
   return (
     <section className={cardClass}>
       <div className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.14em] text-brand-deep font-semibold">
+        <p className="text-xs uppercase tracking-[0.14em] text-primary-dark font-semibold">
           Welcome back
         </p>
-        <h2 className="text-2xl font-semibold text-slate-900">Login</h2>
+        <h2 className="text-2xl font-semibold text-neutral-dark">Login</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -53,7 +53,7 @@ export default function LoginPage({ onLogin }) {
         <div className="text-right">
           <NavLink
             to="/forgot-password"
-            className="text-xs font-semibold text-brand-deep hover:underline"
+            className="text-xs font-semibold text-primary-dark hover:underline"
           >
             Forgot password?
           </NavLink>

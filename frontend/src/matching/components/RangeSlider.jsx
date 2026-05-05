@@ -2,13 +2,13 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
 const sliderTrack = {
-  backgroundColor: '#f59e42',
+  backgroundColor: '#ec4899',
   height: 4,
   borderRadius: 999,
 };
 
 const sliderHandle = {
-  borderColor: '#f59e42',
+  borderColor: '#db2777',
   backgroundColor: '#fff',
   height: 14,
   width: 14,
