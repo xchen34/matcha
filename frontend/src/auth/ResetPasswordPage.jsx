@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PasswordInput from "./components/PasswordInput";
-import { secondaryButtonClass } from "../styles/UIClasses.jsx";
+import { secondaryButtonClass, tertiaryButtonClass } from "../styles/UIClasses.jsx";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -72,8 +72,8 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+    <div className="flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
 
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           Reset Password
@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
               value={form.new_password}
               onChange={handleChange}
               placeholder="New password"
-              className="w-full rounded-lg border border-primary-medium px-3 py-2"
+              className="w-full rounded-lg border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary px-3 py-2"
             />
           </div>
 
@@ -110,7 +110,7 @@ export default function ResetPasswordPage() {
               value={form.confirm_password}
               onChange={handleChange}
               placeholder="Reenter password"
-              className="w-full rounded-lg border border-primary-medium px-3 py-2"
+              className="w-full rounded-lg border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary px-3 py-2"
             />
           </div>
 
@@ -125,7 +125,7 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-rose-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-rose-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full bg-primary text-primary-light border border-primary-dark font-semibold py-2 px-4 rounded-lg hover:bg-primary-dark hover:scale-105 transition disabled:bg-gray-400 disabled:text-white disabled:border-none disabled:cursor-not-allowed"
           >
             {isLoading ? "Resetting..." : "Reset password"}
           </button>
@@ -139,7 +139,7 @@ export default function ResetPasswordPage() {
           <button
             type="button"
             onClick={() => navigate("/login")}
-            className={secondaryButtonClass}
+            className={tertiaryButtonClass}
           >
             Back to login
           </button>

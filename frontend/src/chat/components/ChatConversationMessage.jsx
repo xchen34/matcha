@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { FiCornerUpLeft, FiTrash2 } from "react-icons/fi";
 import { formatDayLabel, formatTime } from "../utils/messageFormat.js";
-
+import { CornerUpLeft, Trash2 } from "lucide-react"
 export default function ChatConversationMessage({
   msg,
   showDay,
@@ -100,7 +99,7 @@ export default function ChatConversationMessage({
                   onClick={() => onQuote(msg)}
                   className="inline-flex items-center gap-1 border border-neutral hover:bg-slate-100 rounded-[10px] px-1"
                 >
-                  <FiCornerUpLeft size={10} /> Quote
+                  <CornerUpLeft size={10} /> Quote
                 </button>
 
                 <button
@@ -109,7 +108,7 @@ export default function ChatConversationMessage({
                   disabled={deletingMessageId === msg.id}
                   className="inline-flex items-center gap-1 border border-red-500 rounded-[10px] px-1 text-red-500 hover:bg-red-100"
                 >
-                  <FiTrash2 size={10} />
+                  <Trash2 size={10} />
                   {deletingMessageId === msg.id ? "Deleting…" : "Delete"}
                 </button>
               </div>

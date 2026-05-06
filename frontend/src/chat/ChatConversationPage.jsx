@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { FiArrowLeft, FiCornerUpLeft, FiTrash2 } from "react-icons/fi";
 import ChatAvatar from "./components/ChatAvatar.jsx";
 import ChatConversationMessage from "./components/ChatConversationMessage.jsx";
 import ChatConversationStatusBadge from "./components/ChatConversationStatusBadge.jsx";
@@ -16,6 +15,7 @@ import { chatButtonClass, chatInputClass } from "../styles/UIClasses.jsx";
 import { dateKey, dedupeMessages} from "./utils/messageFormat.js";
 import { parseQuotedMessageContent } from "./hooks/quoteUtils.js";
 import { tertiaryButtonClass, deleteButtonClass } from "@/styles/UIClasses.jsx"
+import { MoveLeft, Trash2 } from "lucide-react";
 
 const PAGE_SIZE = 18;
 const MAX_CHAT_MESSAGE_LENGTH = 500;
@@ -247,13 +247,12 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       onClick={() => navigate("/messages")}
       className={`${tertiaryButtonClass} h-8 px-2 text-xs sm:text-sm`}
     >
-      <FiArrowLeft size={14} />
-
+      <MoveLeft size={14} />
       {/* mobile */}
-      <span className="sm:hidden">Back</span>
+      <span className="sm:hidden ml-1">Back</span>
 
       {/* desktop */}
-      <span className="hidden sm:inline">Back to inbox</span>
+      <span className="hidden sm:inline ml-1">Back to inbox</span>
     </button>
   )}
 
@@ -263,15 +262,15 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
     disabled={deletingConversation || !activeConversationId}
     className={`${deleteButtonClass} h-8 px-2 text-xs sm:text-sm`}
   >
-    <FiTrash2 size={14} />
+    <Trash2 size={14} />
 
     {/* mobile */}
-    <span className="sm:hidden">
+    <span className="sm:hidden ml-1">
       {deletingConversation ? "..." : "Delete"}
     </span>
 
     {/* desktop */}
-    <span className="hidden sm:inline">
+    <span className="hidden sm:inline ml-1">
       {deletingConversation ? "Deleting…" : "Delete chat"}
     </span>
   </button>
@@ -279,7 +278,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
 </div>
       </header>
 
-      {error && <p className="text-sm text-amber-600">{error}</p>}
+      {error && <p className="text-sm text-primary-dark">{error}</p>}
 
       <div ref={listRef} onScroll={(e) => {
         const el = e.currentTarget;
@@ -325,7 +324,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
                 <p className="truncate opacity-80 break-all">{parseQuotedMessageContent(quotedMessage.content).replyText || quotedMessage.content}</p>
               </div>
               <button type="button" onClick={() => setQuotedMessage(null)} className="text-primary-dark hover:text-primary-light p-1 rounded-full hover:bg-primary transition-colors">
-                <FiTrash2 size={16} />
+                <Trash2 size={16} />
               </button>
             </div>
           )}

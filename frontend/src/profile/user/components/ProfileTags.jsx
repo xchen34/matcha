@@ -1,10 +1,11 @@
-import { FiTag } from "react-icons/fi";
+import { Tags } from "lucide-react";
+
 import { FieldLabel } from "./FieldLabel.jsx";
 
 export default function ProfileTags({ tags }) {
   return (
     <div>
-      <FieldLabel icon={FiTag}>Tags</FieldLabel>
+      <FieldLabel icon={Tags}>Tags</FieldLabel>
       <div className="mt-1 flex flex-wrap gap-2">
         {Array.isArray(tags) && tags.length > 0 ? (
           tags.map((tag) => (

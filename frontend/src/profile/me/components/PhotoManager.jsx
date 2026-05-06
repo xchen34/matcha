@@ -1,4 +1,4 @@
-import { FiImage } from "react-icons/fi";
+import { Image, FileUp } from "lucide-react";
 import { bytesToKB } from "@/utils/formatUtils.js";
 import { MAX_PHOTO_SIZE_BYTES,
   MAX_TOTAL_PHOTOS_SIZE_BYTES, MAX_PHOTOS_COUNT,
@@ -16,7 +16,7 @@ export default function PhotoManager({
       <div className="flex items-center justify-between">
         <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <span className="inline-flex items-center gap-1.5">
-            <FiImage size={13} aria-hidden="true" />
+            <Image size={13} aria-hidden="true" />
             <span>
               Photos (max {MAX_PHOTOS_COUNT}, {bytesToKB(MAX_PHOTO_SIZE_BYTES)}KB each)
             </span>
@@ -25,14 +25,17 @@ export default function PhotoManager({
 
         <div>
         <label className={"text-primary-dark font-semibold border border-primary rounded-full px-2 py-1 text-xs cursor-pointer hover:scale-105"}>
-          Upload image
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handlePhotoUpload}
-            className="hidden"
-          />
+          <span className="inline-flex items-center gap-1.5">
+            <FileUp size={13} aria-hidden="true" />
+            Upload image
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+          </span>
         </label>
       </div>
       </div>

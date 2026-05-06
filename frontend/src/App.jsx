@@ -6,8 +6,6 @@ import { useRealtimeConnection } from "./hooks/useRealtimeConnection.js";
 import { useSettings } from "./hooks/useSettings.js";
 
 // Components
-import TopNav from "./components/TopNav.jsx";
-import { HeaderBar } from "./components/HeaderBar.jsx";
 import { TopHeaderNav } from "./components/TopHeaderNav.jsx";
 import AuthHeaderNav from "./components/AuthHeaderNav.jsx"
 
@@ -64,18 +62,6 @@ function App() {
       ) : (
         <AuthHeaderNav navigateTo={navigateTo} />
       )}
-
-        {/* <HeaderBar 
-          currentUser={currentUser}
-          isLoginPage={isLoginPage}
-          isSettingsOpen={isSettingsOpen}
-          setIsSettingsOpen={setIsSettingsOpen}
-          settingsMenuRef={settingsMenuRef}
-          navigateTo={navigateTo}
-          logout={logout}
-          handleDeleteAccount={handleDeleteAccount}
-        />
-        <TopNav currentUser={currentUser} profileLocked={isProfileLocked} /> */}
 
       <main className="max-w-5xl mx-auto px-5 py-10 space-y-10">
         <header className="flex flex-col">

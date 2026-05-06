@@ -1,5 +1,5 @@
-import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useState } from "react";
+import { Eye, EyeOff} from "lucide-react";
 
 export default function PasswordInput({ className = "", ...props }) {
   const [show, setShow] = useState(false);
@@ -19,7 +19,7 @@ export default function PasswordInput({ className = "", ...props }) {
         aria-label={show ? "Hide password" : "Show password"}
         title={show ? "Hide password" : "Show password"}
       >
-        {show ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+        {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
     </div>
   );

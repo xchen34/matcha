@@ -15,6 +15,7 @@ import ProfileInfoGrid from "./components/ProfileInfoGrid.jsx";
 import ProfileBio from "./components/ProfileBio.jsx";
 import ProfileTags from "./components/ProfileTags.jsx";
 import { ProfilePhotosGrid } from "./components/ProfilePhotosGrid.jsx";
+import { Flame } from "lucide-react";
 
 function UserProfilePage({ currentUser }) {
   const { id } = useParams();
@@ -227,8 +228,10 @@ function UserProfilePage({ currentUser }) {
 
       {/* FAME RATING */}
       <div className="rounded-2xl bg-primary-dark p-5 text-white">
-        <p className="text-xs uppercase tracking-widest opacity-80">
-          Fame rating
+
+        <p className="flex items-center gap-2 text-xs uppercase tracking-widest opacity-80">
+          <Flame size={14} aria-hidden="true" />
+          <span>Fame rating</span>
         </p>
 
         <div className="mt-3 text-5xl font-bold">

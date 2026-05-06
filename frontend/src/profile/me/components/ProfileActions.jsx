@@ -2,6 +2,7 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from "@/styles/UIClasses.jsx";
+import { Save, RotateCcw } from "lucide-react";
 
 export default function ProfileActions({
   canAttemptSaveProfile,
@@ -17,15 +18,17 @@ export default function ProfileActions({
           className={primaryButtonClass}
           disabled={!canAttemptSaveProfile}
         >
-          Save Profile
+          <Save size={15} aria-hidden="true" className="mr-1" />
+          Save profile
         </button>
         <button type="button" className={secondaryButtonClass} onClick={onReload}>
-          Reload Profile
+          <RotateCcw size={15} aria-hidden="true" className="mr-1" />
+          Reload profile
         </button>
       </div>
 
       {!canSaveProfile && (
-        <p className="text-xs text-amber-700">
+        <p className="text-xs text-primary-dark">
           Save is locked. Required: {missingRequiredFields.join(", ") || "verified location"}.
           <br />
           <span className="text-xs text-slate-500">

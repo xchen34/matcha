@@ -304,7 +304,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
       )}
 
       {error && (
-        <p className="text-sm text-amber-600">
+        <p className="text-sm text-primary-dark">
           {error}
         </p>
       )}

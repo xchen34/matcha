@@ -1,8 +1,8 @@
-import { FaBan, FaHeart, FaUser, FaMapMarkerAlt, FaTags, FaStar, FaTransgender } from "react-icons/fa";
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { sanitizeText } from "../utils/xssEscape.js";
 import { actionButtonClass } from "@/styles/UIClasses.jsx";
+import { Heart, UserRound, Star, MapPin, VenusAndMars, MousePointerClick, Sparkle } from "lucide-react"
 
 function UserCard({ user, currentUser, canLikeProfiles = true }) {
   const navigate = useNavigate();
@@ -154,7 +154,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
               }
             `}
           >
-            <FaHeart className={liked ? "text-white" : "text-primary"} size={18} />
+            <Heart className={liked ? "text-white" : "text-primary"} size={18} />
           </button>
 
         </div>
@@ -171,23 +171,23 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         <div className="mt-2 flex flex-wrap gap-2 text-sm text-neutral">
 
           <span className="flex items-center gap-1">
-            <FaTransgender className="text-primary" />
+            <VenusAndMars className="text-primary" />
             {sanitizeText(user.gender) || "-"}
           </span>
 
           <span className="flex items-center gap-1">
-            <FaUser className="text-primary" />
+            <UserRound className="text-primary" />
             {user.age ?? "-"}
           </span>
 
           <span className="flex items-center gap-1">
-            <FaMapMarkerAlt className="text-primary" />
+            <MapPin className="text-primary" />
             {sanitizeText(user.city) || "-"}
           </span>
 
           {hasFameValue && (
             <span className="flex items-center gap-1 text-primary font-medium">
-              <FaStar />
+              <Star />
               {Math.floor(fameValue)}
             </span>
           )}
@@ -220,8 +220,9 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         <div className="mt-auto pt-4">
         <button
           onClick={() => navigate(`/users/${user.id}`)}
-          className={`w-full ${actionButtonClass}`}
+          className={`w-full ${actionButtonClass} inline-flex items-center justify-center`}
         >
+          <Sparkle size={16} aria-hidden="true" className="mr-2" />
           View profile
         </button>
       </div>

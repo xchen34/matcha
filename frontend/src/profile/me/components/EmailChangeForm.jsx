@@ -1,4 +1,4 @@
-import { FiMail } from "react-icons/fi";
+import { Mail, PencilLine } from "lucide-react";
 import { inputClass, primaryButtonClass, secondaryButtonClass } from "@/styles/UIClasses.jsx";
 
 export default function EmailChangeForm({
@@ -25,7 +25,7 @@ export default function EmailChangeForm({
     <div className="space-y-1">
       <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
         <span className="inline-flex items-center gap-1.5">
-          <FiMail size={13} aria-hidden="true" />
+          <Mail size={13} aria-hidden="true" />
           <span>Email address<span className="text-primary-dark">*</span></span>
         </span>
       </label>
@@ -38,12 +38,13 @@ export default function EmailChangeForm({
           value={email}
           readOnly
           className={`${inputClass} bg-slate-50 text-slate-600`}
-        />
+          />
         <button
           type="button"
           onClick={() => setEmailChangeOpen((prev) => !prev)}
           className={secondaryButtonClass}
         >
+          <PencilLine size={13} aria-hidden="true" className="mr-1" />
           Modify
         </button>
       </div>

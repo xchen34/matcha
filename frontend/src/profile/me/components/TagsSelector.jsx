@@ -1,4 +1,4 @@
-import { FiTag } from "react-icons/fi";
+import { Tags, LayersPlus } from "lucide-react";
 import { secondaryButtonClass, selectClass } from "@/styles/UIClasses.jsx";
 
 export default function TagsSelector({
@@ -13,8 +13,8 @@ export default function TagsSelector({
     <div className="space-y-2">
       {/* LABEL */}
       <label className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
-        <FiTag size={14} aria-hidden="true" />
-        <span>Interests (tags)</span>
+        <Tags size={14} aria-hidden="true" />
+        <span>Interests tags</span>
       </label>
 
       {/* SELECT + BUTTON */}
@@ -40,6 +40,7 @@ export default function TagsSelector({
           className={secondaryButtonClass}
           disabled={!selectedTag || tags.length >= 10}
         >
+          <LayersPlus size={13} aria-hidden="true" className="mr-1" />
           Add
         </button>
       </div>

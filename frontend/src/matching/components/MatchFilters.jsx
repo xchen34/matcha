@@ -1,8 +1,8 @@
-import { FaSearch, FaMapMarkerAlt, FaUser, FaStar, FaSort, FaArrowDown, FaTag, FaCheck, FaRedo } from "react-icons/fa";
 import { RangeSlider } from "./RangeSlider";
 import { SelectField } from "./SelectField";
 import { TagSelector } from "./TagSelector";
 import { primaryButtonClass, secondaryButtonClass } from "@/styles/UIClasses.jsx";
+import { Search, MapPin, UserRound, Star, ArrowDownUp, ArrowDownWideNarrow, Tags, Check, RotateCw } from "lucide-react"
 
 export default function MatchFilters({
   draftFilters,
@@ -25,7 +25,7 @@ export default function MatchFilters({
       {/* USERNAME */}
       <div className="relative flex flex-col gap-1 col-span-2">
         <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-          <FaSearch size={12} />
+          <Search size={16} />
           <span>Search username</span>
         </label>
 
@@ -42,7 +42,7 @@ export default function MatchFilters({
       {/* CITY */}
       <div className="flex flex-col gap-1 col-span-2">
         <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-          <FaMapMarkerAlt size={12} />
+          <MapPin size={16} />
           <span>City</span>
         </label>
 
@@ -83,7 +83,7 @@ export default function MatchFilters({
       <div className="flex flex-col gap-2 col-span-2">
         <label className="flex items-center justify-between text-xs font-medium text-slate-500">
           <div className="flex items-center gap-2">
-            <FaUser size={12} />
+            <UserRound size={16} />
             <span>Age</span>
           </div>
           <span>{draftFilters.min_age} – {draftFilters.max_age}</span>
@@ -103,7 +103,7 @@ export default function MatchFilters({
       <div className="flex flex-col gap-2 col-span-2">
         <label className="flex items-center justify-between text-xs font-medium text-slate-500">
           <div className="flex items-center gap-2">
-            <FaStar size={12} />
+            <Star size={16} />
             <span>Popularity</span>
           </div>
           <span>{draftFilters.min_fame} – {draftFilters.max_fame}</span>
@@ -122,7 +122,7 @@ export default function MatchFilters({
       {/* SORT */}
       <div className="flex flex-col gap-2 col-span-2">
         <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-          <FaSort size={12} />
+          <ArrowDownUp size={16} />
           <span>Sort by</span>
         </label>
 
@@ -143,7 +143,7 @@ export default function MatchFilters({
       {/* ORDER */}
       <div className="flex flex-col gap-2 col-span-2">
         <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-          <FaArrowDown size={12} />
+          <ArrowDownWideNarrow size={16} />
           <span>Order</span>
         </label>
 
@@ -161,7 +161,7 @@ export default function MatchFilters({
       {/* TAGS */}
       <div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-4">
         <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
-          <FaTag size={12} />
+          <Tags size={16} />
           <span>Interest tags</span>
         </label>
 
@@ -179,7 +179,7 @@ export default function MatchFilters({
         onClick={applyFilters}
         className={primaryButtonClass}
       >
-        <FaCheck size={12} aria-hidden="true" />
+        <Check size={16} aria-hidden="true" />
         <span className="ml-1">Apply filters</span>
       </button>
 
@@ -188,7 +188,7 @@ export default function MatchFilters({
         onClick={resetFilters}
         className={secondaryButtonClass}
       >
-        <FaRedo size={12} aria-hidden="true" />
+        <RotateCw size={16} aria-hidden="true" />
         <span className="ml-1">Reset</span>
       </button>
     </div>

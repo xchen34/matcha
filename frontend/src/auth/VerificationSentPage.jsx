@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { secondaryButtonClass, tertiaryButtonClass } from "@/styles/UIClasses.jsx"
+import { primaryButtonClass, secondaryButtonClass, tertiaryButtonClass } from "@/styles/UIClasses.jsx"
 
 export default function VerificationSentPage() {
   const location = useLocation();
@@ -18,8 +18,8 @@ export default function VerificationSentPage() {
       : "";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full space-y-4">
+    <div className="flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full space-y-4">
         <h1 className="text-3xl font-bold text-gray-800">Verification Email Sent</h1>
         <p className="text-gray-600">
           Your account is created. Please verify your email before login.
@@ -75,7 +75,7 @@ export default function VerificationSentPage() {
                 },
               })
             }
-            className={secondaryButtonClass}
+            className={primaryButtonClass}
           >
             Resend verification
           </button>

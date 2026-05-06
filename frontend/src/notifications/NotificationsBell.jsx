@@ -1,30 +1,29 @@
 import { useEffect, useRef, useState } from "react";
-import { FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
 import { sanitizeText } from "../utils/xssEscape.js";
 import { useNotifications } from "./hooks/useNotifications.js";
 import { createCardMessage, formatNotificationDateTime } from "./utils/notificationFormatters.js";
-import { BellRing } from "lucide-react";
+import { BellRing, Eye, Heart, HeartCrack, Check, Bell } from "lucide-react"
 
 function GroupTypeIcon({ type }) {
   if (type === "profile_view") {
-    return <FaEye className="h-5 w-5" aria-hidden="true" />;
+    return <Eye className="h-5 w-5" aria-hidden="true" />;
   }
   if (type === "like_received") {
-    return <FaHeart className="h-5 w-5" aria-hidden="true" />;
+    return <Heart className="h-5 w-5" aria-hidden="true" />;
   }
   if (type === "unlike") {
-    return <FaHeartBroken className="h-5 w-5" aria-hidden="true" />;
+    return <HeartCrack className="h-5 w-5" aria-hidden="true" />;
   }
   if (type === "match") {
     return (
       <span className="relative inline-flex h-5 w-6 items-center justify-center" aria-hidden="true">
-        <FaHeart className="absolute left-0 h-4 w-4" />
-        <FaHeart className="absolute right-0 h-4 w-4" />
+        <Heart className="absolute left-0 h-4 w-4" />
+        <Heart className="absolute right-0 h-4 w-4" />
       </span>
     );
   }
 
-  return <FaHeart className="h-5 w-5" aria-hidden="true" />;
+  return <Heart className="h-5 w-5" aria-hidden="true" />;
 }
 
 function getGroupAccentClass(type) {
@@ -134,11 +133,11 @@ export default function NotificationsBell() {
         disabled={!isAuthenticated}
         aria-label="Ouvrir les notifications"
         title="Notifications"
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary-dark text-white transition enabled:hover:-translate-y-0.5 enabled:hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white transition enabled:hover:-translate-y-0.5 enabled:hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
       >
         <BellRing size={22}/>
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 inline-flex min-w-5 h-5 items-center justify-center rounded-full border border-slate-200 bg-red-600 px-1.5 text-xs font-bold text-white">
+          <span className="absolute -right-1 -top-1 inline-flex min-w-5 h-5 items-center justify-center rounded-full border border-neutral-light bg-error px-1.5 text-xs font-bold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -147,13 +146,17 @@ export default function NotificationsBell() {
       {open && (
         <div className="fixed left-2 right-2 top-16 z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 w-auto max-w-[98vw] sm:w-[340px]">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-neutral-dark">Notifications</h3>
+            <h3 className="inline-flex items-center gap-1 text-sm font-semibold text-neutral-dark">
+              <Bell size={13} aria-hidden="true" />
+              <span>Notifications</span>
+            </h3>
             {notifications.length > 0 && (
               <button
                 type="button"
-                className="text-xs font-semibold text-slate-600 hover:text-neutral-dark"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-neutral-dark"
                 onClick={handleGotItClick}
               >
+                <Check size={12} aria-hidden="true" />
                 Got it
               </button>
             )}

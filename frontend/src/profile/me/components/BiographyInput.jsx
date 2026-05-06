@@ -1,4 +1,4 @@
-import { FiInfo } from "react-icons/fi";
+import { Info } from "lucide-react";
 
 export default function BiographyInput({
   form,
@@ -10,7 +10,7 @@ export default function BiographyInput({
     <div className="space-y-1">
       <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
         <span className="inline-flex items-center gap-1.5">
-          <FiInfo size={13} aria-hidden="true" />
+          <Info size={13} aria-hidden="true" />
           <span>Biography</span>
         </span>
       </label>

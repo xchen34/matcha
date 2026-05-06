@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FiMessageSquare } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { onRealtimeEvent } from "@/realtime/socket.js";
 import { sanitizeText } from "@/utils/xssEscape.js";
 import { fetchChatConversations } from "../hooks/api.js";
 import ChatAvatar from "./ChatAvatar.jsx";
 import { formatQuotedMessagePreview } from "../hooks/quoteUtils.js";
-import { MessageSquareHeart } from "lucide-react";
+import { MessageSquareHeart, SquareArrowOutDownLeft } from "lucide-react";
 import { actionButtonClass } from "@/styles/UIClasses.jsx";
 
 const POLL_INTERVAL_MS = 15000;

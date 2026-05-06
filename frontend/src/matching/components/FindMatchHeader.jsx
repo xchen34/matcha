@@ -1,5 +1,4 @@
-import { FiUsers } from "react-icons/fi";
-import { Flame } from "lucide-react";
+import { Flame, Users } from "lucide-react";
 
 function FindMatchHeader({ fameRating, canLikeProfiles }) {
   return (
@@ -13,7 +12,7 @@ function FindMatchHeader({ fameRating, canLikeProfiles }) {
           )}
 
           <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-neutral-dark">
-            <FiUsers size={24} className="text-[#f163cf]" aria-hidden="true" />
+            <Users size={24} className="text-[#f163cf]" aria-hidden="true" />
             <span>Find my match</span>
           </h2>
 
@@ -25,7 +24,7 @@ function FindMatchHeader({ fameRating, canLikeProfiles }) {
 
         <div className="shrink-0">
           <div className="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-dark text-white shadow-md shadow-primary-dark">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-dark text-white shadow-md shadow-primary-light">
               <Flame />
             </div>
 

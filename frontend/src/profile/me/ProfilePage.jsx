@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FiUser } from "react-icons/fi";
+import { User } from "lucide-react";
 import { MIN_BIRTH_DATE_ISO } from "@/utils/date.js";
 import { cardClass, inputClass, selectClass, textareaClass } from "@/styles/UIClasses.jsx";
 
@@ -156,7 +156,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
     <section className={cardClass}>
       <div className="space-y-1">
         <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-neutral-dark">
-          <FiUser size={20} aria-hidden="true" />
+          <User size={20} aria-hidden="true" />
           <span>Your details</span>
         </h2>
       </div>

@@ -1,4 +1,4 @@
-import { FiUser, FiCompass } from "react-icons/fi";
+import { User, Compass } from "lucide-react";
 
 export default function GenderSelector({
   form,
@@ -11,7 +11,7 @@ export default function GenderSelector({
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <span className="inline-flex items-center gap-1.5">
-            <FiUser size={13} aria-hidden="true" />
+            <User size={13} aria-hidden="true" />
             <span>
               Gender<span className="text-primary-dark">*</span>
             </span>
@@ -36,7 +36,7 @@ export default function GenderSelector({
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <span className="inline-flex items-center gap-1.5">
-            <FiCompass size={13} aria-hidden="true" />
+            <Compass size={13} aria-hidden="true" />
             <span>Sexual preference</span>
           </span>
         </label>

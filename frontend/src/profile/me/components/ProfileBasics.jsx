@@ -1,4 +1,4 @@
-import { FiUser, FiCalendar } from "react-icons/fi";
+import { User, Calendar } from "lucide-react";
 
 export default function ProfileBasics({
   form,
@@ -14,7 +14,7 @@ export default function ProfileBasics({
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <span className="inline-flex items-center gap-1.5">
-            <FiUser size={13} />
+            <User size={13} />
             <span>
               Username<span className="text-primary-dark">*</span>
             </span>
@@ -32,7 +32,7 @@ export default function ProfileBasics({
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <span className="inline-flex items-center gap-1.5">
-            <FiCalendar size={13} />
+            <Calendar size={13} />
             <span>
               Birth date<span className="text-primary-dark">*</span>
             </span>
@@ -54,7 +54,7 @@ export default function ProfileBasics({
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <span className="inline-flex items-center gap-1.5">
-            <FiUser size={13} />
+            <User size={13} />
             <span>
               First name<span className="text-primary-dark">*</span>
             </span>
@@ -72,7 +72,7 @@ export default function ProfileBasics({
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <span className="inline-flex items-center gap-1.5">
-            <FiUser size={13} />
+            <User size={13} />
             <span>
               Last name<span className="text-primary-dark">*</span>
             </span>

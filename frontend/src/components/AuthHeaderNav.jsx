@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { FiLogIn, FiUserPlus } from "react-icons/fi"
 import { primaryButtonClass, secondaryButtonClass } from "@/styles/UIClasses.jsx"
+import { LogIn, UserPlus } from "lucide-react"
+
 export default function AuthHeaderNav() {
   const navigate = useNavigate();
 
@@ -10,7 +11,7 @@ export default function AuthHeaderNav() {
         {/* Logo */}
         <div
           onClick={() => navigate("/")}
-          className="cursor-pointer font-semibold text-base sm:text-lg text-slate-900"
+          className="cursor-pointer font-semibold text-primary-dark sm:text-lg"
         >
           Matcha
         </div>
@@ -21,14 +22,14 @@ export default function AuthHeaderNav() {
             onClick={() => navigate("/login")}
             className={secondaryButtonClass}
           >
-            <FiLogIn size={15} />
+            <LogIn size={15} />
             <span className="ml-1">Login</span>
           </button>
           <button
             onClick={() => navigate("/register")}
             className={primaryButtonClass}
           >
-            <FiUserPlus size={15} />
+            <UserPlus size={15} />
             <span className="ml-1"> Register </span>
           </button>
 

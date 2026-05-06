@@ -1,5 +1,4 @@
-import { FiMapPin } from "react-icons/fi";
-import { FaLocationArrow } from "react-icons/fa";
+import { MapPin, Navigation, PencilLine } from "lucide-react";
 import { secondaryButtonClass, inputClass, selectClass } from "@/styles/UIClasses.jsx";
 
 export default function LocationSection({
@@ -26,7 +25,7 @@ export default function LocationSection({
       {/* TITLE */}
       <div className="space-y-1">
         <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-          <FiMapPin size={13} aria-hidden="true" />
+          <MapPin size={13} aria-hidden="true" />
           <span>
             Location<span className="text-primary-dark">*</span>
           </span>
@@ -52,7 +51,7 @@ export default function LocationSection({
           disabled={loadingGeo || !form.gps_consent}
         >
           <span className="inline-flex items-center gap-2">
-            <FaLocationArrow className="text-primary-dark" />
+            <Navigation size={14} className="text-primary-dark" />
             {loadingGeo ? "Locating..." : "Use my position"}
           </span>
         </button>
@@ -97,6 +96,7 @@ export default function LocationSection({
                 onClick={handleEditLocation}
                 className={secondaryButtonClass}
               >
+              <PencilLine size={13} aria-hidden="true" className="mr-1" />
                 Edit
               </button>
             )}

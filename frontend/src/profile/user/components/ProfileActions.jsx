@@ -1,4 +1,4 @@
-import { FaHeart } from "react-icons/fa";
+import { Heart, BadgeAlert, Ban, BadgeCheck } from "lucide-react";
 
 export default function ProfileActions({
   user,
@@ -35,7 +35,18 @@ export default function ProfileActions({
 
   return (
     <div className="relative flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end sm:justify-start">
-      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${isMatch ? "bg-red-600 text-white" : likedByProfile ? "bg-pink-100 text-pink-700" : liked ? "bg-primary-light text-primary-dark" : "bg-slate-200 text-slate-700"}`}>
+      <span
+        className={`
+          px-2 py-1 rounded-full text-[11px] font-semibold border
+          ${
+            isMatch
+              ? "bg-primary text-white border-primary"
+              : liked
+              ? "bg-primary-light text-primary border-primary"
+              : "bg-white text-neutral border-neutral"
+          }
+        `}
+      >
         {relationLabel}
       </span>
 
@@ -49,30 +60,38 @@ export default function ProfileActions({
         }
         aria-label={isMatch ? "Disconnect from this profile" : liked ? "Remove like" : "Like this user"}
         title={likeTitle}
-        className={`inline-flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full border transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${isMatch ? "border-red-700 bg-red-600" : liked ? "bg-primary-medium" : "border-primary-medium bg-slate-200 text-slate-700"}`}
+        className={`
+          h-11 w-11 rounded-full flex items-center justify-center
+          border transition shadow-sm
+          ${liked
+            ? "bg-primary border-primary"
+            : "bg-white border-neutral hover:border-primary"
+          }
+        `}
       >
-        {isMatch ? (
-          <span className="relative inline-flex h-4 w-5 items-center justify-center">
-            <FaHeart size={12} className="absolute left-0 text-white" />
-            <FaHeart size={12} className="absolute right-0 text-white" />
-          </span>
-        ) : (
-          <FaHeart color={liked ? "#fff" : "#fff"} size={16} />
-        )}
+        <Heart className={liked ? "text-white" : "text-primary"} size={18} />
       </button>
 
       <button type="button" onClick={() => safeSetMenuOpen((prev) => !prev)} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-primary-light" aria-label="Open actions menu">...</button>
 
       {menuOpen && (
         <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
-          <button type="button" onClick={() => { onOpenReport(); safeSetMenuOpen(false); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-primary-light">Report fake account</button>
+          <button
+            type="button"
+            onClick={() => { onOpenReport(); safeSetMenuOpen(false); }}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-primary-light"
+          >
+              <BadgeAlert size={14} aria-hidden="true" />
+              <span>Report fake account</span>
+          </button>
           {blockedUser ? (
             <button
               type="button"
               onClick={safeOnUnblock}
               disabled={unblocking}
-              className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
+              <BadgeCheck size={14} aria-hidden="true" />
               {unblocking ? "Unblocking..." : "Unblock user"}
             </button>
           ) : (
@@ -80,8 +99,9 @@ export default function ProfileActions({
               type="button"
               onClick={onBlock}
               disabled={blocking}
-              className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
+              <Ban size={14} aria-hidden="true" />
               {blocking ? "Blocking..." : "Block user"}
             </button>
           )}
