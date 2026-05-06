@@ -4,10 +4,10 @@ export const cardClass =
 
 // Button classes
 export const primaryButtonClass =
-  "inline-flex items-center justify-center rounded-full border border-primary bg-primary-dark px-4 py-2.5 text-sm font-semibold text-neutral-light shadow-md hover:scale-105 hover:shadow-lg transition-all duration-200";
+  "inline-flex items-center justify-center rounded-full bg-primary-dark from-primary to-primary-dark px-5 py-2.5 text-xs font-semibold text-white shadow-md hover:scale-105 hover:shadow-lg transition-all duration-200";
 
 export const secondaryButtonClass =
-  "inline-flex items-center justify-center rounded-full border border-primary bg-white px-4 py-2.5 text-sm font-semibold text-primary shadow-md hover:scale-105 hover:shadow-lg transition-all duration-200";
+  "inline-flex items-center justify-center rounded-full border border-primary bg-white px-4 py-2.5 text-xs font-semibold text-neutral-dark hover:bg-primary-medium transition-all duration-200";
 
 export const tertiaryButtonClass =
   "inline-flex items-center justify-center rounded-full px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 border border-slate-600 shadow-md hover:scale-105 hover:shadow-lg transition-all duration-200";
@@ -37,5 +37,5 @@ export const chatInputClass =
 
 export const chatButtonClass = (isDisabled) =>
   isDisabled
-    ? "inline-flex items-center justify-center rounded-full bg-slate-600 px-4 py-3 text-white font-semibold shadow-lg opacity-60 cursor-not-allowed"
-    : "inline-flex items-center justify-center rounded-full px-4 py-3 bg-primary-dark font-semibold text-white shadow-lg hover:scale-105 transition";
+    ? "inline-flex items-center justify-center rounded-full bg-neutral-light px-4 py-3 text-sm font-semibold text-white shadow-lg opacity-60 cursor-not-allowed"
+    : "inline-flex items-center justify-center rounded-full bg-primary-light from-primary to-primary-dark px-4 py-3 text-sm font-semibold text-white shadow-lg hover:-translate-y-0.5 transition";

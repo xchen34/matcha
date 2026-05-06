@@ -3,6 +3,7 @@ import { FaEye, FaHeart, FaHeartBroken } from "react-icons/fa";
 import { sanitizeText } from "../utils/xssEscape.js";
 import { useNotifications } from "./hooks/useNotifications.js";
 import { createCardMessage, formatNotificationDateTime } from "./utils/notificationFormatters.js";
+import { BellRing } from "lucide-react";
 
 function GroupTypeIcon({ type }) {
   if (type === "profile_view") {
@@ -133,21 +134,9 @@ export default function NotificationsBell() {
         disabled={!isAuthenticated}
         aria-label="Ouvrir les notifications"
         title="Notifications"
-        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary-dark text-white transition enabled:hover:-translate-y-0.5 enabled:hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary-dark text-white transition enabled:hover:-translate-y-0.5 enabled:hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-5 w-5"
-          aria-hidden="true"
-        >
-          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h11" />
-          <path d="M9 17a3 3 0 0 0 6 0" />
-        </svg>
+        <BellRing size={22}/>
         {unreadCount > 0 && (
           <span className="absolute -right-1 -top-1 inline-flex min-w-5 h-5 items-center justify-center rounded-full border border-slate-200 bg-red-600 px-1.5 text-xs font-bold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}
