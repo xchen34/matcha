@@ -49,26 +49,34 @@ export function TopHeaderNav({
     matches: Number(attentionBadges.matches || 0),
   };
 
-  const linkClass = ({ isActive }) =>
-    `relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2
-     text-[9px] sm:text-sm font-medium px-1 sm:px-2 h-14
-     transition-transform duration-200 ease-out
-     hover:scale-105
-     ${isActive ? "text-primary-dark" : "text-slate-700 hover:text-primary-dark"}`;
-
-  const underline =
-    "after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-full after:bg-primary-dark";
-
-  const Label = ({ mobile, tablet, desktop }) => (
+  const navItem = (icon, full, count, isActive) => (
     <>
-      {/* mobile → texte sous l’icône */}
-      <span className="sm:hidden leading-none">{mobile}</span>
+      <span
+        className={`relative inline-flex h-10 w-10 lg:w-auto items-center justify-center lg:justify-start rounded-full border px-0 lg:px-4 transition-all duration-200 gap-0 lg:gap-1.5 ${
+          isActive
+            ? "border-primary bg-primary-medium text-white"
+            : "border-primary bg-white text-neutral-dark hover:bg-primary-medium hover:text-white"
+        }`}
+      >
+        <span
+          aria-hidden="true"
+          className={`transition-colors ${isActive ? "text-white" : "text-[#f163cf] group-hover:text-white"}`}
+        >
+          {icon}
+        </span>
 
-      {/* tablette */}
-      <span className="hidden sm:inline md:hidden">{tablet}</span>
+        <span
+          className={`hidden lg:inline text-xs font-medium whitespace-nowrap transition-colors ${isActive ? "text-white" : "text-neutral-dark group-hover:text-white"}`}
+        >
+          {full}
+        </span>
 
-      {/* desktop */}
-      <span className="hidden md:inline">{desktop}</span>
+        {count > 0 && (
+          <span className="absolute -right-1 -top-1 inline-flex min-w-[18px] h-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
+            {count > 99 ? "99+" : count}
+          </span>
+        )}
+      </span>
     </>
   );
 
@@ -80,60 +88,38 @@ export function TopHeaderNav({
       <div className="mx-auto flex h-14 max-w-6xl items-center px-2 sm:px-4 lg:px-6 gap-2 sm:gap-3">
 
         {/* NAV */}
-        <nav className="flex-1 flex justify-start items-center gap-2 sm:gap-4 overflow-hidden">
+        <nav className="flex-1 flex flex-nowrap justify-start items-center gap-1 sm:gap-2 overflow-hidden">
 
           {/* FIND */}
           <NavLink
             to="/find-match"
-            className={({ isActive }) => `${linkClass({ isActive })} ${isActive ? underline : ""}`}
+            className="group"
           >
-            <FiUsers size={16} />
-            <Label mobile="Find" tablet="Find" desktop="Find my match" />
+            {({ isActive }) => navItem(<FiUsers size={18} />, "Find my match", 0, isActive)}
           </NavLink>
 
           {/* VIEWS */}
           <NavLink
             to="/popularity/views"
-            className={({ isActive }) => `${linkClass({ isActive })} ${isActive ? underline : ""}`}
+            className="group"
           >
-            <FiEye size={16} />
-            <Label mobile="Views" tablet="Views" desktop="Who viewed me" />
-
-            {modeCounts.views > 0 && (
-              <span className="ml-1 inline-flex min-w-[18px] h-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white px-1">
-                {modeCounts.views > 99 ? "99+" : modeCounts.views}
-              </span>
-            )}
+            {({ isActive }) => navItem(<FiEye size={18} />, "Who viewed me", modeCounts.views, isActive)}
           </NavLink>
 
           {/* LIKES */}
           <NavLink
             to="/popularity/likes"
-            className={({ isActive }) => `${linkClass({ isActive })} ${isActive ? underline : ""}`}
+            className="group"
           >
-            <FiHeart size={16} />
-            <Label mobile="Likes" tablet="Likes" desktop="Who liked me" />
-
-            {modeCounts.likes > 0 && (
-              <span className="ml-1 inline-flex min-w-[18px] h-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white px-1">
-                {modeCounts.likes > 99 ? "99+" : modeCounts.likes}
-              </span>
-            )}
+            {({ isActive }) => navItem(<FiHeart size={18} />, "Who liked me", modeCounts.likes, isActive)}
           </NavLink>
 
           {/* MATCHES */}
           <NavLink
             to="/popularity/matches"
-            className={({ isActive }) => `${linkClass({ isActive })} ${isActive ? underline : ""}`}
+            className="group"
           >
-            <Zap size={16} />
-            <Label mobile="Match" tablet="Match" desktop="Who matched with me" />
-
-            {modeCounts.matches > 0 && (
-              <span className="ml-1 inline-flex min-w-[18px] h-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white px-1">
-                {modeCounts.matches > 99 ? "99+" : modeCounts.matches}
-              </span>
-            )}
+            {({ isActive }) => navItem(<Zap size={18} />, "Who matched with me", modeCounts.matches, isActive)}
           </NavLink>
 
         </nav>
@@ -172,7 +158,7 @@ export function TopHeaderNav({
                 </button>
 
                 {/* Delete account */}
-                <button onClick={handleDeleteAccount} className="flex w-full items-center gap-2 border px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">
+                <button onClick={handleDeleteAccount} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">
                   <FiTrash2 size={15} /> Delete account
                 </button>
 

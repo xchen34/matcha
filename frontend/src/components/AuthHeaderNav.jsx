@@ -22,14 +22,14 @@ export default function AuthHeaderNav() {
             className={secondaryButtonClass}
           >
             <FiLogIn size={15} />
-            <span class="ml-1">Login</span>
+            <span className="ml-1">Login</span>
           </button>
           <button
             onClick={() => navigate("/register")}
             className={primaryButtonClass}
           >
             <FiUserPlus size={15} />
-            <span class="ml-1"> Register </span>
+            <span className="ml-1"> Register </span>
           </button>
 
         </div>
