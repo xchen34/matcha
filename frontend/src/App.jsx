@@ -8,6 +8,9 @@ import { useSettings } from "./hooks/useSettings.js";
 // Components
 import TopNav from "./components/TopNav.jsx";
 import { HeaderBar } from "./components/HeaderBar.jsx";
+import { TopHeaderNav } from "./components/TopHeaderNav.jsx";
+import AuthHeaderNav from "./components/AuthHeaderNav.jsx"
+
 import MessagesBloc from "./components/MessagesBloc.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import BlockedUsers from "./components/BlockedUsers";
@@ -45,28 +48,46 @@ function App() {
 
   return (
     <NotificationsProvider currentUser={currentUser}>
-      <HeaderBar 
-        currentUser={currentUser}
-        isLoginPage={isLoginPage}
-        isSettingsOpen={isSettingsOpen}
-        setIsSettingsOpen={setIsSettingsOpen}
-        settingsMenuRef={settingsMenuRef}
-        navigateTo={navigateTo}
-        logout={logout}
-        handleDeleteAccount={handleDeleteAccount}
-      />
-      
-      <main className="max-w-5xl mx-auto px-5 py-10 space-y-10">
+      <div className="min-h-screen flex flex-col">
+
+      {currentUser ? (
+        <TopHeaderNav
+          currentUser={currentUser}
+          profileLocked={isProfileLocked}
+          isSettingsOpen={isSettingsOpen}
+          setIsSettingsOpen={setIsSettingsOpen}
+          settingsMenuRef={settingsMenuRef}
+          navigateTo={navigateTo}
+          logout={logout}
+          handleDeleteAccount={handleDeleteAccount}
+        />
+      ) : (
+        <AuthHeaderNav navigateTo={navigateTo} />
+      )}
+
+        {/* <HeaderBar 
+          currentUser={currentUser}
+          isLoginPage={isLoginPage}
+          isSettingsOpen={isSettingsOpen}
+          setIsSettingsOpen={setIsSettingsOpen}
+          settingsMenuRef={settingsMenuRef}
+          navigateTo={navigateTo}
+          logout={logout}
+          handleDeleteAccount={handleDeleteAccount}
+        />
+        <TopNav currentUser={currentUser} profileLocked={isProfileLocked} /> */}
+
+
+        <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-5 pt-30 sm:pt-24 pb-10 space-y-10 w-full">
         <header className="space-y-2">
           <p className="text-xs uppercase tracking-[0.16em] text-primary-dark font-semibold">
             42 Matchmaking Playground
-          </p>
+          </p> 
           <h1 className="text-5xl sm:text-6xl font-bold text-neutral-dark leading-none">
             Matcha
           </h1>
         </header>
-
-        <TopNav currentUser={currentUser} profileLocked={isProfileLocked} />
+        
 
         <Routes>
           <Route
@@ -165,13 +186,14 @@ function App() {
         </Routes>
       </main>
 
-      <footer className="mt-16 border-t border-slate-100 bg-white/80 backdrop-blur">
+      <footer className="border-t border-slate-100 bg-white/80 backdrop-blur mt-auto">
         <div className="mx-auto max-w-5xl px-5 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
           <p className="text-center sm:text-left">
             © {new Date().getFullYear()} Matcha — 42 Dating Playground
           </p>
         </div>
       </footer>
+    </div>
     </NotificationsProvider>
   );
 }

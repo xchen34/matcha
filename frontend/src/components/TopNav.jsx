@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { FiEye, FiHeart, FiLogIn, FiUser, FiUserPlus, FiUsers } from "react-icons/fi";
+import { FiEye, FiHeart, FiUser, FiUsers } from "react-icons/fi";
 import { useNotifications } from "../notifications/hooks/useNotifications.js";
-import { secondaryButtonClass } from "../styles/UIClasses.jsx";
+import { primaryButtonClass, secondaryButtonClass } from "../styles/UIClasses.jsx";
 
 export default function TopNav({ currentUser, profileLocked }) {
   const location = useLocation();
@@ -12,13 +12,9 @@ export default function TopNav({ currentUser, profileLocked }) {
   useEffect(() => {
     const previousPath = previousPathRef.current;
 
-    if (previousPath === "/popularity/views") {
-      clearAttentionMode("views");
-    } else if (previousPath === "/popularity/likes") {
-      clearAttentionMode("likes");
-    } else if (previousPath === "/popularity/matches") {
-      clearAttentionMode("matches");
-    }
+    if (previousPath === "/popularity/views") clearAttentionMode("views");
+    else if (previousPath === "/popularity/likes") clearAttentionMode("likes");
+    else if (previousPath === "/popularity/matches") clearAttentionMode("matches");
 
     previousPathRef.current = location.pathname;
   }, [location.pathname, clearAttentionMode]);
@@ -29,119 +25,111 @@ export default function TopNav({ currentUser, profileLocked }) {
     matches: Number(attentionBadges.matches || 0),
   };
 
-  const navItem = (icon, mobile, full, count) => (
-    <span className="relative flex items-center justify-center sm:justify-start gap-1.5">
-      <span aria-hidden="true">{icon}</span>
+  // Nav item (plus de cercle autour de l'icône)
+  const navItem = (icon, label, shortLabel, count = 0) => (
+    <span className="relative flex items-center justify-center sm:gap-1.5">
+      
+      {icon}
 
-      <span className="sm:hidden text-xs font-medium text-neutral-dark">
-        {mobile}
+      {/* Texte responsive */}
+      <span className="hidden sm:inline md:hidden text-sm font-medium ml-1">
+        {shortLabel}
+      </span>
+      <span className="hidden md:inline text-sm font-medium ml-1">
+        {label}
       </span>
 
-      <span className="hidden sm:inline text-sm font-medium text-neutral-dark">
-        {full}
-      </span>
-
+      {/* Badge */}
       {count > 0 && (
-        <span className="absolute -right-4 -top-3 inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
+        <span className="absolute -top-1 -right-1 inline-flex min-w-[18px] h-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
           {count > 99 ? "99+" : count}
         </span>
       )}
     </span>
   );
 
+  if (!currentUser) return null;
+
   return (
-    <nav className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
-      {!currentUser && (
-        <NavLink
-          to="/login"
-          className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
-          }
-        >
-          <span className="flex items-center gap-1.5 justify-center">
-            <FiLogIn size={15} />
-            <span>Login</span>
-          </span>
-        </NavLink>
-      )}
+    <div className="fixed inset-x-0 top-4 z-[9999] pointer-events-none">
+      <div className="mx-auto flex max-w-5xl justify-start px-4 sm:px-6 lg:px-8">
+        <nav className="pointer-events-auto flex gap-2 sm:gap-3 rounded-full border bg-primary-light/95 backdrop-blur p-2 shadow-lg shadow-pink-200/60">
 
-      {!currentUser && (
-        <NavLink
-          to="/register"
-          className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
-          }
-        >
-          <span className="flex items-center gap-1.5 justify-center">
-            <FiUserPlus size={15} />
-            <span className="sm:inline hidden">Create Account</span>
-            <span className="sm:hidden">Join</span>
-          </span>
-        </NavLink>
-      )}
+          {profileLocked && (
+            <NavLink
+              to="/profile"
+              className={({ isActive }) =>
+                `${isActive ? primaryButtonClass : secondaryButtonClass}
+                 flex items-center justify-center
+                 w-10 h-10 sm:w-auto sm:h-auto
+                 rounded-full`
+              }
+            >
+              {navItem(<FiUser size={20} />, "Complete Profile", "Profile")}
+            </NavLink>
+          )}
 
-      {currentUser && profileLocked && (
-        <NavLink
-          to="/profile"
-          className={({ isActive }) =>
-            `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
-          }
-        >
-          <span className="flex items-center gap-1.5 justify-center">
-            <FiUser size={15} />
-            <span className="sm:inline hidden">Complete Profile</span>
-            <span className="sm:hidden">Profile</span>
-          </span>
-        </NavLink>
-      )}
+          {!profileLocked && (
+            <>
+              <NavLink
+                to="/find-match"
+                className={({ isActive }) =>
+                  `${isActive ? primaryButtonClass : secondaryButtonClass}
+                   flex items-center justify-center
+                   w-10 h-10 sm:w-auto sm:h-auto
+                   rounded-full`
+                }
+              >
+                {navItem(<FiUsers size={20} />, "Find my match", "Find")}
+              </NavLink>
 
-      {currentUser && !profileLocked && (
-        <>
-          <NavLink
-            to="/find-match"
-            className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
-            }
-          >
-            {navItem(<FiUsers size={15} />, "Find", "Find your match")}
-          </NavLink>
+              <NavLink
+                to="/popularity/views"
+                className={({ isActive }) =>
+                  `${isActive ? primaryButtonClass : secondaryButtonClass}
+                   flex items-center justify-center
+                   w-10 h-10 sm:w-auto sm:h-auto
+                   rounded-full`
+                }
+              >
+                {navItem(<FiEye size={20} />, "Who viewed me", "Views", modeCounts.views)}
+              </NavLink>
 
-          <NavLink
-            to="/popularity/views"
-            className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
-            }
-          >
-            {navItem(<FiEye size={15} />, "Views", "Who viewed me", modeCounts.views)}
-          </NavLink>
+              <NavLink
+                to="/popularity/likes"
+                className={({ isActive }) =>
+                  `${isActive ? primaryButtonClass : secondaryButtonClass}
+                   flex items-center justify-center
+                   w-10 h-10 sm:w-auto sm:h-auto
+                   rounded-full`
+                }
+              >
+                {navItem(<FiHeart size={20} />, "Who likes me", "Likes", modeCounts.likes)}
+              </NavLink>
 
-          <NavLink
-            to="/popularity/likes"
-            className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
-            }
-          >
-            {navItem(<FiHeart size={15} />, "Likes", "Who liked me", modeCounts.likes)}
-          </NavLink>
-
-          <NavLink
-            to="/popularity/matches"
-            className={({ isActive }) =>
-              `${secondaryButtonClass} ${isActive ? "bg-primary-dark border-primary" : ""}`
-            }
-          >
-            {navItem(
-              <span className="relative inline-flex h-4 w-5 items-center justify-center text-neutral">
-                <FiHeart size={11} className="absolute left-0" />
-                <FiHeart size={11} className="absolute right-0" />
-              </span>,
-              "Matches",
-              "Matches",
-              modeCounts.matches
-            )}
-          </NavLink>
-        </>
-      )}
-    </nav>
+              <NavLink
+                to="/popularity/matches"
+                className={({ isActive }) =>
+                  `${isActive ? primaryButtonClass : secondaryButtonClass}
+                   flex items-center justify-center
+                   w-10 h-10 sm:w-auto sm:h-auto
+                   rounded-full`
+                }
+              >
+                {navItem(
+                  <span className="relative inline-flex h-5 w-5 items-center justify-center">
+                    <FiHeart size={11} className="absolute left-0" />
+                    <FiHeart size={11} className="absolute right-0" />
+                  </span>,
+                  "Who matched with me",
+                  "Matches",
+                  modeCounts.matches
+                )}
+              </NavLink>
+            </>
+          )}
+        </nav>
+      </div>
+    </div>
   );
 }

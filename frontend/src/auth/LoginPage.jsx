@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import PasswordInput from "./components/PasswordInput";
 import { useLogin } from "./hooks/useLogin";
-import { cardClass, inputClass, primaryButtonClass } from "../styles/UIClasses.jsx";
+import { cardClass, inputClass, primaryButtonClass, secondaryButtonClass } from "../styles/UIClasses.jsx";
 import FormInput from "./components/FormInput";
 
 export default function LoginPage({ onLogin }) {

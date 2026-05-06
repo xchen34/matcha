@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { STORAGE_KEY } from '../utils/userStorage.js';
+import { secondaryButtonClass, tertiaryButtonClass } from "@/styles/UIClasses.jsx"
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
@@ -115,7 +116,7 @@ export default function VerifyEmailPage() {
             <p className="text-gray-600 mb-4">Redirecting in 3 seconds...</p>
             <Link 
               to={successRedirectPath}
-              className="inline-block bg-rose-500 text-white px-6 py-2 rounded-lg hover:bg-rose-600 transition"
+              className={secondaryButtonClass}
             >
               Continue
             </Link>
@@ -125,11 +126,11 @@ export default function VerifyEmailPage() {
         {status === 'error' && (
           <div className="text-center">
             <div className="inline-block bg-red-100 rounded-full p-3 mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-primary-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-red-600 mb-2">Verification Failed</h1>
+            <h1 className="text-2xl font-bold text-primary-dark mb-2">Verification Failed</h1>
             <p className="text-gray-700 mb-6">{message}</p>
             
             <div className="space-y-3">
@@ -138,7 +139,7 @@ export default function VerifyEmailPage() {
               </p>
               <Link 
                 to="/resend-verification" 
-                className="inline-block bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition"
+                className={secondaryButtonClass}
               >
                 Resend Verification Email
               </Link>
@@ -146,7 +147,7 @@ export default function VerifyEmailPage() {
 
             <p className="text-gray-600 mt-6">
               Already verified?{' '}
-              <Link to="/login" className="text-rose-500 hover:text-rose-600 font-semibold">
+              <Link to="/login" className={ tertiaryButtonClass }>
                 Go to Login
               </Link>
             </p>

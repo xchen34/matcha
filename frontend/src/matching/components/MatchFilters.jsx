@@ -2,6 +2,7 @@ import { FaSearch, FaMapMarkerAlt, FaUser, FaStar, FaSort, FaArrowDown, FaTag, F
 import { RangeSlider } from "./RangeSlider";
 import { SelectField } from "./SelectField";
 import { TagSelector } from "./TagSelector";
+import { primaryButtonClass, secondaryButtonClass } from "@/styles/UIClasses.jsx";
 
 export default function MatchFilters({
   draftFilters,
@@ -33,7 +34,7 @@ export default function MatchFilters({
           name="username"
           value={draftFilters.username}
           onChange={handleFilterChange}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-primary-dark"
+          className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary-dark"
           placeholder="Search by username"
         />
       </div>
@@ -51,7 +52,7 @@ export default function MatchFilters({
             name="city"
             value={draftFilters.city}
             onChange={handleFilterChange}
-            className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-primary-dark ${
+            className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary-dark ${
               cityConfirmed ? "border-green-500" : "border-slate-200"
             }`}
             placeholder="Type and choose a city"
@@ -176,22 +177,19 @@ export default function MatchFilters({
       <button
         type="button"
         onClick={applyFilters}
-        className="inline-flex items-center justify-center rounded-full bg-primary-medium from-brand to-brand-deep px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-200 hover:-translate-y-0.5 transition"
+        className={primaryButtonClass}
       >
         <FaCheck size={12} aria-hidden="true" />
-        <span className="ml-1">
-          Apply filters
-        </span>
+        <span className="ml-1">Apply filters</span>
       </button>
+
       <button
         type="button"
         onClick={resetFilters}
-        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition"
+        className={secondaryButtonClass}
       >
         <FaRedo size={12} aria-hidden="true" />
-        <span className="ml-1">
-          Reset
-        </span>
+        <span className="ml-1">Reset</span>
       </button>
     </div>
 

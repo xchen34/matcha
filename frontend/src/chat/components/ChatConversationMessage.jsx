@@ -49,8 +49,8 @@ export default function ChatConversationMessage({
             className={`max-w-[68%] border-l-4 px-2 py-1 rounded-2xl text-sm break-words whitespace-pre-wrap
                 ${
                 isMine
-                    ? "border-primary bg-primary-light text-primary-dark"
-                    : "border-primary-medium bg-slate-100 text-slate-600"
+                    ? "border border-primary-medium bg-primary-light text-primary-dark"
+                    : "border border-neutral-medium bg-slate-50 text-slate-600"
                 }
             `}
             >
@@ -65,7 +65,7 @@ export default function ChatConversationMessage({
         <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
           <div
             className={`max-w-[68%] rounded-2xl px-3 py-2 text-sm cursor-pointer transition-all
-              ${isMine ? "bg-primary-dark text-white" : "bg-slate-100 text-neutral-dark"}
+              ${isMine ? "bg-primary text-white" : "bg-slate-300 text-neutral-dark"}
             `}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -98,7 +98,7 @@ export default function ChatConversationMessage({
                 <button
                   type="button"
                   onClick={() => onQuote(msg)}
-                  className="inline-flex items-center gap-1 border border-primary-medium hover:bg-slate-100 rounded-[10px] px-1"
+                  className="inline-flex items-center gap-1 border border-neutral hover:bg-slate-100 rounded-[10px] px-1"
                 >
                   <FiCornerUpLeft size={10} /> Quote
                 </button>
@@ -107,7 +107,7 @@ export default function ChatConversationMessage({
                   type="button"
                   onClick={() => onDelete(msg)}
                   disabled={deletingMessageId === msg.id}
-                  className="inline-flex items-center gap-1 border border-red-300 rounded-[10px] px-1 text-red-500 hover:bg-red-100"
+                  className="inline-flex items-center gap-1 border border-red-500 rounded-[10px] px-1 text-red-500 hover:bg-red-100"
                 >
                   <FiTrash2 size={10} />
                   {deletingMessageId === msg.id ? "Deleting…" : "Delete"}

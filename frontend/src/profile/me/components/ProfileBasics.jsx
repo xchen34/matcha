@@ -16,7 +16,7 @@ export default function ProfileBasics({
           <span className="inline-flex items-center gap-1.5">
             <FiUser size={13} />
             <span>
-              Username<span className="text-red-600">*</span>
+              Username<span className="text-primary-dark">*</span>
             </span>
           </span>
         </label>
@@ -34,7 +34,7 @@ export default function ProfileBasics({
           <span className="inline-flex items-center gap-1.5">
             <FiCalendar size={13} />
             <span>
-              Birth date<span className="text-red-600">*</span>
+              Birth date<span className="text-primary-dark">*</span>
             </span>
           </span>
         </label>
@@ -56,7 +56,7 @@ export default function ProfileBasics({
           <span className="inline-flex items-center gap-1.5">
             <FiUser size={13} />
             <span>
-              First name<span className="text-red-600">*</span>
+              First name<span className="text-primary-dark">*</span>
             </span>
           </span>
         </label>
@@ -74,7 +74,7 @@ export default function ProfileBasics({
           <span className="inline-flex items-center gap-1.5">
             <FiUser size={13} />
             <span>
-              Last name<span className="text-red-600">*</span>
+              Last name<span className="text-primary-dark">*</span>
             </span>
           </span>
         </label>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import FormInput from "./components/FormInput";
+import { tertiaryButtonClass } from "@/styles/UIClasses.jsx"
 
 export default function ResendVerificationPage() {
   const location = useLocation();
@@ -104,7 +105,7 @@ export default function ResendVerificationPage() {
           <button
             type="submit"
             disabled={isLoading || !email}
-            className="w-full bg-rose-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-rose-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className={"w-full bg-rose-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-rose-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"}
           >
             {isLoading ? "Sending..." : "Resend Verification Email"}
           </button>

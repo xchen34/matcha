@@ -6,6 +6,7 @@ import { sanitizeText } from "@/utils/xssEscape.js";
 import { fetchChatConversations } from "../hooks/api.js";
 import ChatAvatar from "./ChatAvatar.jsx";
 import { formatQuotedMessagePreview } from "../hooks/quoteUtils.js";
+import { actionButtonClass } from "@/styles/UIClasses.jsx";
 
 const POLL_INTERVAL_MS = 15000;
 const SHORTCUT_LIMIT = 6;
@@ -216,14 +217,14 @@ export default function ChatIndicator({ currentUser }) {
           </div>
 
           <div className="border-t border-slate-100 p-2">
-            <button
-              type="button"
-              onClick={openInbox}
-              className="w-full rounded-xl bg-primary-light px-3 py-2 text-sm font-semibold text-primary-dark hover:bg-primary-medium hover:text-white border border-primary"
-            >
-              View more
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={openInbox}
+            className={`w-full ${actionButtonClass}`}
+          >
+            View more
+          </button>
+        </div>
         </div>
       )}
     </div>

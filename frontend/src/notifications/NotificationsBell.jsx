@@ -31,7 +31,7 @@ function getGroupAccentClass(type) {
     return "bg-blue-100 text-blue-700";
   }
   if (type === "like_received") {
-    return "bg-primary-medium text-primary-dark";
+    return "bg-pink-200 text-pink-700";
   }
   if (type === "unlike") {
     return "bg-slate-200 text-slate-700";
@@ -48,10 +48,10 @@ function getGroupBorderClass(type) {
     return "border-blue-200";
   }
   if (type === "like_received") {
-    return "border-primary";
+    return "border-pink-200";
   }
   if (type === "unlike") {
-    return "border-primary-medium";
+    return "border-gray-200";
   }
   if (type === "match") {
     return "border-red-200";
@@ -133,7 +133,7 @@ export default function NotificationsBell() {
         disabled={!isAuthenticated}
         aria-label="Ouvrir les notifications"
         title="Notifications"
-        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary bg-primary text-white transition enabled:hover:-translate-y-0.5 enabled:hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary-dark text-white transition enabled:hover:-translate-y-0.5 enabled:hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
       >
         <svg
           viewBox="0 0 24 24"

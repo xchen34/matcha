@@ -17,7 +17,7 @@ export function HeaderBar({
   return (
     <div className="fixed inset-x-0 top-4 z-[9999] pointer-events-none">
       <div className="mx-auto flex max-w-5xl justify-end px-5 sm:px-6 lg:px-8">
-        <div className="pointer-events-auto relative flex items-center gap-2 rounded-full border bg-primary-light bg-primary-light/95 p-2 shadow-lg shadow-pink-200/60 backdrop-blur">
+        <div className="pointer-events-auto relative flex items-center gap-2 rounded-full border bg-primary-light/95 p-2 shadow-lg shadow-pink-200/60 backdrop-blur">
           <NotificationsBell />
           <ChatIndicator currentUser={currentUser} />
           <div ref={settingsMenuRef} className="relative">

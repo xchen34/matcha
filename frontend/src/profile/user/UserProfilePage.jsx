@@ -195,13 +195,13 @@ function UserProfilePage({ currentUser }) {
       )}
 
       {reportedFake && (
-        <p className="text-sm text-amber-700">
+        <p className="text-sm text-primary-dark">
           You already reported this user as fake account.
         </p>
       )}
 
       {blockedUser && (
-        <p className="text-sm text-amber-700">
+        <p className="text-sm text-primary-dark">
           You already blocked this user.
         </p>
       )}

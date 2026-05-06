@@ -45,28 +45,32 @@ export default function TagsSelector({
       </div>
 
       {/* COUNTER */}
-    <p className="text-xs text-slate-500 flex items-center gap-2">
-    <span>{tags.length}/10 tags selected</span>
+      <p className="text-xs text-slate-500 flex items-center gap-2">
+      <span>{tags.length}/10 tags selected</span>
 
-    {tags.length >= 10 && (
-        <span className="text-red-500">
-        (Maximum reached)
-        </span>
-    )}
-    </p>
+      {tags.length >= 10 && (
+          <span className="text-red-500">
+          (Maximum reached)
+          </span>
+      )}
+      </p>
+
       {/* TAG LIST */}
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-900 text-white text-xs px-3 py-1"
+              className="inline-flex items-center gap-2 rounded-full bg-primary-light text-primary-dark border border-primary-dark text-xs px-3 py-1"
             >
-              {tag}
+              <span className="font-bold">
+                {tag}
+              </span>
+
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
-                className="text-white/80 hover:text-white"
+                className="text-primary-dark/80 hover:text-red hover:scale-105"
                 aria-label={`Remove ${tag}`}
               >
                 x
@@ -74,8 +78,7 @@ export default function TagsSelector({
             </span>
           ))}
         </div>
-      )}
-      
+      )}      
     </div>
   );
 }

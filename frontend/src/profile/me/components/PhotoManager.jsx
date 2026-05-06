@@ -23,13 +23,18 @@ export default function PhotoManager({
           </span>
         </label>
 
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handlePhotoUpload}
-          className="text-xs text-slate-500"
-        />
+        <div>
+        <label className={"text-primary-dark font-semibold border border-primary rounded-full px-2 py-1 text-xs cursor-pointer hover:scale-105"}>
+          Upload image
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
+        </label>
+      </div>
       </div>
 
       {/* GRID */}

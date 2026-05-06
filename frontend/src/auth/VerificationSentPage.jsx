@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { secondaryButtonClass, tertiaryButtonClass } from "@/styles/UIClasses.jsx"
 
 export default function VerificationSentPage() {
   const location = useLocation();
@@ -39,7 +40,7 @@ export default function VerificationSentPage() {
                   href={previewUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-semibold text-rose-600 underline"
+                  className="font-semibold text-primary-dark underline"
                 >
                   Open verification email
                 </a>
@@ -52,7 +53,7 @@ export default function VerificationSentPage() {
                   href={devVerifyUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-semibold text-rose-600 underline"
+                  className="font-semibold text-primary-dark underline"
                 >
                   Verify directly in app
                 </a>
@@ -74,13 +75,13 @@ export default function VerificationSentPage() {
                 },
               })
             }
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition"
+            className={secondaryButtonClass}
           >
             Resend verification
           </button>
           <Link
             to="/login"
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition"
+            className={tertiaryButtonClass}
           >
             Go to login
           </Link>

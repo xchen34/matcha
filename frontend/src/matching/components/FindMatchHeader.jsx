@@ -6,14 +6,14 @@ function FindMatchHeader({ fameRating, canLikeProfiles }) {
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           {!canLikeProfiles && (
-            <p className="text-[11px] text-amber-700 leading-snug max-w-md">
+            <p className="text-[11px] text-primary-dark leading-snug max-w-md">
               Add a primary profile photo in your profile to enable likes.
             </p>
           )}
 
           <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-neutral-dark">
             <FaUserFriends size={22} aria-hidden="true" />
-            <span>Find your match</span>
+            <span>Find my match</span>
           </h2>
 
           <p className="text-sm text-slate-500">
@@ -23,8 +23,8 @@ function FindMatchHeader({ fameRating, canLikeProfiles }) {
         </div>
 
         <div className="shrink-0">
-          <div className="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-dark text-white shadow-md shadow-primary-dark">
+          <div className="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-dark text-white">
               <FaFire size={16} aria-hidden="true" />
             </div>
 

@@ -26,7 +26,7 @@ export default function EmailChangeForm({
       <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
         <span className="inline-flex items-center gap-1.5">
           <FiMail size={13} aria-hidden="true" />
-          <span>Email address<span className="text-red-600">*</span></span>
+          <span>Email address<span className="text-primary-dark">*</span></span>
         </span>
       </label>
 
@@ -50,8 +50,8 @@ export default function EmailChangeForm({
 
       {/* EMAIL CHANGE FORM */}
       {emailChangeOpen && (
-        <div className="mt-2 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs text-orange-500">
+        <div className="mt-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <p className="text-xs text-primary-dark">
             Email can only be changed after password confirmation and new-email verification.
           </p>
 
@@ -87,7 +87,7 @@ export default function EmailChangeForm({
 
           {/* ERROR HANDLER */}
           {emailChangeError && (
-            <p className="text-sm text-red-600 font-medium">
+            <p className="text-sm text-primary-dark font-medium">
               {emailChangeError}
             </p>
           )}
@@ -118,7 +118,7 @@ export default function EmailChangeForm({
 
       {/* LINK FOR RESET EMAIL */}
       {(emailChangePreviewUrl || emailChangeDevVerifyUrl) && (
-        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+        <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
           {emailChangePreviewUrl && (
             <p>
               Email preview:{" "}

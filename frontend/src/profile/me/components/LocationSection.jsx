@@ -28,7 +28,7 @@ export default function LocationSection({
         <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <FiMapPin size={13} aria-hidden="true" />
           <span>
-            Location<span className="text-red-600">*</span>
+            Location<span className="text-primary-dark">*</span>
           </span>
         </p>
       </div>
@@ -47,12 +47,12 @@ export default function LocationSection({
 
         <button
           type="button"
-          className={secondaryButtonClass}
+          className={"text-primary-dark font-semibold border border-primary rounded-full px-2 py-1 text-xs cusrsor-pointer hover:scale-105"}
           onClick={useCurrentLocation}
           disabled={loadingGeo || !form.gps_consent}
         >
           <span className="inline-flex items-center gap-2">
-            <FaLocationArrow className="text-slate-700" />
+            <FaLocationArrow className="text-primary-dark" />
             {loadingGeo ? "Locating..." : "Use my position"}
           </span>
         </button>
@@ -62,7 +62,7 @@ export default function LocationSection({
             Enable GPS consent to auto-fill your location.
           </span>
         ) : (
-          <span className="text-xs text-red-600 block w-full mt-1">
+          <span className="text-xs text-primary-dark block w-full mt-1">
             GPS consent activate : click on "Use my position" and allow location access in your browser.
             <br />
             Verify the detected city/neighborhood before saving, edit if needed.
@@ -84,8 +84,6 @@ export default function LocationSection({
                 setTimeout(() => setIsCitySuggestionsOpen(false), 120);
               }}
               className={`${inputClass} flex-1 ${
-                cityAutocompleteOptions.length > 0 ? "rounded-b-none" : ""
-              } ${
                 isNeighborhoodSelected || form.gps_consent ? "opacity-60" : ""
               }`}
               autoComplete="new-password"
@@ -128,7 +126,7 @@ export default function LocationSection({
               className={`text-xs ${
                 locationValidation?.city_exists
                   ? "text-emerald-700"
-                  : "text-amber-700"
+                  : "text-primary-dark"
               }`}
             >
               {validatingLocation
@@ -201,7 +199,7 @@ export default function LocationSection({
               className={`text-xs ${
                 locationValidation?.neighborhood_exists
                   ? "text-emerald-700"
-                  : "text-amber-700"
+                  : "text-primary-dark"
               }`}
             >
               {validatingLocation

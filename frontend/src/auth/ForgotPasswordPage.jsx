@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { secondaryButtonClass } from "../styles/UIClasses";
 import { useNavigate } from "react-router-dom";
 import FormInput from "./components/FormInput";
+import { tertiaryButtonClass } from "@/styles/UIClasses.jsx"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -69,7 +70,7 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={isLoading || !email}
-            className="w-full bg-rose-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-rose-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full bg-primary text-primary-light border border-primary-dark font-semibold py-2 px-4 rounded-lg hover:bg-primary-dark hover:scale-105 transition disabled:bg-gray-400 disabled:text-white disabled:border-none disabled:cursor-not-allowed"
           >
             {isLoading ? "Sending..." : "Send reset link"}
           </button>
@@ -107,7 +108,7 @@ export default function ForgotPasswordPage() {
           <button
             type="button"
             onClick={() => navigate("/login")}
-            className={secondaryButtonClass}
+            className={ tertiaryButtonClass }
           >
             Back to login
           </button>

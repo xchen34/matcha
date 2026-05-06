@@ -13,7 +13,7 @@ export default function GenderSelector({
           <span className="inline-flex items-center gap-1.5">
             <FiUser size={13} aria-hidden="true" />
             <span>
-              Gender<span className="text-red-600">*</span>
+              Gender<span className="text-primary-dark">*</span>
             </span>
           </span>
         </label>

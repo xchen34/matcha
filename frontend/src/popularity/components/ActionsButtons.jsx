@@ -12,10 +12,11 @@ export default function ActionButtons({
       <button
         type="button"
         onClick={() => navigate(`/users/${user.id}`)}
-        className="inline-flex items-center justify-center rounded-full border border-primary-medium bg-white px-2 sm:px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-primary-light"
+        className="inline-flex items-center justify-center rounded-full border border-primary-medium bg-white px-2 sm:px-3 py-1.5 text-xs font-semibold text-neutral-dark hover:bg-primary-light"
       >
         <FaUser size={12} aria-hidden="true" />
-        <span className="ml-1">View profile</span>
+        <span className="ml-1 sm:hidden">View</span>
+        <span className="ml-1 hidden sm:inline">View profile</span>
       </button>
       {mode === "matches" && (
         <button

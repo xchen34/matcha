@@ -8,7 +8,7 @@ export default function ProfileTags({ tags }) {
       <div className="mt-1 flex flex-wrap gap-2">
         {Array.isArray(tags) && tags.length > 0 ? (
           tags.map((tag) => (
-            <span key={tag} className="inline-flex items-center rounded-full bg-slate-900 px-2.5 py-1 text-xs text-white">
+            <span key={tag} className="inline-flex items-center rounded-full bg-primary-light px-2.5 py-1 text-xs text-primary-dark border border-primary-dark">
               {tag}
             </span>
           ))

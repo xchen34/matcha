@@ -13,11 +13,9 @@ import {
 } from "./hooks/api.js";
 import { useChatConversationRealtime } from "./hooks/useChatConversationRealtime.js";
 import { chatButtonClass, chatInputClass } from "../styles/UIClasses.jsx";
-import {
-  dateKey,
-  dedupeMessages,
-} from "./utils/messageFormat.js";
+import { dateKey, dedupeMessages} from "./utils/messageFormat.js";
 import { parseQuotedMessageContent } from "./hooks/quoteUtils.js";
+import { tertiaryButtonClass, deleteButtonClass } from "@/styles/UIClasses.jsx"
 
 const PAGE_SIZE = 18;
 const MAX_CHAT_MESSAGE_LENGTH = 500;
@@ -242,15 +240,43 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {!embedded && (
-            <button type="button" onClick={() => navigate("/messages")} className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-700">
-              <FiArrowLeft size={14} /> Back to inbox
-            </button>
-          )}
-          <button type="button" onClick={handleDeleteConversation} disabled={deletingConversation || !activeConversationId} className="inline-flex items-center gap-2 rounded-full border border-red-200 px-3 py-1 text-sm font-semibold text-red-700 disabled:opacity-60">
-            <FiTrash2 size={14} /> {deletingConversation ? "Deleting…" : "Delete chat"}
-          </button>
-        </div>
+
+  {!embedded && (
+    <button
+      type="button"
+      onClick={() => navigate("/messages")}
+      className={`${tertiaryButtonClass} h-8 px-2 text-xs sm:text-sm`}
+    >
+      <FiArrowLeft size={14} />
+
+      {/* mobile */}
+      <span className="sm:hidden">Back</span>
+
+      {/* desktop */}
+      <span className="hidden sm:inline">Back to inbox</span>
+    </button>
+  )}
+
+  <button
+    type="button"
+    onClick={handleDeleteConversation}
+    disabled={deletingConversation || !activeConversationId}
+    className={`${deleteButtonClass} h-8 px-2 text-xs sm:text-sm`}
+  >
+    <FiTrash2 size={14} />
+
+    {/* mobile */}
+    <span className="sm:hidden">
+      {deletingConversation ? "..." : "Delete"}
+    </span>
+
+    {/* desktop */}
+    <span className="hidden sm:inline">
+      {deletingConversation ? "Deleting…" : "Delete chat"}
+    </span>
+  </button>
+
+</div>
       </header>
 
       {error && <p className="text-sm text-amber-600">{error}</p>}
@@ -258,7 +284,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       <div ref={listRef} onScroll={(e) => {
         const el = e.currentTarget;
         if (el.scrollTop <= 32 && hasMore && !loadingMore) void loadOlder();
-      }} className="max-h-[360px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3">
+      }} className="max-h-[360px] overflow-y-auto rounded-lg border border-slate-200 bg-white p-3">
         {loading && <p className="text-sm text-slate-500">Loading messages...</p>}
         {loadingMore && <p className="text-xs text-slate-400">Loading older messages...</p>}
         {!loading && groupedMessages.length === 0 && (
@@ -293,12 +319,12 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
       {canSend && (
         <form onSubmit={handleSend} className="space-y-2">
           {quotedMessage && (
-            <div className="mb-2 flex items-center justify-between rounded-lg border-l-4 border-primary-dark bg-slate-50 p-2.5 text-xs text-slate-600 shadow-sm">
+            <div className="mb-2 flex items-center justify-between rounded-lg border border-l-4 border-primary-dark bg-primary-light p-2.5 text-xs text-slate-600 shadow-sm">
               <div className="flex-1 overflow-hidden pr-2">
-                <span className="block font-semibold text-brand mb-0.5">Replying to:</span>
+                <span className="block font-semibold text-primary-dark mb-0.5">Replying to:</span>
                 <p className="truncate opacity-80 break-all">{parseQuotedMessageContent(quotedMessage.content).replyText || quotedMessage.content}</p>
               </div>
-              <button type="button" onClick={() => setQuotedMessage(null)} className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition-colors">
+              <button type="button" onClick={() => setQuotedMessage(null)} className="text-primary-dark hover:text-primary-light p-1 rounded-full hover:bg-primary transition-colors">
                 <FiTrash2 size={16} />
               </button>
             </div>

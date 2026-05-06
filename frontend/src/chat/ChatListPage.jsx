@@ -6,6 +6,8 @@ import { REALTIME_EVENTS } from "../realtime/events.js";
 import { sanitizeText } from "../utils/xssEscape.js";
 import { fetchChatConversations } from "./hooks/api.js";
 import { formatQuotedMessagePreview } from "./hooks/quoteUtils.js";
+import { secondaryButtonClass } from "@/styles/UIClasses.jsx"
+
 
 const POLL_INTERVAL_MS = 15000;
 

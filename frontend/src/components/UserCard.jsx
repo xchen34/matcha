@@ -2,6 +2,7 @@ import { FaBan, FaHeart, FaUser, FaMapMarkerAlt, FaTags, FaStar, FaTransgender }
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { sanitizeText } from "../utils/xssEscape.js";
+import { actionButtonClass } from "@/styles/UIClasses.jsx";
 
 function UserCard({ user, currentUser, canLikeProfiles = true }) {
   const navigate = useNavigate();
@@ -217,22 +218,13 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         )}
 
         <div className="mt-auto pt-4">
-          <button
-            onClick={() => navigate(`/users/${user.id}`)}
-            className="
-              w-full rounded-xl
-              border border-primary-medium
-              bg-primary-light
-              px-3 py-2 text-sm font-semibold
-              text-primary
-              hover:bg-primary
-              hover:text-white
-              transition
-            "
-          >
-            View profile
-          </button>
-        </div>
+        <button
+          onClick={() => navigate(`/users/${user.id}`)}
+          className={`w-full ${actionButtonClass}`}
+        >
+          View profile
+        </button>
+      </div>
 
       </div>
     </div>
