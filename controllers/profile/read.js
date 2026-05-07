@@ -1,5 +1,5 @@
 const profileService = require("../../services/profileService");
-const { isUserOnline } = require("../../realtime/presence");
+const { isUserOnline } = require("../../services/presenceService");
 const { resolveCurrentUserId, isProfileCompleted, getAge } = require("./helpers");
 
 async function getMyProfile(req, res, next) {

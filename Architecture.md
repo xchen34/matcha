@@ -27,6 +27,97 @@ Matcha is a full-stack web application with three runtime layers:
 3. Backend emits realtime events via Socket.IO
 4. Frontend listens and updates UI instantly
 
+### Detailed Architecture Diagram
+
+```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 30, 'rankSpacing': 20, 'useMaxWidth': false}}}%%
+flowchart LR
+  user[User Browser]
+
+  subgraph FE[Frontend SPA — React + Vite + Tailwind]
+    direction TB
+    feApp["App.jsx<br/>auth state + route layout"]
+    feAuth["Auth pages<br/>login / register / reset / verify"]
+    feProfile["Profile pages<br/>my profile / user profile"]
+    feMatch["Discovery<br/>search / likes / matches"]
+    feChat["Chat UI<br/>conversation list / message view"]
+    feNotify["Notifications<br/>bell / list / unread state"]
+    feSocket["socket.io-client<br/>realtime connection"]
+  end
+
+  subgraph HTTP[Backend HTTP API — Node.js + Express]
+    direction TB
+    app["app.js<br/>middleware + routes"]
+    authRoute["routes/auth.js<br/>controllers/auth/*"]
+    profileRoute["routes/profile.js<br/>controllers/profile/*"]
+    likesRoute["routes/likes/*"]
+    chatsRoute["routes/chats/*"]
+    notifyRoute["routes/notifications.js"]
+    modRoute["routes/moderation.js"]
+    usersRoute["routes/users.js"]
+    healthRoute["routes/health.js<br/>routes/dbHealth.js"]
+    middleware["security middleware<br/>helmet / CORS / CSRF / rate limits"]
+    services["services/<br/>auth, profile, chat, like,<br/>notification, moderation, user, presence"]
+  end
+
+  subgraph RT[Realtime Layer — Socket.IO]
+    direction TB
+    rtIndex["realtime/index.js<br/>socket lifecycle + rooms"]
+    rtAuth["realtime/authToken.js<br/>socket auth token"]
+    rtPresence["realtime/presence.js<br/>online/offline tracking"]
+    rtEvents["realtime/events.js<br/>event names"]
+  end
+
+  subgraph DATA[Data & Background]
+    direction TB
+    db[(PostgreSQL)]
+    sql["scripts/sql<br/>schema + seed data"]
+    init["scripts/initDb.js<br/>database bootstrap"]
+  end
+
+  %% Layout: FE --> HTTP --> RT --> DATA to reduce long cross-links
+  user --> feApp
+  feApp --> feAuth & feProfile & feMatch & feChat & feNotify
+  feApp -- REST /api --> app
+  feSocket -- "Socket.IO" --> rtIndex
+
+  app --> middleware & authRoute & profileRoute & likesRoute & chatsRoute & notifyRoute & modRoute & usersRoute & healthRoute
+  authRoute --> services
+  profileRoute --> services
+  likesRoute --> services
+  chatsRoute --> services
+  notifyRoute --> services
+  modRoute --> services
+  usersRoute --> services
+
+  services --> db
+  init --> sql --> db
+
+  rtIndex --> rtAuth & rtPresence & rtEvents
+  rtPresence --> services
+
+  app -- HTTP JSON --> feApp
+  rtIndex -- presence / chat / notification events --> feSocket
+
+  classDef frontend fill:#0b1226,stroke:#2563eb,color:#e6f7ff;
+  classDef backend fill:#111827,stroke:#f97316,color:#e6f7ff;
+  classDef realtime fill:#0f172a,stroke:#7c3aed,color:#e6f7ff;
+  classDef data fill:#02140f,stroke:#10b981,color:#e6f7ff;
+
+  class feApp,feAuth,feProfile,feMatch,feChat,feNotify,feSocket frontend;
+  class app,authRoute,profileRoute,likesRoute,chatsRoute,notifyRoute,modRoute,usersRoute,healthRoute,middleware,services backend;
+  class rtIndex,rtAuth,rtPresence,rtEvents realtime;
+  class db,sql,init data;
+```
+
+### How To Read It
+
+- The frontend is split by user intent: authentication, profile management, discovery/matching, chat, and notifications.
+- The HTTP API is where most business rules live. Each route module delegates into feature-specific controllers and shared services.
+- The realtime layer is separate from REST. It handles socket auth, room membership, presence, and push-style updates for chat and notifications.
+- PostgreSQL is the single source of truth for users, profiles, likes, messages, notifications, blocks, and moderation state.
+- `scripts/initDb.js` and `scripts/sql/` define the schema and seed data used at bootstrap time.
+
 ---
 
 ## 2) Runtime Boot Sequence
@@ -243,7 +334,7 @@ Implemented controls include:
 | `realtime/authToken.js` | HMAC token creation and validation for websocket auth        |
 | `realtime/presence.js`  | Online/offline socket tracking and presence broadcasts       |
 
-### 8.4 Backend Routes
+### 8.4 Backend Route and Service Entry Points
 
 | File                             | Responsibility                                                                                     |
 | -------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -252,10 +343,11 @@ Implemented controls include:
 | `routes/users.js`                | Basic CRUD user endpoints (legacy/simple utility)                                                  |
 | `routes/auth.js`                 | Registration, login, email verification, email change, password reset, account deletion            |
 | `routes/profile.js`              | Profile read/update, tags, location/geocode, city suggestion APIs                                  |
-| `routes/likes.js`                | Views, likes, matches, discovery endpoint, like/unlike/match state handling                        |
-| `routes/chats.js`                | Conversations/messages APIs, message limits, read states, visibility deletions, block/match guards |
+| `routes/likes/index.js`          | Entry router for likes, views, matches, and discovery; delegates to `routes/likes/*`              |
+| `routes/chats/index.js`          | Entry router for conversations and messages; delegates to `routes/chats/*`                         |
 | `routes/notifications.js`        | Read and read-state management for notifications                                                   |
-| `routes/notificationsService.js` | Notification creation helper and realtime push                                                     |
+| `controllers/notifications/index.js` | Notification read endpoints and read-state handlers                                             |
+| `services/notificationService.js` | Notification creation helper and realtime push                                                     |
 | `routes/moderation.js`           | Fake report submission, block lifecycle, moderation status APIs                                    |
 
 ### 8.5 Backend Utilities

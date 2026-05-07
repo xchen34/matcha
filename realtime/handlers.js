@@ -1,5 +1,5 @@
 const { REALTIME_EVENTS } = require("./events");
-const { onSocketConnect, onSocketDisconnect } = require("./presence");
+const { onSocketConnect, onSocketDisconnect } = require("../services/presenceService");
 
 function parseTokenFromHandshake(socket) {
   const fromAuth = socket.handshake?.auth?.token;
@@ -46,10 +46,6 @@ function registerRealtimeSocketHandlers(io, socket) {
 
   socket.on("disconnect", () => {
     console.log(`[socket.disconnect] userId=${userId}, socketId=${socket.id}`);
-    onSocketDisconnect(io, userId, socket.id).catch(() => {});
-  });
-
-  socket.on("disconnect", () => {
     onSocketDisconnect(io, userId, socket.id).catch(() => {});
   });
 }

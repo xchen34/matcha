@@ -1,5 +1,5 @@
 const chatService = require("../../services/chatService");
-const { isUserOnline } = require("../../realtime/presence");
+const { isUserOnline } = require("../../services/presenceService");
 const { parsePositiveInt } = require("./helpers");
 
 async function getConversations(req, res, next) {

@@ -1,5 +1,5 @@
 const likeService = require("../../services/likeService");
-const { isUserOnline } = require("../../realtime/presence");
+const { isUserOnline } = require("../../services/presenceService");
 const { parseTagsQueryParam } = require("./helpers");
 
 function parseOptionalNumber(value) {
