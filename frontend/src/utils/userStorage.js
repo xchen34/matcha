@@ -25,3 +25,7 @@ export function readStoredUser() {
 export function writeStoredUser(user) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
 }
+
+export function clearStoredUser() {
+  localStorage.removeItem(STORAGE_KEY);
+}

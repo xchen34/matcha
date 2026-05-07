@@ -290,8 +290,6 @@ export default function ChatListPage({ currentUser, embedded = false }) {
 
   const emptyState = !loading && conversations.length === 0;
 
-
-
   return (
     <section className={embedded ? "space-y-4" : "space-y-6"}>
       {!embedded && (

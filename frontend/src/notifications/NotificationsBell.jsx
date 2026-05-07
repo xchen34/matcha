@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { sanitizeText } from "../utils/xssEscape.js";
 import { useNotifications } from "./hooks/useNotifications.js";
 import { createCardMessage, formatNotificationDateTime } from "./utils/notificationFormatters.js";
-import { BellRing, Eye, Heart, HeartCrack, Check, Bell } from "lucide-react"
+import { BellRing, Eye, Heart, HeartCrack, Check, Bell, Zap } from "lucide-react"
 
 function GroupTypeIcon({ type }) {
   if (type === "profile_view") {
@@ -15,12 +15,7 @@ function GroupTypeIcon({ type }) {
     return <HeartCrack className="h-5 w-5" aria-hidden="true" />;
   }
   if (type === "match") {
-    return (
-      <span className="relative inline-flex h-5 w-6 items-center justify-center" aria-hidden="true">
-        <Heart className="absolute left-0 h-4 w-4" />
-        <Heart className="absolute right-0 h-4 w-4" />
-      </span>
-    );
+    return <Zap className="h-5 w-5" aria-hidden="true" />;
   }
 
   return <Heart className="h-5 w-5" aria-hidden="true" />;

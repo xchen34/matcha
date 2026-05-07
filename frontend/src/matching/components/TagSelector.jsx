@@ -1,6 +1,6 @@
 export function TagSelector({ tags, selectedTags, onToggle }) {
   return (
-    <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-white/70 backdrop-blur border border-white/50 shadow-sm">
+    <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-white/70 backdrop-blur border border-slate shadow-sm">
       {tags.length === 0 ? (
         <span className="text-xs text-slate-500">No tags available.</span>
       ) : (

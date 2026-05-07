@@ -39,7 +39,10 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
 
     try {
       if (!liked && !canLikeProfiles) {
-        throw new Error("Add a profile picture first to like users.");
+        throw new Error("Add a profile photo first to like users.");
+      }
+      if (!user?.profile_photo_url && !user?.avatarUrl && !user?.primary_photo_url && !user?.photo_url) {
+        throw new Error("User has no profile photo");
       }
       const nextLiked = !liked;
 
@@ -191,7 +194,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
               {Math.floor(fameValue)}
             </span>
           )}
-
+          
         </div>
 
         {/* TAGS */}
@@ -217,15 +220,16 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           <p className="mt-2 text-xs text-error">{error}</p>
         )}
 
+        { /* VIEW PROFILE BUTTON */ }
         <div className="mt-auto pt-4">
-        <button
-          onClick={() => navigate(`/users/${user.id}`)}
-          className={`w-full ${actionButtonClass} inline-flex items-center justify-center`}
-        >
-          <Sparkle size={16} aria-hidden="true" className="mr-2" />
-          View profile
-        </button>
-      </div>
+          <button
+            onClick={() => navigate(`/users/${user.id}`)}
+            className={`w-full ${actionButtonClass} inline-flex items-center justify-center de`}
+          >
+            <Sparkle size={16} aria-hidden="true" className="mr-2" />
+            View profile
+          </button>
+        </div>
 
       </div>
     </div>

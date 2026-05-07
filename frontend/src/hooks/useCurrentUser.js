@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { buildApiHeaders } from "../utils.js";
 import { disconnectRealtime } from "../realtime/socket.js";
 import {
+  clearStoredUser,
   readStoredUser,
   writeStoredUser,
   STORAGE_KEY,
@@ -32,6 +33,48 @@ export function useCurrentUser() {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  // Validate the cached session against the backend
+  useEffect(() => {
+    let cancelled = false;
+
+    async function validateStoredSession() {
+      if (!currentUser?.id) {
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/profile/me", {
+          headers: buildApiHeaders(currentUser),
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        if (response.ok) {
+          return;
+        }
+
+        if ([401, 403, 404].includes(response.status)) {
+          disconnectRealtime();
+          clearStoredUser();
+          setCurrentUser(null);
+          if (location.pathname !== "/login") {
+            navigate("/login", { replace: true });
+          }
+        }
+      } catch {
+        // Keep the cached session if the backend is temporarily unreachable.
+      }
+    }
+
+    void validateStoredSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id, location.pathname, navigate]);
+
   function logout() {
     // Notify backend and disconnect realtime immediately
     console.log("[useCurrentUser] logout: calling disconnectRealtime");
@@ -50,7 +93,7 @@ export function useCurrentUser() {
     }
 
     // Clear local state
-    localStorage.removeItem(STORAGE_KEY);
+    clearStoredUser();
     setCurrentUser(null);
     navigate("/login", { replace: true });
   }

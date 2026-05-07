@@ -1,4 +1,4 @@
-import { Mail, PencilLine } from "lucide-react";
+import { Mail, PencilLine, Send, X } from "lucide-react";
 import { inputClass, primaryButtonClass, secondaryButtonClass } from "@/styles/UIClasses.jsx";
 
 export default function EmailChangeForm({
@@ -100,6 +100,7 @@ export default function EmailChangeForm({
               className={primaryButtonClass}
               disabled={emailChangeLoading}
             >
+              <Send size={13} aria-hidden="true" className="mr-1" />
               {emailChangeLoading ? "Sending..." : "Send verification email"}
             </button>
             <button
@@ -111,6 +112,7 @@ export default function EmailChangeForm({
               }}
               disabled={emailChangeLoading}
             >
+              <X size={13} aria-hidden="true" className="mr-1" />
               Cancel
             </button>
           </div>

@@ -45,7 +45,7 @@ export default function ChatConversationMessage({
         {quoteLines.length > 0 && (
         <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
             <div
-            className={`max-w-[68%] border-l-4 px-2 py-1 rounded-2xl text-sm break-words whitespace-pre-wrap
+            className={`max-w-[68%] border-l-4 px-2 py-1 rounded-2xl text-sm break-words whitespace-pre-wrap break-all
                 ${
                 isMine
                     ? "border border-primary-medium bg-primary-light text-primary-dark"
@@ -74,11 +74,11 @@ export default function ChatConversationMessage({
             }}
           >
             {normalLines.length > 0 ? (
-              <p className="whitespace-pre-wrap break-words">
+              <p className="whitespace-pre-wrap break-words break-all hyphens-auto">
                 {normalLines.join("\n").trim()}
               </p>
             ) : (
-              <p className="whitespace-pre-wrap break-words">
+              <p className="whitespace-pre-wrap break-words break-all hyphens-auto">
                 {msg.content}
               </p>
             )}

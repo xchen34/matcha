@@ -211,8 +211,11 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
   if (!currentUser) return <Navigate to="/login" replace />;
 
   return (
-    <section className="space-y-3">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+    <section className="h-full flex flex-col overflow-hidden">
+      {/* HEADER */}
+      <header className="shrink-0 flex flex-wrap items-center justify-between gap-3 mb-2">
+        
+        { /* NAVIGATE TO USER PROFILE */}
         <div className="flex items-center gap-3">
           <button 
             type="button" 
@@ -220,7 +223,9 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
             className="hover:opacity-75 transition-opacity"
           >
             <ChatAvatar name={conversation?.other_user?.username || "?"} photoUrl={conversation?.other_user?.primary_photo_url} isOnline={Boolean(conversation?.other_user?.is_online)} />
-          </button>
+          </button>  
+        
+          {/* USERNAME + STATUS */}
           <div>
             <h2 
               className="text-2xl font-bold text-neutral-dark cursor-pointer hover:text-slate-700 transition-colors"
@@ -229,67 +234,85 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
               {conversationTitle}
             </h2>
             {conversation?.blocked_by_you ? (
-              <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Blocked by you</span>
+              <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-1 py-[1px] text-[11px] font-medium text-red-700">
+                Blocked
+              </span>
             ) : conversation?.blocked_you ? (
-              <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Blocked you</span>
+              <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-1 py-[1px] text-[11px] font-medium text-red-700">
+                Blocked you
+              </span>
             ) : conversation?.is_match ? (
-              <span className="ml-1 rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">Matched</span>
+              <span className="ml-1 rounded-full border border-green-300 bg-green-100 px-1 py-[1px] text-[11px] font-medium text-green-700">
+                Matched
+              </span>
             ) : (
-              <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Unmatched</span>
+              <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-1 py-[1px] text-[11px] font-medium text-red-700">
+                Unmatched
+              </span>
             )}
           </div>
         </div>
+
+        {/* ACTIONS BUTTONS */}
         <div className="flex items-center gap-2">
+          {!embedded && (
+            <button
+              type="button"
+              onClick={() => navigate("/messages")}
+              className={`${tertiaryButtonClass} h-8 px-2 text-xs sm:text-sm`}
+            >
+              <MoveLeft size={14} />
 
-  {!embedded && (
-    <button
-      type="button"
-      onClick={() => navigate("/messages")}
-      className={`${tertiaryButtonClass} h-8 px-2 text-xs sm:text-sm`}
-    >
-      <MoveLeft size={14} />
-      {/* mobile */}
-      <span className="sm:hidden ml-1">Back</span>
+              {/* desktop */}
+              <span className="hidden sm:inline ml-1">Back to inbox</span>
+            </button>
+          )}
 
-      {/* desktop */}
-      <span className="hidden sm:inline ml-1">Back to inbox</span>
-    </button>
-  )}
+          <button
+            type="button"
+            onClick={handleDeleteConversation}
+            disabled={deletingConversation || !activeConversationId}
+            className={`${deleteButtonClass} h-8 px-2 text-xs sm:text-sm`}
+          >
+            <Trash2 size={14} />
 
-  <button
-    type="button"
-    onClick={handleDeleteConversation}
-    disabled={deletingConversation || !activeConversationId}
-    className={`${deleteButtonClass} h-8 px-2 text-xs sm:text-sm`}
-  >
-    <Trash2 size={14} />
+            {/* mobile */}
+            <span className="sm:hidden ml-1">
+              {deletingConversation ? "..." : "Delete"}
+            </span>
 
-    {/* mobile */}
-    <span className="sm:hidden ml-1">
-      {deletingConversation ? "..." : "Delete"}
-    </span>
+            {/* desktop */}
+            <span className="hidden sm:inline ml-1">
+              {deletingConversation ? "Deleting…" : "Delete chat"}
+            </span>
+          </button>
+        </div>
 
-    {/* desktop */}
-    <span className="hidden sm:inline ml-1">
-      {deletingConversation ? "Deleting…" : "Delete chat"}
-    </span>
-  </button>
-
-</div>
       </header>
 
+      { /* ERROR */}
       {error && <p className="text-sm text-primary-dark">{error}</p>}
 
+      {/* MESSAGES AREA (with scroll)*/}
       <div ref={listRef} onScroll={(e) => {
-        const el = e.currentTarget;
-        if (el.scrollTop <= 32 && hasMore && !loadingMore) void loadOlder();
-      }} className="max-h-[360px] overflow-y-auto rounded-lg border border-slate-200 bg-white p-3">
-        {loading && <p className="text-sm text-slate-500">Loading messages...</p>}
-        {loadingMore && <p className="text-xs text-slate-400">Loading older messages...</p>}
+          const el = e.currentTarget;
+          if (el.scrollTop <= 32 && hasMore && !loadingMore) void loadOlder();
+        }} 
+        className="max-h-[360px] overflow-y-auto rounded-lg border border-slate-200 bg-white p-3 mb-2"
+      >
+        {loading && <p className="text-sm text-slate-500">
+          Loading messages...
+        </p>}
+        {loadingMore && <p className="text-xs text-slate-400">
+          Loading older messages...
+        </p>}
         {!loading && groupedMessages.length === 0 && (
-          <p className="text-sm text-slate-500">You matched. Say hi to start the conversation.</p>
-        )}
-        <ul className="space-y-2">
+          <p className="text-sm text-slate-500">
+          You matched. Say hi to start the conversation.
+        </p>)}
+
+        { /* MESSAGE LIST */}
+        <ul className="space-y-2 w-full min-w-0">
           {groupedMessages.map(({ msg, showDay, isMine }) => (
             <ChatConversationMessage
               key={`msg-${msg.id}`}
@@ -315,8 +338,10 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
         </ul>
       </div>
 
+      { /* INPUT AREA */ }
       {canSend && (
-        <form onSubmit={handleSend} className="space-y-2">
+        <form onSubmit={handleSend} className="shrink-0 bg-white border-t">
+          
           {quotedMessage && (
             <div className="mb-2 flex items-center justify-between rounded-lg border border-l-4 border-primary-dark bg-primary-light p-2.5 text-xs text-slate-600 shadow-sm">
               <div className="flex-1 overflow-hidden pr-2">
@@ -328,7 +353,9 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
               </button>
             </div>
           )}
+
           <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} className={chatInputClass} placeholder="Write a message..." disabled={sending} maxLength={MAX_CHAT_MESSAGE_LENGTH} />
+          
           <div className="flex items-center justify-between mt-2">
             <span className={`text-xs font-medium ${body.length >= MAX_CHAT_MESSAGE_LENGTH ? "text-red-500" : "text-slate-400"}`}>
               {body.length}/{MAX_CHAT_MESSAGE_LENGTH}

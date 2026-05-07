@@ -1,4 +1,4 @@
-import { Flame, Users } from "lucide-react";
+import { Flame, Users, ImageIcon } from "lucide-react";
 
 function FindMatchHeader({ fameRating, canLikeProfiles }) {
   return (
@@ -6,9 +6,12 @@ function FindMatchHeader({ fameRating, canLikeProfiles }) {
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           {!canLikeProfiles && (
-            <p className="text-[11px] text-primary-dark leading-snug max-w-md">
-              Add a primary profile photo in your profile to enable likes.
-            </p>
+            <div className="flex items-center rounded-xl text-primary-dark text-center border border-primary/30 bg-primary-light px-2 py-1 shadow-sm gap-2">
+              <ImageIcon size={16} />
+              <p className="text-sm">
+                You must add a primary profile photo to enable likes.
+              </p>
+            </div>
           )}
 
           <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-neutral-dark">

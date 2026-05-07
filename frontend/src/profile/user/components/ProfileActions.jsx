@@ -79,10 +79,10 @@ export default function ProfileActions({
           <button
             type="button"
             onClick={() => { onOpenReport(); safeSetMenuOpen(false); }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-primary-light"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-amber-700 text-sm hover:bg-primary-light"
           >
               <BadgeAlert size={14} aria-hidden="true" />
-              <span>Report fake account</span>
+              <span >Report fake account</span>
           </button>
           {blockedUser ? (
             <button

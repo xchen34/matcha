@@ -12,7 +12,10 @@ function UserList({ users, mode, unreadUserSet, startingChatFor, startChatWith, 
         </div>
       ) : (
         users.map((user) => (
-          <div key={user.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <div key={user.id} className="relative flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
+            {unreadUserSet.has(String(user.id)) && (
+              <span className="absolute -left-2 -top-2 px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold uppercase">NEW</span>
+            )}
             <div className="flex items-center gap-3">
               <ChatAvatar
                 name={user.username}
@@ -23,9 +26,6 @@ function UserList({ users, mode, unreadUserSet, startingChatFor, startChatWith, 
               <div>
                 <p className="inline-flex items-center gap-2 font-semibold text-neutral-dark">
                   @{sanitizeText(user.username)}
-                  {unreadUserSet.has(String(user.id)) && (
-                    <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold uppercase">NEW</span>
-                  )}
                 </p>
                 
                 {/* Dynamique helper text */}

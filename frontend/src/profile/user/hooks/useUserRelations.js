@@ -51,7 +51,7 @@ export function useUserRelations(id, currentUser, profile) {
     if (!currentUser?.id) return;
 
     if (!liked && !canLikeProfiles) {
-      setLikeError("You must add a profile photo before liking users.");
+      setLikeError("You must add a primary profile photo to enable likes.");
       return;
     }
 

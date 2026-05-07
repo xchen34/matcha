@@ -15,7 +15,7 @@ import ProfileInfoGrid from "./components/ProfileInfoGrid.jsx";
 import ProfileBio from "./components/ProfileBio.jsx";
 import ProfileTags from "./components/ProfileTags.jsx";
 import { ProfilePhotosGrid } from "./components/ProfilePhotosGrid.jsx";
-import { Flame } from "lucide-react";
+import { Flame, ImageIcon } from "lucide-react";
 
 function UserProfilePage({ currentUser }) {
   const { id } = useParams();
@@ -93,6 +93,13 @@ function UserProfilePage({ currentUser }) {
   if (!data) return null;
 
   const { user, profile } = data;
+  
+  const hasProfilePhoto =
+    profile?.photos?.length > 0 ||
+    user?.profile_photo_url ||
+    user?.avatarUrl ||
+    user?.primary_photo_url ||
+    user?.photo_url;
 
   const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
   const isOwnProfile = String(currentUser?.id) === String(user.id);
@@ -109,6 +116,22 @@ function UserProfilePage({ currentUser }) {
     <section className={cardClass}>
       {/* HEADER */}
       <div className="space-y-1">
+        { /* */ }
+        {!canLikeProfiles && (
+          <div className="flex items-center rounded-xl text-primary-dark text-center border border-primary/30 bg-primary-light px-2 py-1 shadow-sm gap-2">
+            <ImageIcon size={16} />
+            <p className="text-sm">
+              You must add a primary profile photo to enable likes.
+            </p>
+          </div>
+        )}
+        {!hasProfilePhoto && (
+          <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary-light px-3 py-2 text-sm text-primary-dark">
+            <ImageIcon size={16} />
+            This user has no profile photo — you cannot like them.
+          </div>
+        )}
+
         <p className="text-xs uppercase tracking-[0.14em] text-primary-dark font-semibold">
           Profile
         </p>

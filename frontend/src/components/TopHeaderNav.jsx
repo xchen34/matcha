@@ -91,7 +91,23 @@ export function TopHeaderNav({
 
           {profileLocked ? (
             <NavLink to="/profile" className="group">
-              {({ isActive }) => navItem(<User size={18} />, "Complete Profile", "Profile", 0, isActive)}
+              <span className="relative inline-flex h-10 items-center justify-start rounded-full border border-primary bg-primary-medium text-white px-3 gap-1.5">
+
+                <span className="text-white">
+                  <User size={18} />
+                </span>
+
+                <span className="ml-2 font-medium whitespace-nowrap text-white">
+                  <span className="text-[11px] lg:hidden">
+                    Complete profile
+                  </span>
+
+                  <span className="hidden lg:inline text-xs">
+                    Complete profile to access features
+                  </span>
+                </span>
+
+              </span>
             </NavLink>
           ) : (
             <>
