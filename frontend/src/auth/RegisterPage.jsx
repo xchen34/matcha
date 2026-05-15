@@ -1,11 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { useRegister } from "./hooks/useRegister";
-import PasswordInput from "./components/PasswordInput";
-import { MIN_BIRTH_DATE_ISO } from "../utils/date.js";
-import { cardClass, inputClass,
-  primaryButtonClass, secondaryButtonClass,
-} from "../styles/UIClasses.jsx";
 import FormInput from "./components/FormInput";
+import PasswordInput from "./components/PasswordInput";
+import { MIN_BIRTH_DATE_ISO } from "@/utils/date.js";
+import { 
+  cardClass, 
+  inputClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from "@/styles/UIClasses.jsx";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -24,6 +27,7 @@ export default function RegisterPage() {
 
   return (
     <section className={cardClass}>
+      {/* ========== HEADER ========== */}
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.14em] text-primary-dark font-semibold">
           Get started
@@ -31,8 +35,10 @@ export default function RegisterPage() {
         <h2 className="text-2xl font-semibold text-neutral-dark">Register</h2>
       </div>
 
+      {/*  ========== REGISTER FORM ========== */}
       <form onSubmit={handleSubmit} className="space-y-3">
 
+        {/* EMAIL */}
         <FormInput
           label="Email address"
           name="email"
@@ -44,6 +50,7 @@ export default function RegisterPage() {
           required
         />
 
+        {/* USERNAME */}
         <FormInput
           label="Username"
           name="username"
@@ -56,6 +63,7 @@ export default function RegisterPage() {
           required
         />
 
+        {/* FIRST NAME */}
         <FormInput
           label="First name"
           name="first_name"
@@ -65,6 +73,7 @@ export default function RegisterPage() {
           required
         />
 
+        {/* LAST NAME */}
         <FormInput
           label="Last name"
           name="last_name"
@@ -74,6 +83,7 @@ export default function RegisterPage() {
           required
         />
 
+        {/* BIRTH DATE */}
         <FormInput
           label="Birth date"
           name="birth_date"
@@ -114,6 +124,7 @@ export default function RegisterPage() {
             required
           />
 
+          {/* INLINE VALIDATION  */}
           {form.confirmPassword &&
             form.password !== form.confirmPassword && (
               <p className="text-xs text-red-500">
@@ -138,11 +149,10 @@ export default function RegisterPage() {
         </div>
       </form>
 
-      {/* VERIFICATION PREVIEW */}
-      {message && (
-        <p className="text-sm text-slate-600">{message}</p>
-      )}
+      {/*  ========== MESSAGE ========== */}
+      {message && <p className="text-sm text-slate-600">{message}</p>}
 
+      {/*  ========== VERIFICATION LINKS ========== */}
       {previewUrl && (
         <p className="text-sm text-slate-700">
           Email preview:{" "}
@@ -171,6 +181,7 @@ export default function RegisterPage() {
         </p>
       )}
 
+      {/*  ========== EMAIL SENT PAGE LINK  ========== */}
       {(previewUrl || devVerifyUrl) && (
         <div className="pt-2">
           <div className="flex flex-wrap gap-2">

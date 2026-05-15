@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { buildApiHeaders } from "@/utils.js";
+import { buildApiHeaders } from "@/utils/utils.js";
 import { writeStoredUser } from "@/utils/userStorage.js";
 
 export default function useProfileData({
@@ -19,6 +19,7 @@ export default function useProfileData({
   const lastLoadedUserIdRef = useRef(null);
   const loadingRef = useRef(false);
 
+  /* ========= Load profile data from API and populate form ========== */
   const loadProfile = useCallback(async (options = {}) => {
     const { force = false } = options;
     if (!userId) {
@@ -27,21 +28,20 @@ export default function useProfileData({
       return;
     }
 
-    if (!force && loadingRef.current) {
-      return;
-    }
-    if (!force && lastLoadedUserIdRef.current === userId) {
-      return;
-    }
+    /* Prevent duplicate loads if already loading */
+    if (!force && loadingRef.current) return;
+    if (!force && lastLoadedUserIdRef.current === userId) return;
 
     loadingRef.current = true;
     setLoading(true);
     setMessage("");
 
     try {
-      const response = await fetch("/api/profile/me", {
-        headers: buildApiHeaders({ id: userId }),
-      });
+      const response = await fetch("/api/profile/me", 
+        {
+          headers: buildApiHeaders({ id: userId }),
+        }
+      );
       const data = await response.json();
 
       if (!response.ok) {
@@ -51,10 +51,10 @@ export default function useProfileData({
         if (response.status === 401) {
           setMessage("Not authorized. Please login again if needed.");
         }
-
         return;
       }
 
+      /* Set form fields using current values */
       setForm({
         username: data.user?.username || currentUsername,
         first_name: data.user?.first_name || "",
@@ -83,6 +83,7 @@ export default function useProfileData({
 
       setIsCityConfirmed(Boolean((data.profile.city || "").trim()));
 
+      /* If current user data is available, update it */
       if (data.user && typeof onProfileUpdate === "function") {
         const nextUser = {
           ...data.user,
@@ -123,11 +124,13 @@ export default function useProfileData({
     userId,
   ]);
 
+  /* ========= Load profile on mount and when userId changes ========== */
   useEffect(() => {
     lastLoadedUserIdRef.current = null;
     loadProfile();
   }, [loadProfile]);
 
+  /* ========= Load tag options for profile editing ========== */
   useEffect(() => {
     let cancelled = false;
 
@@ -152,7 +155,6 @@ export default function useProfileData({
         }
       }
     }
-
     fetchTagOptions();
 
     return () => {

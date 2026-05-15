@@ -61,3 +61,13 @@
   font-weight: 400;
   font-style: normal;
 }
+
+@keyframes bellSwing {
+  0%   { transform: rotate(0deg) translateX(0); }
+  15%  { transform: rotate(-10deg) translateX(-1px); }
+  30%  { transform: rotate(8deg) translateX(1px); }
+  45%  { transform: rotate(-6deg) translateX(-1px); }
+  60%  { transform: rotate(4deg) translateX(1px); }
+  75%  { transform: rotate(-2deg) translateX(0); }
+  100% { transform: rotate(0deg) translateX(0); }
+}

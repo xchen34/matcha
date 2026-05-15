@@ -1,3 +1,4 @@
+/* ========== Location Utilities ========== */
 export function normalizeLocationPrefix(value) {
   return (value || "")
     .trim()
@@ -6,6 +7,7 @@ export function normalizeLocationPrefix(value) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+/* ========== Validation cache key generation ========== */
 export function getValidationCacheKey(city, neighborhood, latitude, longitude) {
   return [
     normalizeLocationPrefix(city),

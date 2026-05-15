@@ -1,8 +1,10 @@
 const pool = require("../db");
 
+/* ========== Inserts a system message into the chat between 2 users ========== */
 async function insertSystemMessage(userA, userB, content) {
   const user1 = Math.min(userA, userB);
   const user2 = Math.max(userA, userB);
+
   // Find or create the conversation
   const convRes = await pool.query(
     `INSERT INTO chat_conversations (user_a_id, user_b_id)
@@ -11,6 +13,7 @@ async function insertSystemMessage(userA, userB, content) {
      RETURNING id`,
     [user1, user2],
   );
+  
   let conversationId;
   if (convRes.rows.length > 0) {
     conversationId = convRes.rows[0].id;
@@ -21,7 +24,9 @@ async function insertSystemMessage(userA, userB, content) {
     );
     conversationId = fetchRes.rows[0]?.id;
   }
+
   if (!conversationId) return;
+  
   // Insert the system message
   await pool.query(
     `INSERT INTO chat_messages (conversation_id, sender_user_id, recipient_user_id, content, is_read)

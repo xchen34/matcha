@@ -1,12 +1,96 @@
 const pool = require("../db");
 
 class ChatService {
+  /*  ========== Helpers  ========== */
+  async checkUserExists(userId) {
+    const result = await pool.query(
+      `SELECT 1 FROM users WHERE id = $1 LIMIT 1`,
+      [userId],
+    );
+    return result.rowCount > 0;
+  }
+
+  async checkMessageExistsAndValid(messageId, conversationId) {
+    const messageResult = await pool.query(
+      `
+      SELECT id, conversation_id, sender_user_id, recipient_user_id, content, created_at, is_read
+      FROM chat_messages
+      WHERE id = $1
+        AND conversation_id = $2
+      LIMIT 1
+      `,
+      [messageId, conversationId],
+    );
+    return messageResult.rowCount > 0;
+  }
+
+  async checkConversationValidAndUndeleted(userId, conversationId) {
+    const conversationResult = await pool.query(
+      `
+      SELECT id, user_a_id, user_b_id,
+        CASE
+          WHEN user_a_id = $1 THEN user_b_id
+          ELSE user_a_id
+        END AS other_user_id
+      FROM chat_conversations
+      WHERE id = $2
+        AND $1 IN (user_a_id, user_b_id)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM chat_deleted_conversations cdc
+          WHERE cdc.user_id = $1
+            AND cdc.conversation_id = chat_conversations.id
+        )
+      LIMIT 1
+      `,
+      [userId, conversationId],
+    );
+    return conversationResult.rowCount > 0 ? conversationResult.rows[0] : null;
+  }
+
+  /*  ========== Conversations  ========== */
   async getConversationParticipants(conversationId) {
     const result = await pool.query(
       `SELECT user_a_id, user_b_id FROM chat_conversations WHERE id = $1 LIMIT 1`,
       [conversationId],
     );
     return result.rowCount > 0 ? result.rows[0] : null;
+  }
+
+  async findOrCreateConversation(userA, userB) {
+    const normalizedA = Math.min(userA, userB);
+    const normalizedB = Math.max(userA, userB);
+    const result = await pool.query(
+      `
+      WITH inserted AS (
+        INSERT INTO chat_conversations (user_a_id, user_b_id)
+        VALUES ($1, $2)
+        ON CONFLICT (user_a_id, user_b_id) DO NOTHING
+        RETURNING id
+      )
+      SELECT id FROM inserted
+      UNION ALL
+      SELECT id FROM chat_conversations WHERE user_a_id = $1 AND user_b_id = $2
+      LIMIT 1
+      `,
+      [normalizedA, normalizedB],
+    );
+    const conversationId = result.rows[0]?.id;
+    if (!conversationId) {
+      return null;
+    }
+
+    // Reopening a conversation should make it visible again for both participants.
+    await pool.query(
+      `
+      DELETE FROM chat_deleted_conversations
+      WHERE conversation_id = $1
+        AND user_id IN ($2, $3)
+      `,
+      [conversationId, normalizedA, normalizedB],
+    );
+
+    return conversationId;
   }
 
   async markConversationDeleted(userId, conversationId) {
@@ -39,6 +123,140 @@ class ChatService {
     }
   }
 
+  /*  ========== Messages  ========== */
+  async insertMessageAndUpdateLastMessageAt(senderId, recipientId, content) {
+    const userA = Math.min(senderId, recipientId);
+    const userB = Math.max(senderId, recipientId);
+
+    const conversationResult = await pool.query(
+      `
+      INSERT INTO chat_conversations (user_a_id, user_b_id, last_message_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (user_a_id, user_b_id)
+      DO UPDATE SET last_message_at = NOW()
+      RETURNING id
+      `,
+      [userA, userB],
+    );
+
+    const conversationId = conversationResult.rows[0].id;
+
+    await pool.query(
+      `
+      DELETE FROM chat_deleted_conversations
+      WHERE conversation_id = $1
+        AND user_id IN ($2, $3)
+      `,
+      [conversationId, senderId, recipientId],
+    );
+
+    const insertResult = await pool.query(
+      `
+      INSERT INTO chat_messages (conversation_id, sender_user_id, recipient_user_id, content)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, conversation_id, sender_user_id, recipient_user_id, content, created_at, is_read
+      `,
+      [conversationId, senderId, recipientId, content],
+    );
+
+    return {
+      conversationId,
+      message: insertResult.rows[0],
+    };
+  }
+
+  async getMessages(userId, conversationId, limit, offset) {
+    const historyResult = await pool.query(
+      `
+      SELECT id, sender_user_id, recipient_user_id, content, created_at, is_read
+      FROM chat_messages
+      WHERE conversation_id = $1
+        AND NOT EXISTS (
+          SELECT 1
+          FROM chat_deleted_messages cdm
+          WHERE cdm.user_id = $4
+            AND cdm.message_id = chat_messages.id
+        )
+      ORDER BY created_at DESC, id DESC
+      LIMIT $2
+      OFFSET $3
+      `,
+      [conversationId, limit + 1, offset, userId],
+    );
+    return historyResult.rows;
+  }
+
+  async deleteMessage(userId, messageId, conversationId) {
+    await pool.query(
+      `
+      INSERT INTO chat_deleted_messages (user_id, message_id, conversation_id, deleted_at)
+      VALUES ($1, $2, $3, NOW())
+      ON CONFLICT (user_id, message_id)
+      DO UPDATE SET deleted_at = EXCLUDED.deleted_at
+      `,
+      [userId, messageId, conversationId],
+    );
+  }
+
+  async markMessagesAsRead(userId, conversationId) {
+    const updateResult = await pool.query(
+      `
+      UPDATE chat_messages
+      SET is_read = TRUE
+      WHERE conversation_id = $1
+        AND recipient_user_id = $2
+        AND NOT is_read
+        AND NOT EXISTS (
+          SELECT 1
+          FROM chat_deleted_messages cdm
+          WHERE cdm.user_id = $2
+            AND cdm.message_id = chat_messages.id
+        )
+      `,
+      [conversationId, userId],
+    );
+    return updateResult.rowCount || 0;
+  }
+
+  async markSingleMessageAsReadAndReturn(messageId) {
+    const readResult = await pool.query(
+      `
+        UPDATE chat_messages
+        SET is_read = TRUE
+        WHERE id = $1
+        RETURNING id, conversation_id, sender_user_id, recipient_user_id, content, created_at, is_read
+        `,
+      [messageId],
+    );
+    return readResult.rows[0];
+  }
+
+  /*  ========== Other User Details for Conversations List  ========== */
+  async getOtherUserDetails(otherUserId) {
+    const otherUserResult = await pool.query(
+      `
+      SELECT
+      id,
+      username,
+      first_name,
+      last_name,
+      (
+        SELECT up.data_url
+        FROM user_photos up
+        WHERE up.user_id = users.id
+        ORDER BY up.is_primary DESC, up.id ASC
+        LIMIT 1
+        ) AS primary_photo_url
+        FROM users
+        WHERE id = $1
+        LIMIT 1
+        `,
+        [otherUserId],
+      );
+      return otherUserResult.rowCount > 0 ? otherUserResult.rows[0] : null;
+    }
+    
+  /*  ========== Conversations List  ========== */
   async getConversationsList(userId) {
     const sql = `
       WITH user_conversations AS (
@@ -126,218 +344,7 @@ class ChatService {
     return result.rows;
   }
 
-  async findOrCreateConversation(userA, userB) {
-    const normalizedA = Math.min(userA, userB);
-    const normalizedB = Math.max(userA, userB);
-    const result = await pool.query(
-      `
-      WITH inserted AS (
-        INSERT INTO chat_conversations (user_a_id, user_b_id)
-        VALUES ($1, $2)
-        ON CONFLICT (user_a_id, user_b_id) DO NOTHING
-        RETURNING id
-      )
-      SELECT id FROM inserted
-      UNION ALL
-      SELECT id FROM chat_conversations WHERE user_a_id = $1 AND user_b_id = $2
-      LIMIT 1
-      `,
-      [normalizedA, normalizedB],
-    );
-    const conversationId = result.rows[0]?.id;
-    if (!conversationId) {
-      return null;
-    }
-
-    // Reopening a conversation should make it visible again for both participants.
-    await pool.query(
-      `
-      DELETE FROM chat_deleted_conversations
-      WHERE conversation_id = $1
-        AND user_id IN ($2, $3)
-      `,
-      [conversationId, normalizedA, normalizedB],
-    );
-
-    return conversationId;
-  }
-
-  async checkMessageExistsAndValid(messageId, conversationId) {
-    const messageResult = await pool.query(
-      `
-      SELECT id, conversation_id, sender_user_id, recipient_user_id, content, created_at, is_read
-      FROM chat_messages
-      WHERE id = $1
-        AND conversation_id = $2
-      LIMIT 1
-      `,
-      [messageId, conversationId],
-    );
-    return messageResult.rowCount > 0;
-  }
-
-  async deleteMessage(userId, messageId, conversationId) {
-    await pool.query(
-      `
-      INSERT INTO chat_deleted_messages (user_id, message_id, conversation_id, deleted_at)
-      VALUES ($1, $2, $3, NOW())
-      ON CONFLICT (user_id, message_id)
-      DO UPDATE SET deleted_at = EXCLUDED.deleted_at
-      `,
-      [userId, messageId, conversationId],
-    );
-  }
-
-  async checkConversationValidAndUndeleted(userId, conversationId) {
-    const conversationResult = await pool.query(
-      `
-      SELECT id, user_a_id, user_b_id,
-        CASE
-          WHEN user_a_id = $1 THEN user_b_id
-          ELSE user_a_id
-        END AS other_user_id
-      FROM chat_conversations
-      WHERE id = $2
-        AND $1 IN (user_a_id, user_b_id)
-        AND NOT EXISTS (
-          SELECT 1
-          FROM chat_deleted_conversations cdc
-          WHERE cdc.user_id = $1
-            AND cdc.conversation_id = chat_conversations.id
-        )
-      LIMIT 1
-      `,
-      [userId, conversationId],
-    );
-    return conversationResult.rowCount > 0 ? conversationResult.rows[0] : null;
-  }
-
-  async getOtherUserDetails(otherUserId) {
-    const otherUserResult = await pool.query(
-      `
-      SELECT
-        id,
-        username,
-        first_name,
-        last_name,
-        (
-          SELECT up.data_url
-          FROM user_photos up
-          WHERE up.user_id = users.id
-          ORDER BY up.is_primary DESC, up.id ASC
-          LIMIT 1
-        ) AS primary_photo_url
-      FROM users
-      WHERE id = $1
-      LIMIT 1
-      `,
-      [otherUserId],
-    );
-    return otherUserResult.rowCount > 0 ? otherUserResult.rows[0] : null;
-  }
-
-  async markMessagesAsRead(userId, conversationId) {
-    const updateResult = await pool.query(
-      `
-      UPDATE chat_messages
-      SET is_read = TRUE
-      WHERE conversation_id = $1
-        AND recipient_user_id = $2
-        AND NOT is_read
-        AND NOT EXISTS (
-          SELECT 1
-          FROM chat_deleted_messages cdm
-          WHERE cdm.user_id = $2
-            AND cdm.message_id = chat_messages.id
-        )
-      `,
-      [conversationId, userId],
-    );
-    return updateResult.rowCount || 0;
-  }
-
-  async markSingleMessageAsReadAndReturn(messageId) {
-    const readResult = await pool.query(
-      `
-        UPDATE chat_messages
-        SET is_read = TRUE
-        WHERE id = $1
-        RETURNING id, conversation_id, sender_user_id, recipient_user_id, content, created_at, is_read
-        `,
-      [messageId],
-    );
-    return readResult.rows[0];
-  }
-
-  async getMessages(userId, conversationId, limit, offset) {
-    const historyResult = await pool.query(
-      `
-      SELECT id, sender_user_id, recipient_user_id, content, created_at, is_read
-      FROM chat_messages
-      WHERE conversation_id = $1
-        AND NOT EXISTS (
-          SELECT 1
-          FROM chat_deleted_messages cdm
-          WHERE cdm.user_id = $4
-            AND cdm.message_id = chat_messages.id
-        )
-      ORDER BY created_at DESC, id DESC
-      LIMIT $2
-      OFFSET $3
-      `,
-      [conversationId, limit + 1, offset, userId],
-    );
-    return historyResult.rows;
-  }
-
-  async checkUserExists(userId) {
-    const result = await pool.query(
-      `SELECT 1 FROM users WHERE id = $1 LIMIT 1`,
-      [userId],
-    );
-    return result.rowCount > 0;
-  }
-
-  async insertMessageAndUpdateLastMessageAt(senderId, recipientId, content) {
-    const userA = Math.min(senderId, recipientId);
-    const userB = Math.max(senderId, recipientId);
-
-    const conversationResult = await pool.query(
-      `
-      INSERT INTO chat_conversations (user_a_id, user_b_id, last_message_at)
-      VALUES ($1, $2, NOW())
-      ON CONFLICT (user_a_id, user_b_id)
-      DO UPDATE SET last_message_at = NOW()
-      RETURNING id
-      `,
-      [userA, userB],
-    );
-
-    const conversationId = conversationResult.rows[0].id;
-
-    await pool.query(
-      `
-      DELETE FROM chat_deleted_conversations
-      WHERE conversation_id = $1
-        AND user_id IN ($2, $3)
-      `,
-      [conversationId, senderId, recipientId],
-    );
-
-    const insertResult = await pool.query(
-      `
-      INSERT INTO chat_messages (conversation_id, sender_user_id, recipient_user_id, content)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id, conversation_id, sender_user_id, recipient_user_id, content, created_at, is_read
-      `,
-      [conversationId, senderId, recipientId, content],
-    );
-
-    return {
-      conversationId,
-      message: insertResult.rows[0],
-    };
-  }
+  /*  ========== Connection Status  ========== */
   async fetchConnectionStatus(userA, userB) {
     const result = await pool.query(
       `

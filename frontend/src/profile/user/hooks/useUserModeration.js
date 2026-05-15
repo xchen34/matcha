@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { buildApiHeaders } from "@/utils.js";
+import { buildApiHeaders } from "@/utils/utils.js";
 
 export function useUserModeration(id, currentUser, profileData) {
   const [reportedFake, setReportedFake] = useState(false);
@@ -9,11 +9,13 @@ export function useUserModeration(id, currentUser, profileData) {
   const [unblocking, setUnblocking] = useState(false);
   const [reporting, setReporting] = useState(false);
 
+  /* ========== Update moderation state based on profile data ========== */
   useEffect(() => {
     setReportedFake(Boolean(profileData?.relation?.reported_fake_by_me));
     setBlockedUser(Boolean(profileData?.relation?.blocked_by_you));
   }, [profileData]);
 
+  /* ====== Block a user ====== */
   async function blockUser() {
     setBlocking(true);
     try {
@@ -28,6 +30,7 @@ export function useUserModeration(id, currentUser, profileData) {
     }
   }
 
+  /* ====== Unblock an user ====== */
   async function unblockUser() {
     setUnblocking(true);
     try {
@@ -42,6 +45,7 @@ export function useUserModeration(id, currentUser, profileData) {
     }
   }
 
+  /* ====== Report fake user ====== */
   async function reportFake(reason) {
     setReporting(true);
 

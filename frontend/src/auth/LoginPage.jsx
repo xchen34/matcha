@@ -1,14 +1,19 @@
 import { NavLink } from "react-router-dom";
-import PasswordInput from "./components/PasswordInput";
 import { useLogin } from "./hooks/useLogin";
-import { cardClass, inputClass, primaryButtonClass, secondaryButtonClass } from "../styles/UIClasses.jsx";
 import FormInput from "./components/FormInput";
+import PasswordInput from "./components/PasswordInput";
+import { 
+  cardClass, 
+  inputClass, 
+  primaryButtonClass
+} from "@/styles/UIClasses.jsx";
 
 export default function LoginPage({ onLogin }) {
   const { form, message, handleChange, handleSubmit } = useLogin(onLogin);
 
   return (
     <section className={cardClass}>
+      {/*========== HEADER ==========*/}
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.14em] text-primary-dark font-semibold">
           Welcome back
@@ -16,6 +21,7 @@ export default function LoginPage({ onLogin }) {
         <h2 className="text-2xl font-semibold text-neutral-dark">Login</h2>
       </div>
 
+      {/*========== FORM ==========*/}
       <form onSubmit={handleSubmit} className="space-y-3">
 
         {/* USERNAME */}
@@ -49,7 +55,7 @@ export default function LoginPage({ onLogin }) {
           Login
         </button>
 
-        {/* FORGOT */}
+        {/* FORGOT PASSWORD */}
         <div className="text-right">
           <NavLink
             to="/forgot-password"
@@ -60,7 +66,7 @@ export default function LoginPage({ onLogin }) {
         </div>
       </form>
 
-      {/* MESSAGE */}
+      {/*========== MESSAGE ==========*/}
       {message && <p className="text-sm text-slate-600">{message}</p>}
     </section>
   );

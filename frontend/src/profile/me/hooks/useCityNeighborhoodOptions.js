@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { buildApiHeaders } from "@/utils.js";
+import { buildApiHeaders } from "@/utils/utils.js";
 import { normalizeLocationPrefix } from "@/utils/locationUtils.js";
 
 export default function useCityNeighborhoodOptions({
@@ -16,12 +16,14 @@ export default function useCityNeighborhoodOptions({
     let cancelled = false;
 
     async function loadCityNeighborhoods() {
+      /* Exit if prerequisites are not met */
       if (!userId || !hasCityInput || !isCitySelected) {
         setCityNeighborhoodOptions([]);
         setLoadingNeighborhoods(false);
         return;
       }
 
+      /* Check cache first */
       const cityCacheKey = normalizeLocationPrefix(form.city);
       const cached = cityNeighborhoodCacheRef.current.get(cityCacheKey);
       if (cached) {
@@ -38,13 +40,17 @@ export default function useCityNeighborhoodOptions({
 
         const response = await fetch(
           `/api/profile/city-neighborhoods?${params.toString()}`,
-          { headers: buildApiHeaders({ id: userId }) },
+          { 
+            headers: buildApiHeaders({ id: userId }) 
+          },
         );
+        
         const data = await response.json();
         if (!response.ok || cancelled) {
           return;
         }
 
+        /* Transform API response into options format */
         const options = Array.isArray(data.neighborhoods)
           ? data.neighborhoods.map((item) => ({
               value: item.name,

@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { buildApiHeaders } from "../utils.js";
-import { disconnectRealtime } from "../realtime/socket.js";
-import {
-  clearStoredUser,
-  readStoredUser,
-  writeStoredUser,
-  STORAGE_KEY,
-} from "../utils/userStorage.js";
+import { disconnectRealtime } from "@/realtime/socket.js";
+import { buildApiHeaders } from "@/utils/utils.js";
+import { clearStoredUser, readStoredUser } from "@/utils/userStorage.js";
 
 export function useCurrentUser() {
   const navigate = useNavigate();
@@ -19,21 +14,21 @@ export function useCurrentUser() {
   );
   const isLoginPage = location.pathname === "/login";
 
-  // Redirect logged-in users away from login page
+  /* ========== Redirect logic on user state change ========== */
   useEffect(() => {
     if (currentUser && isLoginPage) {
       navigate(isProfileLocked ? "/profile" : "/find-match", { replace: true });
     }
   }, [currentUser, isProfileLocked, isLoginPage, navigate]);
 
-  // Sync storage across tabs/windows
+  /* ========== Sync user state across tabs ========== */
   useEffect(() => {
     const onStorage = () => setCurrentUser(readStoredUser());
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  // Validate the cached session against the backend
+  /* ========== Validate the cached session against the backend ========== */
   useEffect(() => {
     let cancelled = false;
 
@@ -43,22 +38,20 @@ export function useCurrentUser() {
       }
 
       try {
-        const response = await fetch("/api/profile/me", {
-          headers: buildApiHeaders(currentUser),
-        });
+        const response = await fetch("/api/profile/me", 
+          {
+            headers: buildApiHeaders(currentUser),
+          }
+        );
 
-        if (cancelled) {
-          return;
-        }
-
-        if (response.ok) {
-          return;
-        }
+        if (cancelled) return;
+        if (response.ok) return;
 
         if ([401, 403, 404].includes(response.status)) {
           disconnectRealtime();
           clearStoredUser();
           setCurrentUser(null);
+
           if (location.pathname !== "/login") {
             navigate("/login", { replace: true });
           }
@@ -75,8 +68,8 @@ export function useCurrentUser() {
     };
   }, [currentUser?.id, location.pathname, navigate]);
 
+  /* ========== Logout function ========== */
   function logout() {
-    // Notify backend and disconnect realtime immediately
     console.log("[useCurrentUser] logout: calling disconnectRealtime");
     disconnectRealtime();
 
@@ -84,20 +77,22 @@ export function useCurrentUser() {
     if (currentUser?.id) {
       fetch("/api/auth/logout", {
         method: "POST",
-        headers: buildApiHeaders(currentUser, {
+        headers: buildApiHeaders(currentUser, 
+          {
           "Content-Type": "application/json",
-        }),
+          }
+        ),
       }).catch(() => {
         // ignore errors - logout succeeds even if API call fails
       });
     }
-
     // Clear local state
     clearStoredUser();
     setCurrentUser(null);
     navigate("/login", { replace: true });
   }
 
+  /* ========== Delete account ========== */
   async function handleDeleteAccount() {
     if (!currentUser?.id) return;
 
@@ -110,14 +105,16 @@ export function useCurrentUser() {
     if (password === null) return;
 
     try {
-      const response = await fetch("/api/auth/delete-account", {
-        method: "DELETE",
-        headers: buildApiHeaders(
-          { id: currentUser.id },
-          { "Content-Type": "application/json" },
-        ),
-        body: JSON.stringify({ password, email: currentUser.email || "" }),
-      });
+      const response = await fetch("/api/auth/delete-account", 
+        {
+          method: "DELETE",
+          headers: buildApiHeaders(
+            { id: currentUser.id },
+            { "Content-Type": "application/json" },
+          ),
+          body: JSON.stringify({ password, email: currentUser.email || "" }),
+        }
+      );
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {

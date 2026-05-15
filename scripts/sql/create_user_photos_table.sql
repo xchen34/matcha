@@ -1,3 +1,4 @@
+-- Create user photos table to store user profile pictures
 CREATE TABLE IF NOT EXISTS user_photos (
   id BIGSERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
@@ -6,6 +7,7 @@ CREATE TABLE IF NOT EXISTS user_photos (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Unique constraint to ensure only one primary photo per user
 CREATE UNIQUE INDEX IF NOT EXISTS user_photos_primary_key
 ON user_photos (user_id)
 WHERE is_primary = TRUE;

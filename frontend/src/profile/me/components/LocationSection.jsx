@@ -1,4 +1,4 @@
-import { MapPin, Navigation, PencilLine } from "lucide-react";
+import { LoaderCircle, MapPin, Navigation, PencilLine } from "lucide-react";
 import { secondaryButtonClass, inputClass, selectClass } from "@/styles/UIClasses.jsx";
 
 export default function LocationSection({
@@ -44,6 +44,7 @@ export default function LocationSection({
           I consent to GPS-based location
         </label>
 
+        {/* Use current location button */}
         <button
           type="button"
           className={"text-primary-dark font-semibold border border-primary rounded-full px-2 py-1 text-xs cusrsor-pointer hover:scale-105"}
@@ -56,6 +57,7 @@ export default function LocationSection({
           </span>
         </button>
 
+        {/* GPS consent info text */}
         {!form.gps_consent ? (
           <span className="text-xs text-slate-500">
             Enable GPS consent to auto-fill your location.
@@ -73,6 +75,7 @@ export default function LocationSection({
         {/* CITY */}
         <div className="space-y-1">
           <div className="relative flex gap-2">
+            {/* City input */}
             <input
               name="city"
               placeholder="City"
@@ -90,6 +93,7 @@ export default function LocationSection({
               required
             />
 
+            {/* Edit button */}
             {(isNeighborhoodSelected || form.gps_consent) && (
               <button
                 type="button"
@@ -101,6 +105,7 @@ export default function LocationSection({
               </button>
             )}
 
+            {/* City autocomplete suggestions */}
             {isCitySuggestionsOpen && cityAutocompleteOptions.length > 0 && (
               <div className="absolute left-0 right-0 top-full z-50 rounded-b-xl border border-t-0 border-slate-200 bg-white shadow-lg pointer-events-auto">
                 {cityAutocompleteOptions.map((option) => (
@@ -121,6 +126,7 @@ export default function LocationSection({
             )}
           </div>
 
+          {/* City validation status */}
           {(form.city || "").trim().length > 0 && !isNeighborhoodSelected && (
             <p
               className={`text-xs ${
@@ -129,14 +135,20 @@ export default function LocationSection({
                   : "text-primary-dark"
               }`}
             >
-              {validatingLocation
-                ? "Checking city..."
-                : locationValidation?.city_exists
-                ? "✓ City verified"
-                : "City not verified yet"}
+              {validatingLocation ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <LoaderCircle size={12} className="animate-spin" aria-hidden="true" />
+                  Checking city...
+                </span>
+              ) : locationValidation?.city_exists ? (
+                "✓ City verified"
+              ) : (
+                "City not verified yet"
+              )}
             </p>
           )}
 
+          {/* Neighborhood validation status (only if city is selected) */}
           {isNeighborhoodSelected && (
             <p className="text-xs text-emerald-700">
               ✓ {form.city} - confirmed
@@ -146,6 +158,7 @@ export default function LocationSection({
 
         {/* NEIGHBORHOOD */}
         <div className="space-y-1">
+          {/* Dropdown select for neighborhood, disabled if no city selected */}
           <div className="relative">
             <select
               name="neighborhood"
@@ -166,6 +179,8 @@ export default function LocationSection({
                   ? "Select neighborhood (optional)"
                   : "Select a valid city first"}
               </option>
+
+              {/* Map neighborhood options */}
               {neighborhoodByCityOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -174,6 +189,7 @@ export default function LocationSection({
             </select>
           </div>
 
+          {/* Helper texts based on neighborhood selection status */}
           {!hasCityInput && (
             <p className="text-xs text-slate-500">
               Enter a city first to unlock neighborhood.
@@ -189,11 +205,17 @@ export default function LocationSection({
           {isCitySelected && neighborhoodByCityOptions.length === 0 && (
             <p className="text-xs text-slate-500">
               {loadingNeighborhoods
-                ? "Loading neighborhoods..."
+                ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <LoaderCircle size={12} className="animate-spin" aria-hidden="true" />
+                    Loading neighborhoods...
+                  </span>
+                )
                 : "No neighborhoods available yet for this city."}
             </p>
           )}
 
+          {/* Neighborhood validation status */}
           {(form.neighborhood || "").trim().length > 0 && (
             <p
               className={`text-xs ${
@@ -210,6 +232,7 @@ export default function LocationSection({
             </p>
           )}
 
+          {/* Helper text for neighborhood selection*/}
           {isCitySelected && !isNeighborhoodSelected && (
             <p className="text-xs text-slate-500">
               Neighborhood is optional, but helps with better precision.

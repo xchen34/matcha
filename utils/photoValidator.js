@@ -1,8 +1,3 @@
-/**
- * Photo validation utilities for secure file handling
- * Used by both backend routes and frontend components
- */
-
 let imageType;
 
 async function getImageType(buffer) {
@@ -13,7 +8,7 @@ async function getImageType(buffer) {
   return imageType(buffer);
 }
 
-// Allowed MIME types for photos (whitelist)
+/* ========== Allowed MIME types for photos (whitelist) ========== */
 const ALLOWED_PHOTO_MIMES = new Set([
   "image/jpeg",
   "image/jpg",
@@ -26,11 +21,7 @@ const MAX_PHOTO_SIZE_BYTES = 300 * 1024; // 300KB per photo
 const MAX_PHOTOS_COUNT = 5;
 const MAX_TOTAL_PHOTOS_SIZE_BYTES = MAX_PHOTO_SIZE_BYTES * MAX_PHOTOS_COUNT; // 1500KB total for 5 photos
 
-/**
- * Validate MIME type from a data URL string
- * @param {string} dataUrl - Base64 data URL (e.g., "data:image/jpeg;base64,...")
- * @returns {Object} { valid: boolean, mimeType?: string, error?: string }
- */
+/* ========== Validate MIME type from a data URL string ========== */
 function validatePhotoMimeType(dataUrl) {
   // Extract MIME type from data URL format: data:image/jpeg;base64,...
   const match = dataUrl.match(/^data:([a-z0-9\-+]+\/[a-z0-9\-+]+);base64,/i);
@@ -52,11 +43,7 @@ function validatePhotoMimeType(dataUrl) {
   return { valid: true, mimeType };
 }
 
-/**
- * Validate and normalize photos array for database storage
- * @param {Array} photos - Array of photo objects { data_url, is_primary }
- * @returns {Object} { photos?: Array, error?: string }
- */
+/* ========== Validate and normalize photos array for database storage ========== */
 async function normalizePhotosInput(photos) {
   if (photos === undefined) return null;
   if (!Array.isArray(photos)) return null;

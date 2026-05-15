@@ -6,12 +6,14 @@ export default function PasswordInput({ className = "", ...props }) {
 
   return (
     <div className="relative">
+      {/* Password input */}
       <input
         {...props}
         type={show ? "text" : "password"}
         className={`${className} pr-12`}
       />
 
+      {/* Show/hide toggle */}
       <button
         type="button"
         onClick={() => setShow((prev) => !prev)}

@@ -22,6 +22,7 @@ export default function useProfileFormState() {
 
   const [loading, setLoading] = useState(true);
 
+  // Check presence of required fields for validation and submission
   const hasUsername = (form.username || "").trim().length > 0;
   const hasFirstName = (form.first_name || "").trim().length > 0;
   const hasLastName = (form.last_name || "").trim().length > 0;
@@ -29,7 +30,6 @@ export default function useProfileFormState() {
   const hasGender = (form.gender || "").trim().length > 0;
   const hasAge = (form.birth_date || "").trim().length > 0;
   const hasCity = (form.city || "").trim().length > 0;
-
   const hasRequiredFields =
     hasUsername &&
     hasFirstName &&

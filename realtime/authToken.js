@@ -8,6 +8,7 @@ function getRealtimeSecret() {
   return process.env.REALTIME_SECRET || "matcha-dev-realtime-secret-change-me";
 }
 
+/*  ========== BASE64 URL Helpers  ========== */
 function base64UrlEncode(value) {
   return Buffer.from(value)
     .toString("base64")
@@ -22,6 +23,7 @@ function base64UrlDecode(value) {
   return Buffer.from(normalized, "base64").toString("utf8");
 }
 
+/*  ========== SIGN  ========== */
 function signPayload(payloadString) {
   return crypto
     .createHmac("sha256", getRealtimeSecret())
@@ -32,6 +34,7 @@ function signPayload(payloadString) {
     .replace(/\//g, "_");
 }
 
+/*  ========== TOKEN CREATION & VERIFICATION  ========== */
 function createRealtimeToken(userId) {
   const now = Math.floor(Date.now() / 1000);
   const payload = {

@@ -1,11 +1,13 @@
 import { Tags } from "lucide-react";
-
 import { FieldLabel } from "./FieldLabel.jsx";
 
 export default function ProfileTags({ tags }) {
   return (
     <div>
+      {/* FIELD LABEL */}
       <FieldLabel icon={Tags}>Tags</FieldLabel>
+
+      {/* TAGS LIST */}
       <div className="mt-1 flex flex-wrap gap-2">
         {Array.isArray(tags) && tags.length > 0 ? (
           tags.map((tag) => (
@@ -14,6 +16,7 @@ export default function ProfileTags({ tags }) {
             </span>
           ))
         ) : (
+          // If no tags, show a placeholder
           <p className="text-slate-800">-</p>
         )}
       </div>

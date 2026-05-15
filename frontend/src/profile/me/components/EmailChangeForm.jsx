@@ -1,5 +1,9 @@
 import { Mail, PencilLine, Send, X } from "lucide-react";
-import { inputClass, primaryButtonClass, secondaryButtonClass } from "@/styles/UIClasses.jsx";
+import { 
+  inputClass, 
+  primaryButtonClass, 
+  secondaryButtonClass 
+} from "@/styles/UIClasses.jsx";
 
 export default function EmailChangeForm({
   email,
@@ -23,6 +27,7 @@ export default function EmailChangeForm({
 
   return (
     <div className="space-y-1">
+      {/* Label */}
       <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
         <span className="inline-flex items-center gap-1.5">
           <Mail size={13} aria-hidden="true" />
@@ -30,6 +35,7 @@ export default function EmailChangeForm({
         </span>
       </label>
 
+      {/* Current email + modify button */}
       <div className="flex gap-2">
         <input
           name="email"
@@ -56,6 +62,7 @@ export default function EmailChangeForm({
             Email can only be changed after password confirmation and new-email verification.
           </p>
 
+          {/* NEW EMAIL INPUT */}
           <div className="space-y-1">
             <span className="text-xs tracking-[0.12em] text-slate-500 font-semibold">
               Enter the new email address 
@@ -71,6 +78,7 @@ export default function EmailChangeForm({
             />
           </div>
 
+          {/* PASSWORD INPUT */}
           <div className="space-y-1">
             <span className="text-xs tracking-[0.12em] text-slate-500 font-semibold">
               Confirm your current password to authorize the change
@@ -93,7 +101,9 @@ export default function EmailChangeForm({
             </p>
           )}
 
+          {/* ACTIONS */}
           <div className="flex gap-2 pt-1">
+            {/* Send verification email button */}
             <button
               type="button"
               onClick={handleEmailChangeSubmit}
@@ -103,6 +113,8 @@ export default function EmailChangeForm({
               <Send size={13} aria-hidden="true" className="mr-1" />
               {emailChangeLoading ? "Sending..." : "Send verification email"}
             </button>
+
+            {/* Cancel button resets form and closes it */}
             <button
               type="button"
               className={secondaryButtonClass}

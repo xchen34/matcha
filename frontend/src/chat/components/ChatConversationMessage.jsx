@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { formatDayLabel, formatTime } from "../utils/messageFormat.js";
 import { CornerUpLeft, Trash2 } from "lucide-react"
+
 export default function ChatConversationMessage({
   msg,
   showDay,
@@ -13,6 +14,7 @@ export default function ChatConversationMessage({
   onDelete,
 }) {
   const [isHovered, setIsHovered] = useState(false);
+  
   const isExpanded = expandedMessageId === msg.id;
   const isMine = msg.sender_user_id === currentUserId;
   const lines = msg.content.split("\n");
@@ -33,31 +35,30 @@ export default function ChatConversationMessage({
   return (
     <li onClick={() => setExpandedMessageId(null)}>
       <div className="space-y-1">
-
-        {/* DATE */}
+        {/* ========== DATE ========== */}
         {showDay && (
           <div className="text-center text-[11px] text-slate-500">
             {formatDayLabel(msg.created_at)}
           </div>
         )}
 
-        {/* QUOTE */}
+        {/* ========== QUOTE BLOCK ========== */}
         {quoteLines.length > 0 && (
         <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
             <div
             className={`max-w-[68%] border-l-4 px-2 py-1 rounded-2xl text-sm break-words whitespace-pre-wrap break-all
                 ${
                 isMine
-                    ? "border border-primary-medium bg-primary-light text-primary-dark"
-                    : "border border-neutral-medium bg-slate-50 text-slate-600"
+                  ? "border border-primary-medium bg-primary-light text-primary-dark"
+                  : "border border-neutral-medium bg-slate-50 text-slate-600"
                 }
             `}
             >
-            <p className="text-xs font-medium">
-                {quoteLines.join("\n")}
-            </p>
+              <p className="text-xs font-medium">
+                  {quoteLines.join("\n")}
+              </p>
             </div>
-        </div>
+          </div>
         )}
 
         {/* MESSAGE */}
@@ -85,13 +86,15 @@ export default function ChatConversationMessage({
           </div>
         </div>
 
-        {/* ACTIONS */}
+        {/* ========== ACTIONS ========== */}
         {(isHovered || isExpanded) && (
           <div
             className={`flex flex-col items-${isMine ? "end" : "start"} gap-2 text-[11px] mt-1 text-slate-500`}
           >
+            {/* TIMESTAMP */ }
             <span>{formatTime(msg.created_at)}</span>
 
+            { /* ACTION BUTTONS (QUOTE, DELETE) */ }
             {isExpanded && (
               <div className="flex items-center gap-2">
                 <button

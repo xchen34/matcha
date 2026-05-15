@@ -39,3 +39,6 @@ export const chatButtonClass = (isDisabled) =>
   isDisabled
     ? "inline-flex items-center justify-center rounded-full bg-neutral px-4 py-3 text-sm font-semibold text-white shadow-lg opacity-60 cursor-not-allowed"
     : "inline-flex items-center justify-center rounded-full bg-primary from-primary to-primary-dark px-4 py-3 text-sm font-semibold text-white shadow-lg hover:-translate-y-0.5 transition";
+
+export const notificationBadgeClass =
+  "pointer-events-none absolute -top-1 -right-2 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-600 text-[0.7rem] font-bold uppercase tracking-wide text-white";

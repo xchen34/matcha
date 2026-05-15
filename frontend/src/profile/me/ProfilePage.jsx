@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User } from "lucide-react";
+import { User, LoaderCircle } from "lucide-react";
 import { MIN_BIRTH_DATE_ISO } from "@/utils/date.js";
 import { cardClass, inputClass, selectClass, textareaClass } from "@/styles/UIClasses.jsx";
 
@@ -78,10 +78,9 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
 
   const { loadingGeo, useCurrentLocation } = useLocation(userId, setForm, setMessage);
 
-  const { handlePhotoUpload, setPrimaryPhoto, removePhoto } = usePhoto({
+  const { handlePhotoUpload, setPrimaryPhoto, removePhoto, movePhoto, photoMessage } = usePhoto({
     form,
     setForm,
-    setMessage,
   });
 
   const { selectedTag, setSelectedTag, addTag, removeTag } = useTags({
@@ -154,6 +153,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
 
   return (
     <section className={cardClass}>
+      {/* ========== Header with user info ========== */}
       <div className="space-y-1">
         <h2 className="inline-flex items-center gap-2 text-2xl font-semibold text-neutral-dark">
           <User size={20} aria-hidden="true" />
@@ -161,16 +161,24 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
         </h2>
       </div>
 
+      {/* ========== Display current username and email ========== */}
       {currentUser && (
         <p className="text-sm text-slate-500">
           @{currentUser.username} · {currentUser.email}
         </p>
       )}
 
+      {/* ========== Main profile form ========== */}
       {loading ? (
-        <p className="text-sm text-slate-500">Loading...</p>
+        <p className="text-sm text-slate-500">
+          <span className="inline-flex items-center gap-1.5">
+            <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
+            Loading...
+          </span>
+        </p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
+          {/* ========= BASIC INFO (USERNAME, EMAIL, BIRTHDATE) ========== */}
           <ProfileBasics
             form={form}
             handleChange={handleChange}
@@ -179,6 +187,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
             maxAdultBirthDateIso={maxAdultBirthDateIso}
           />
 
+          {/* ========= EMAIL CHANGE FORM ========== */}
           <EmailChangeForm
             email={form.email}
             emailChangeOpen={emailChangeOpen}
@@ -193,8 +202,10 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
             emailChangeError={emailChangeError}
           />
 
+          {/* ========= GENDER SELECTOR ========== */}
           <GenderSelector form={form} handleChange={handleChange} selectClass={selectClass} />
 
+          {/* ========= BIOGRAPHY INPUT ========== */}
           <BiographyInput
             form={form}
             handleChange={handleChange}
@@ -202,13 +213,17 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
             MAX_BIO_LENGTH={MAX_BIO_LENGTH}
           />
 
+          {/* ========= PHOTO MANAGER ========== */}
           <PhotoManager
             photos={form.photos}
             handlePhotoUpload={handlePhotoUpload}
             setPrimaryPhoto={setPrimaryPhoto}
             removePhoto={removePhoto}
+            movePhoto={movePhoto}
+            photoMessage={photoMessage}
           />
 
+          {/* ========= LOCATION SECTION ========== */}
           <LocationSection
             form={form}
             handleChange={handleChange}
@@ -229,6 +244,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
             hasCityInput={hasCityInput}
           />
 
+          {/* ========= TAGS SELECTOR ========== */}
           <TagsSelector
             tagOptions={tagOptions}
             selectedTag={selectedTag}
@@ -238,6 +254,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
             tags={form.tags}
           />
 
+          {/* ========= ACTIONS (SAVE BUTTON, ETC) ========== */}
           <ProfileActions
             canAttemptSaveProfile={canAttemptSaveProfile}
             canSaveProfile={canSaveProfile}

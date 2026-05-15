@@ -1,32 +1,39 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PasswordInput from "./components/PasswordInput";
-import { secondaryButtonClass, tertiaryButtonClass } from "../styles/UIClasses.jsx";
+import { tertiaryButtonClass } from "@/styles/UIClasses.jsx";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  /* Reset token */
   const token = useMemo(
     () => (searchParams.get("token") || "").trim(),
     [searchParams]
   );
 
+  /* Form state */
   const [form, setForm] = useState({
     new_password: "",
     confirm_password: "",
   });
-
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  /* Handle input changes */
   function handleChange(event) {
     const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ 
+      ...prev, 
+      [name]: value,
+    }));
   }
 
+  /* Handle form submission */
   async function handleSubmit(event) {
     event.preventDefault();
+
     setMessage("");
 
     if (!token) {
@@ -47,12 +54,13 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          new_password: form.new_password,
+      const response = await fetch("/api/auth/reset-password", 
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token,
+            new_password: form.new_password,
         }),
       });
 
@@ -74,7 +82,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
-
+        {/* ========== HEADER ========== */}
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           Reset Password
         </h1>
@@ -83,14 +91,14 @@ export default function ResetPasswordPage() {
           Set a new password for your account.
         </p>
 
+        {/* ========== FORM ========== */}
         <form onSubmit={handleSubmit} className="space-y-4">
-
-
           {/* NEW PASSWORD */}
           <div className="space-y-1">
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
               New password
             </label>
+
             <PasswordInput
               name="new_password"
               value={form.new_password}
@@ -105,6 +113,7 @@ export default function ResetPasswordPage() {
             <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
               Reenter password
             </label>
+
             <PasswordInput
               name="confirm_password"
               value={form.confirm_password}
@@ -114,7 +123,7 @@ export default function ResetPasswordPage() {
             />
           </div>
 
-          {/* ONLY ONE SIMPLE MESSAGE */}
+          {/* INLINE VALIDATION */}
           {form.confirm_password &&
             form.new_password !== form.confirm_password && (
               <p className="text-xs text-red-500">
@@ -122,6 +131,7 @@ export default function ResetPasswordPage() {
               </p>
             )}
 
+          {/* SUBMIT BUTTON */}
           <button
             type="submit"
             disabled={isLoading}
@@ -130,11 +140,15 @@ export default function ResetPasswordPage() {
             {isLoading ? "Resetting..." : "Reset password"}
           </button>
         </form>
-
+          
+        {/* ========== MESSAGE ========== */}
         {message && (
-          <p className="mt-4 text-sm text-slate-700">{message}</p>
+          <p className="mt-4 text-sm text-slate-700">
+            {message}
+          </p>
         )}
 
+        {/* ========== BACK TO LOGIN  ========== */}
         <div className="mt-6 text-center text-sm text-gray-600">
           <button
             type="button"

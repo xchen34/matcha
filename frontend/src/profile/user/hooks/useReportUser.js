@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { buildApiHeaders } from "@/utils.js";
+import { buildApiHeaders } from "@/utils/utils.js";
 
 const MAX_FAKE_REPORT_REASON_LENGTH = 200;
 
@@ -9,11 +9,13 @@ export function useReportUser({ id, currentUser, reportFake, setModerationMessag
   const [reporting, setReporting] = useState(false);
   const [error, setError] = useState("");
 
+  /* ====== Reset form state when closing or after submission ====== */
   function reset() {
     setReportReason("");
     setError("");
   }
 
+  /* ====== Handle report submission ====== */
   async function submitReport(event) {
     event?.preventDefault?.();
 
@@ -37,14 +39,16 @@ export function useReportUser({ id, currentUser, reportFake, setModerationMessag
     setModerationMessage?.("");
 
     try {
-      const response = await fetch(`/api/users/${id}/report-fake`, {
-        method: "POST",
-        headers: {
-          ...buildApiHeaders(currentUser),
-          "Content-Type": "application/json",
-        },
+      const response = await fetch(`/api/users/${id}/report-fake`, 
+        {
+          method: "POST",
+          headers: {
+            ...buildApiHeaders(currentUser),
+            "Content-Type": "application/json",
+          },
         body: JSON.stringify({ reason }),
-      });
+        }
+      );
 
       const payload = await response.json().catch(() => ({}));
 
@@ -68,6 +72,7 @@ export function useReportUser({ id, currentUser, reportFake, setModerationMessag
     }
   }
 
+  /* ====== Handlers to open and close the report form ====== */
   function openReportForm() {
     setShowReportForm(true);
     setError("");

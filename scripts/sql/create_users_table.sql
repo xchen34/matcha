@@ -1,3 +1,4 @@
+-- Create users table to store user information and authentication details
 CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,

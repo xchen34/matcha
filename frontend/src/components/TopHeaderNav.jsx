@@ -1,9 +1,15 @@
 import { useEffect, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import NotificationsBell from "../notifications/NotificationsBell.jsx";
-import ChatIndicator from "../chat/components/ChatIndicator.jsx";
 import { useNotifications } from "../notifications/hooks/useNotifications.js";
-import { Zap, Cog, User, Users, Eye, Heart, LogOut, Trash2, Ban, MessageSquareHeart } from "lucide-react";
+import ChatIndicator from "../chat/components/ChatIndicator.jsx";
+import { 
+  Zap, Cog, User, 
+  Users, Eye, Heart, 
+  LogOut, Trash2, Ban, 
+  MessageSquareHeart 
+} from "lucide-react";
+import { notificationBadgeClass } from "@/styles/UIClasses.jsx";
 
 export function TopHeaderNav({
   currentUser,
@@ -18,9 +24,9 @@ export function TopHeaderNav({
 }) {
   const location = useLocation();
   const { attentionBadges = {}, clearAttentionMode } = useNotifications();
-
   const previousPathRef = useRef(location.pathname);
 
+  /* ========== Clear attention badges on navigation ========== */
   useEffect(() => {
     const prev = previousPathRef.current;
 
@@ -31,12 +37,14 @@ export function TopHeaderNav({
     previousPathRef.current = location.pathname;
   }, [location.pathname, clearAttentionMode]);
 
+  /* ========== Mode counts for badges ========== */
   const modeCounts = {
     views: Number(attentionBadges.views || 0),
     likes: Number(attentionBadges.likes || 0),
     matches: Number(attentionBadges.matches || 0),
   };
 
+  /* ========== Nav item component ========== */
   const navItem = (icon, full, short, count, isActive) => (
     <span
       className={`relative inline-flex h-10 w-10 sm:w-auto items-center justify-center sm:justify-start rounded-full border px-0 sm:px-3 lg:px-4 transition-all duration-200 gap-0 sm:gap-1.5 ${
@@ -56,8 +64,8 @@ export function TopHeaderNav({
 
       {/* TEXT */}
       <span
-        className={`hidden sm:inline font-medium whitespace-nowrap transition-colors ${
-          isActive ? "text-white" : "text-primary group-hover:text-white"
+        className={`hidden sm:inline font-bold whitespace-nowrap transition-colors ${
+          isActive ? "text-white" : "text-[#f163cf] group-hover:text-white"
         }`}
       >
         <span className="lg:hidden text-[11px]">
@@ -71,7 +79,7 @@ export function TopHeaderNav({
 
       {/* BADGE */}
       {count > 0 && (
-        <span className="absolute -right-1 -top-1 inline-flex min-w-[18px] h-5 items-center justify-center border border-neutral-light rounded-full bg-error px-1 text-xs font-bold text-white">
+        <span className={notificationBadgeClass}>
           {count > 99 ? "99+" : count}
         </span>
       )}
@@ -82,7 +90,6 @@ export function TopHeaderNav({
 
   return (
     <header className="fixed top-2 inset-x-0 z-50 flex justify-center px-2 sm:px-4">
-      
       {/* CAPSULE */}
       <div className="w-full max-w-5xl flex items-center h-14 bg-white/70 backdrop-blur-xl border border-slate/60 shadow-md rounded-full px-2 gap-2 sm:gap-3">
 
@@ -92,21 +99,21 @@ export function TopHeaderNav({
           {profileLocked ? (
             <NavLink to="/profile" className="group">
               <span className="relative inline-flex h-10 items-center justify-start rounded-full border border-primary bg-primary-medium text-white px-3 gap-1.5">
-
+                {/* Icon */}
                 <span className="text-white">
                   <User size={18} />
                 </span>
-
-                <span className="ml-2 font-medium whitespace-nowrap text-white">
+  
+                <span className="ml-2 font-bold whitespace-nowrap text-white">
+                  {/* Mobile label*/}
                   <span className="text-[11px] lg:hidden">
                     Complete profile
                   </span>
-
+                  {/* Desktop label */}
                   <span className="hidden lg:inline text-xs">
                     Complete profile to access features
                   </span>
                 </span>
-
               </span>
             </NavLink>
           ) : (
@@ -136,7 +143,6 @@ export function TopHeaderNav({
               </NavLink>
             </>
           )}
-
         </nav>
 
         {/* RIGHT */}
@@ -163,7 +169,7 @@ export function TopHeaderNav({
 
                 {/* Blocked */}
                 <button onClick={() => navigateTo("/blocked-users")} className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-primary-light rounded-lg">
-                  <Ban size={15} /> Blocked user
+                  <Ban size={15} /> Blocked users
                 </button>
 
                 {/* Profile */}
@@ -171,10 +177,12 @@ export function TopHeaderNav({
                   <User size={15} /> Profile
                 </button>
 
+                {/* Delete account */}
                 <button onClick={handleDeleteAccount} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">
                   <Trash2 size={15} /> Delete account
                 </button>
 
+                {/* Logout */}
                 <button onClick={logout} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">
                   <LogOut size={15} /> Log out
                 </button>

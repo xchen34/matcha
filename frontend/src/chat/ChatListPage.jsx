@@ -1,72 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import ChatAvatar from "./components/ChatAvatar.jsx";
-import { onRealtimeEvent } from "../realtime/socket.js";
-import { REALTIME_EVENTS } from "../realtime/events.js";
-import { sanitizeText } from "../utils/xssEscape.js";
 import { fetchChatConversations } from "./hooks/api.js";
 import { formatQuotedMessagePreview } from "./hooks/quoteUtils.js";
-import { secondaryButtonClass } from "@/styles/UIClasses.jsx"
-
+import { toDisplayHandle, toAvatarName } from "./utils/chatIndicatorUtils.js";
+import { formatTimestamp } from "./utils/messageFormat.js";
+import { useChatListRealtime } from "./hooks/useChatListRealtime.js";
+import { LoaderCircle } from "lucide-react";
 
 const POLL_INTERVAL_MS = 15000;
 
-function toDisplayHandle(user) {
-  const username = String(user?.username || "").trim().replace(/^@+/, "");
-  if (username) {
-    return `@${sanitizeText(username)}`;
-  }
-  return sanitizeText(`User ${user?.id ?? ""}`);
-}
-
-function toAvatarName(user) {
-  const username = String(user?.username || "").trim().replace(/^@+/, "");
-  if (username) {
-    return sanitizeText(username);
-  }
-  const firstName = String(user?.first_name || "").trim();
-  if (firstName) {
-    return sanitizeText(firstName);
-  }
-  return sanitizeText(`User ${user?.id ?? ""}`);
-}
-
-function formatTimestamp(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-  const now = Date.now();
-  const diffMinutes = Math.floor((now - date.getTime()) / 60000);
-  if (diffMinutes < 1) {
-    return "just now";
-  }
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
-  }
-  if (diffMinutes < 24 * 60) {
-    return `${Math.floor(diffMinutes / 60)}h ago`;
-  }
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-}
-
 export default function ChatListPage({ currentUser, embedded = false }) {
+  /* ============= State ============= */
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const location = useLocation();
-  const navigate = useNavigate();
-  const lastMarkedConversationRef = useRef(null);
-  const knownConversationIdsRef = useRef(new Set());
+  
+  /* ============= Conversation ID tracking for realtime updates ============= */
   const markId = Number(location.state?.markAsReadConversationId) || null;
   const removedConversationId =
     Number(location.state?.removedConversationId) || null;
   const shouldScrollList = conversations.length >= 8;
 
+  /* ============= Data loading ============= */
   const loadConversations = useCallback(async () => {
     if (!currentUser?.id) {
       setConversations([]);
@@ -75,18 +32,20 @@ export default function ChatListPage({ currentUser, embedded = false }) {
 
     setLoading(true);
     setError("");
+
     try {
       const data = await fetchChatConversations(currentUser);
       setConversations(
         Array.isArray(data.conversations) ? data.conversations : [],
       );
     } catch (err) {
-      setError(err.message);
+      setError(err?.message || "Failed to load conversations");
     } finally {
       setLoading(false);
     }
   }, [currentUser]);
 
+  /* ============= Initial load & polling ============= */
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
@@ -98,192 +57,17 @@ export default function ChatListPage({ currentUser, embedded = false }) {
     };
   }, [loadConversations]);
 
-  useEffect(() => {
-    knownConversationIdsRef.current = new Set(
-      conversations.map((conv) => Number(conv.conversation_id)).filter(Number.isInteger),
-    );
-  }, [conversations]);
+  /* ============= Realtime updates ============= */
+  useChatListRealtime({
+    currentUserId: currentUser?.id,
+    conversations,
+    setConversations,
+    loadConversations,
+    markId,
+    removedConversationId,
+  });
 
-  useEffect(() => {
-    if (!currentUser?.id) return undefined;
-    const off = onRealtimeEvent("chat:message:created", (payload) => {
-      const message = payload?.message;
-      const conversationId = Number(message?.conversation_id);
-      if (!Number.isInteger(conversationId) || conversationId <= 0) {
-        return;
-      }
-
-      const senderUserId = Number(message?.sender_user_id);
-      const recipientUserId = Number(message?.recipient_user_id);
-      if (!Number.isInteger(senderUserId) || !Number.isInteger(recipientUserId)) {
-        return;
-      }
-
-      if (!knownConversationIdsRef.current.has(conversationId)) {
-        void loadConversations();
-        return;
-      }
-
-      setConversations((prev) => {
-        const targetIndex = prev.findIndex(
-          (conv) => Number(conv.conversation_id) === conversationId,
-        );
-
-        if (targetIndex === -1) {
-          return prev;
-        }
-
-        const target = prev[targetIndex];
-        const unreadIncrement = recipientUserId === Number(currentUser.id) ? 1 : 0;
-
-        const updated = {
-          ...target,
-          last_message: {
-            sender_user_id: senderUserId,
-            content: String(message?.content || ""),
-            created_at: message?.created_at,
-          },
-          unread_count: Math.max(0, Number(target.unread_count || 0) + unreadIncrement),
-        };
-
-        return [updated, ...prev.slice(0, targetIndex), ...prev.slice(targetIndex + 1)];
-      });
-    });
-    return () => {
-      off();
-    };
-  }, [currentUser?.id, loadConversations]);
-
-  useEffect(() => {
-    if (!currentUser?.id) return undefined;
-
-    const offRead = onRealtimeEvent(
-      REALTIME_EVENTS.CHAT_CONVERSATION_READ,
-      (payload) => {
-        const conversationId = Number(payload?.conversation_id);
-        const readerUserId = Number(payload?.reader_user_id);
-        if (!Number.isInteger(conversationId) || conversationId <= 0) return;
-        if (Number(readerUserId) !== Number(currentUser.id)) return;
-
-        setConversations((prev) =>
-          prev.map((conv) =>
-            Number(conv.conversation_id) === conversationId
-              ? { ...conv, unread_count: 0 }
-              : conv,
-          ),
-        );
-      },
-    );
-
-    const offBlockStatusChanged = onRealtimeEvent(
-      REALTIME_EVENTS.CHAT_BLOCK_STATUS_CHANGED,
-      (payload) => {
-        const userA = Number(payload?.user_a_id);
-        const userB = Number(payload?.user_b_id);
-        if (!Number.isInteger(userA) || !Number.isInteger(userB)) return;
-        if (Number(currentUser.id) !== userA && Number(currentUser.id) !== userB) {
-          return;
-        }
-
-        // Source of truth comes from API flags (blocked_by_you/blocked_you).
-        void loadConversations();
-      },
-    );
-
-    return () => {
-      offRead();
-      offBlockStatusChanged();
-    };
-  }, [currentUser?.id, loadConversations]);
-
-  useEffect(() => {
-    if (!currentUser?.id) return undefined;
-
-    const offMessageDeleted = onRealtimeEvent(
-      REALTIME_EVENTS.CHAT_MESSAGE_DELETED,
-      (payload) => {
-        const conversationId = Number(payload?.conversation_id);
-        const eventUserId = Number(payload?.user_id);
-        if (!Number.isInteger(conversationId) || conversationId <= 0) return;
-        if (Number.isInteger(eventUserId) && Number(eventUserId) !== Number(currentUser.id)) {
-          return;
-        }
-        void loadConversations();
-      },
-    );
-    const offConversationDeleted = onRealtimeEvent(
-      REALTIME_EVENTS.CHAT_CONVERSATION_DELETED,
-      (payload) => {
-        const conversationId = Number(payload?.conversation_id);
-        const eventUserId = Number(payload?.user_id);
-        if (!Number.isInteger(conversationId) || conversationId <= 0) return;
-        if (Number.isInteger(eventUserId) && Number(eventUserId) !== Number(currentUser.id)) {
-          return;
-        }
-        setConversations((prev) =>
-          prev.filter((conv) => Number(conv.conversation_id) !== conversationId),
-        );
-      },
-    );
-
-    return () => {
-      offMessageDeleted();
-      offConversationDeleted();
-    };
-  }, [currentUser?.id, loadConversations]);
-
-  useEffect(() => {
-    if (!removedConversationId) return;
-    setConversations((prev) =>
-      prev.filter(
-        (conv) => Number(conv.conversation_id) !== Number(removedConversationId),
-      ),
-    );
-    navigate(location.pathname, { replace: true, state: null });
-  }, [location.pathname, navigate, removedConversationId]);
-
-  useEffect(() => {
-    if (!currentUser?.id) return undefined;
-
-    const offPresenceUpdate = onRealtimeEvent("presence:update", (payload) => {
-      const targetUserId = Number(payload?.user_id);
-      if (!Number.isInteger(targetUserId)) return;
-
-      setConversations((prev) =>
-        prev.map((conv) =>
-          Number(conv.other_user?.id) === targetUserId
-            ? {
-                ...conv,
-                other_user: {
-                  ...conv.other_user,
-                  is_online: Boolean(payload.is_online),
-                  last_seen_at: payload.last_seen_at || conv.other_user.last_seen_at,
-                },
-              }
-            : conv,
-        ),
-      );
-    });
-
-    return () => {
-      offPresenceUpdate();
-    };
-  }, [currentUser?.id]);
-
-  useEffect(() => {
-    if (!markId) return;
-
-    setConversations((prev) =>
-      prev.map((conv) =>
-        Number(conv.conversation_id) === markId
-          ? { ...conv, unread_count: 0 }
-          : conv,
-      ),
-    );
-    lastMarkedConversationRef.current = markId;
-    navigate(location.pathname, { replace: true, state: null });
-  }, [location.pathname, markId, navigate]);
-
+  /* ============= Redirect if not logged in ============= */
   if (!currentUser?.id) {
     return <Navigate to="/login" replace />;
   }
@@ -292,6 +76,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
 
   return (
     <section className={embedded ? "space-y-4" : "space-y-6"}>
+      { /* Header */}
       {!embedded && (
         <header>
           <h2 className="text-3xl font-bold text-neutral-dark">Direct Messages</h2>
@@ -301,20 +86,28 @@ export default function ChatListPage({ currentUser, embedded = false }) {
         </header>
       )}
 
+      { /* Error message */}
       {error && (
         <p className="text-sm text-primary-dark">
           {error}
         </p>
       )}
 
+      {/* Loading state */}
       {loading && (
-        <p className="text-sm text-slate-500">Loading messages...</p>
+        <div className="text-sm text-slate-500 inline-flex items-center gap-1.5">
+          <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
+          Loading messages...
+        </div>
       )}
 
+      {/* Conversation list */}
       <div
         className={
           shouldScrollList
-            ? `max-h-[calc(100vh-16rem)] overflow-y-auto pr-1 ${embedded ? "scrollbar-gutter-stable" : ""}`
+            ? `max-h-[calc(100vh-16rem)] overflow-y-auto pr-1 ${
+                embedded ? "scrollbar-gutter-stable" : ""
+              }`
             : undefined
         }
       >
@@ -325,9 +118,10 @@ export default function ChatListPage({ currentUser, embedded = false }) {
               80,
             );
             const lastMessageTime = formatTimestamp(conv.last_message?.created_at);
-
             const displayName = toDisplayHandle(conv.other_user);
             const avatarName = toAvatarName(conv.other_user);
+            
+            /* Status badge */
             const statusBadge = conv.blocked_by_you ? (
               <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
                 Blocked
@@ -354,12 +148,14 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                     embedded ? "p-3" : "p-4"
                   }`}
                 >
+                  {/* Avatar */}
                   <ChatAvatar
                     name={avatarName}
-                    photoUrl={conv.other_user.primary_photo_url}
+                    photoUrl={conv.other_user.primary_photo_url || ""}
                     isOnline={Boolean(conv.other_user.is_online)}
                   />
-                  {/* Croix supprimée ici, bouton uniquement à droite du temps */}
+
+                  {/* Message preview */}
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center gap-2">
                       <p className="min-w-0 text-base font-semibold text-neutral-dark">
@@ -370,6 +166,8 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                       {messagePreview}
                     </p>
                   </div>
+
+                  {/* Status and timestamp */}
                   <div className="flex shrink-0 min-w-[64px] flex-col items-end gap-1 text-right">
                     {statusBadge}
                     {lastMessageTime && (
@@ -377,6 +175,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                         {lastMessageTime}
                       </span>
                     )}
+                    {/* Unread badge */}
                     {conv.unread_count > 0 && (
                       <span className="rounded-full bg-primary-dark px-2 py-0.5 text-[0.65rem] font-semibold text-white">
                         {conv.unread_count}
@@ -390,8 +189,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
         </ul>
       </div>
 
-
-
+      {/* Empty state */}
       {emptyState && (
         <p className="text-sm text-slate-500">
           No conversations yet. Once you match with someone, your chat history will appear here.

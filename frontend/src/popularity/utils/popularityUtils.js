@@ -22,18 +22,21 @@ export const MODE_CONFIG = {
   },
 };
 
+/* Upsert user by ID into a list, if it exists, update it; otherwise, add it */
 export function upsertUserById(list, user, mode) {
   const userId = Number(user?.id);
   if (!Number.isInteger(userId) || userId <= 0) return list;
 
   const timeField = mode === "matches" ? "matched_at" : "created_at";
   const incomingTs = new Date(user?.[timeField] || 0).getTime();
-  const idx = list.findIndex((item) => Number(item?.id) === userId);
 
+  /* If user doesn't exist, add to the top */
+  const idx = list.findIndex((item) => Number(item?.id) === userId);
   if (idx < 0) {
     return [user, ...list];
   }
 
+  /* If user exists, update info */
   const next = [...list];
   const current = next[idx] || {};
   const currentTs = new Date(current?.[timeField] || 0).getTime();
@@ -48,6 +51,7 @@ export function upsertUserById(list, user, mode) {
   return next;
 }
 
+/* Remove user by ID from a list */
 export function removeUserById(list, userId) {
   const parsed = Number(userId);
   if (!Number.isInteger(parsed) || parsed <= 0) return list;

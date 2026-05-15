@@ -35,6 +35,7 @@ export default function ProfileActions({
 
   return (
     <div className="relative flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end sm:justify-start">
+      {/* RELATION STATUS BADGE (MATCHED, LIKED, ETC) */}
       <span
         className={`
           px-2 py-1 rounded-full text-[11px] font-semibold border
@@ -50,6 +51,7 @@ export default function ProfileActions({
         {relationLabel}
       </span>
 
+      {/* ACTION BUTTONS (LIKE, BLOCK, REPORT) */}
       <button
         type="button"
         onClick={onToggleLike}
@@ -71,11 +73,14 @@ export default function ProfileActions({
       >
         <Heart className={liked ? "text-white" : "text-primary"} size={18} />
       </button>
-
+      
+      {/* MORE ACTIONS MENU */}
       <button type="button" onClick={() => safeSetMenuOpen((prev) => !prev)} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-primary-light" aria-label="Open actions menu">...</button>
 
+      {/* ACTIONS MENU (BLOCK, UNBLOCK, REPORT) */}
       {menuOpen && (
         <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+          {/* REPORT BUTTON */}
           <button
             type="button"
             onClick={() => { onOpenReport(); safeSetMenuOpen(false); }}
@@ -84,6 +89,8 @@ export default function ProfileActions({
               <BadgeAlert size={14} aria-hidden="true" />
               <span >Report fake account</span>
           </button>
+
+          {/* Only show block/unblock if it's not own profile */}
           {blockedUser ? (
             <button
               type="button"
@@ -108,6 +115,7 @@ export default function ProfileActions({
         </div>
       )}
 
+      {/* ERROR MESSAGE */}
       {likeError && <p className="text-sm text-red-600">{likeError}</p>}
     </div>
   );

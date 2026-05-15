@@ -25,6 +25,7 @@ export default function TagsSelector({
           className={selectClass}
         >
           <option value="">Select an interest tag</option>
+          {/* Sort tags alphabetically and render options */}
           {tagOptions
             .sort((a, b) => a.name.localeCompare(b.name))
             .map((item) => (
@@ -34,6 +35,7 @@ export default function TagsSelector({
           ))}
         </select>
 
+        {/* Add tag button */}
         <button
           type="button"
           onClick={() => addTag(selectedTag)}
@@ -67,7 +69,8 @@ export default function TagsSelector({
               <span className="font-bold">
                 {tag}
               </span>
-
+              
+              {/* Remove tag button */}
               <button
                 type="button"
                 onClick={() => removeTag(tag)}

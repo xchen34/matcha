@@ -27,16 +27,20 @@ async function checkUser() {
     }
 
     const row = result.rows[0];
+    
     console.log("\n📊 User Stats for:", row.username);
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    
     console.log("Views received:", row.views_count);
     console.log("Likes received:", row.likes_count);
     console.log("Likes in last 7 days:", row.likes_recent_7d);
+    
     console.log("");
     console.log("📈 Fame Calculation:");
     console.log("  Views contribution (floor(views/20)):", row.views_part);
     console.log("  Likes contribution (floor(likes/5)):", row.likes_part);
     console.log("  Malus (no recent likes?):", row.malus);
+    
     console.log("  Sum:", row.views_part, "+", row.likes_part, "+", row.malus, "=", (row.views_part + row.likes_part + row.malus));
     console.log("  Bounded [0..100]:", row.fame_calculated);
     console.log("");

@@ -1,21 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { buildApiHeaders } from "../utils.js";
-import { getRealtimeSocket, onRealtimeEvent } from "../realtime/socket.js";
-import { NotificationsContext } from "./hooks/useNotifications.js";
-import { createEmptyModeSets, 
+import { buildApiHeaders } from "@/utils/utils.js";
+import { getRealtimeSocket, onRealtimeEvent } from "@/realtime/socket.js";
+import { 
+  createEmptyModeSets, 
   mapTypeToMode, 
   getLatestPerActorAndType,
-  sortByNewest } from "./utils/notificationUtils.js";
+  sortByNewest } 
+from "./utils/notificationUtils.js";
+import { NotificationsContext } from "./hooks/useNotifications.js";
 import { useNotificationInsights } from "./hooks/useNotificationInsights.js";
 import { useNotificationGroups } from "./hooks/useNotificationGroups.js";
 
 export function NotificationsProvider({ currentUser, children }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  /* Track which users have triggered new notifications by mode for attention badges */
   const [attentionUsersByMode, setAttentionUsersByMode] = useState(createEmptyModeSets);
 
+  /* ========== Fetch notifications ========== */
   const fetchNotifications = useCallback(async () => {
     if (!currentUser) {
       setNotifications([]);
@@ -27,6 +33,7 @@ export function NotificationsProvider({ currentUser, children }) {
 
     setLoading(true);
     setError("");
+
     try {
       const response = await fetch("/api/notifications", {
         headers: buildApiHeaders(currentUser),
@@ -40,6 +47,7 @@ export function NotificationsProvider({ currentUser, children }) {
 
       const data = await response.json();
       const list = Array.isArray(data.notifications) ? sortByNewest(data.notifications) : [];
+      
       setNotifications(list);
     } catch {
       setError("Network error while loading notifications.");
@@ -48,10 +56,12 @@ export function NotificationsProvider({ currentUser, children }) {
     }
   }, [currentUser]);
 
+  /* ========== Mark notifications as read ========== */
   const markAllAsRead = useCallback(async () => {
     if (!currentUser) return;
 
     setError("");
+
     try {
       const response = await fetch("/api/notifications/read-all", {
         method: "POST",
@@ -70,6 +80,7 @@ export function NotificationsProvider({ currentUser, children }) {
     }
   }, [currentUser]);
 
+  /* Mark a single notification as read */
   const markNotificationAsRead = useCallback(
     async (notificationId) => {
       if (!currentUser || !notificationId) return;
@@ -78,11 +89,14 @@ export function NotificationsProvider({ currentUser, children }) {
       if (!existing || existing.is_read) return;
 
       setError("");
+
       try {
-        const response = await fetch(`/api/notifications/${notificationId}/read`, {
-          method: "POST",
-          headers: buildApiHeaders(currentUser),
-        });
+        const response = await fetch(`/api/notifications/${notificationId}/read`, 
+          {
+            method: "POST",
+            headers: buildApiHeaders(currentUser),
+          }
+        );
 
         if (!response.ok) {
           setError("Unable to mark this notification as read.");
@@ -101,10 +115,12 @@ export function NotificationsProvider({ currentUser, children }) {
     [currentUser, notifications],
   );
 
+  /* ========== Update unread count ========== */
   useEffect(() => {
     setUnreadCount(getLatestPerActorAndType(notifications, true).length);
   }, [notifications]);
 
+  /* ========== Initial load ========= */
   useEffect(() => {
     if (!currentUser) {
       setNotifications([]);
@@ -116,6 +132,7 @@ export function NotificationsProvider({ currentUser, children }) {
     return undefined;
   }, [currentUser, fetchNotifications]);
 
+  /* ========== Realtime : New notifications ========== */
   useEffect(() => {
     if (!currentUser?.id) return undefined;
 
@@ -123,6 +140,7 @@ export function NotificationsProvider({ currentUser, children }) {
       "notification:created",
       (payload) => {
         const incoming = payload?.notification;
+        
         if (!incoming || Number(incoming.user_id) !== Number(currentUser.id)) {
           return;
         }
@@ -134,15 +152,19 @@ export function NotificationsProvider({ currentUser, children }) {
 
         const mode = mapTypeToMode(incoming.type);
         const parsedActorUserId = Number(incoming.actor_user_id);
+        
         if (mode && Number.isInteger(parsedActorUserId) && parsedActorUserId > 0) {
           const actorUserId = String(parsedActorUserId);
+          
           setAttentionUsersByMode((prev) => {
             const next = {
               views: new Set(prev.views),
               likes: new Set(prev.likes),
               matches: new Set(prev.matches),
             };
+            
             next[mode].add(actorUserId);
+            
             return next;
           });
         }
@@ -154,6 +176,7 @@ export function NotificationsProvider({ currentUser, children }) {
     };
   }, [currentUser?.id]);
 
+  /* ========== Realtime : Sync on connect (in case of missed events) ========== */
   useEffect(() => {
     if (!currentUser?.id) return undefined;
 
@@ -170,8 +193,8 @@ export function NotificationsProvider({ currentUser, children }) {
     };
   }, [currentUser?.id, fetchNotifications]);
 
+  /* ========== Insights and groups ========== */
   const notificationInsights = useNotificationInsights(notifications);
-
   const notificationGroups = useNotificationGroups(notifications);
 
   const attentionBadges = useMemo(
@@ -183,6 +206,7 @@ export function NotificationsProvider({ currentUser, children }) {
     [attentionUsersByMode],
   );
 
+  /* ========== Clear attention for mode (attention/dot) ========== */
   const clearAttentionMode = useCallback((mode) => {
     if (!mode || !["views", "likes", "matches"].includes(mode)) {
       return;
@@ -203,6 +227,7 @@ export function NotificationsProvider({ currentUser, children }) {
     setAttentionUsersByMode(createEmptyModeSets());
   }, []);
 
+  /* ========== Context value ========== */
   const value = useMemo(
     () => ({
       notifications,

@@ -3,8 +3,10 @@ import { getLatestPerActorAndType, getActorUserId } from "../utils/notificationU
 
 export function useNotificationInsights(notifications) {
   return useMemo(() => {
+    // Get latest unread notification per actor
     const finalUnreadItems = getLatestPerActorAndType(notifications, true);
 
+    // Initialize sets and counts for sections and modes
     const sectionSets = {
       views: new Set(),
       likes: new Set(),
@@ -40,6 +42,7 @@ export function useNotificationInsights(notifications) {
       match: "matches",
     };
 
+    // Process each unread notification to populate sets and counts
     for (const item of finalUnreadItems) {
       const section = typeToSection[item.type];
       const mode = typeToMode[item.type];
@@ -54,6 +57,7 @@ export function useNotificationInsights(notifications) {
       if (mode) modeSets[mode].add(userId);
     }
 
+    // Determine which section has more notifications for overflow display
     const overflowSection =
       sectionCounts.views === 0 && sectionCounts.likes === 0
         ? "views"

@@ -14,6 +14,7 @@ export default function ChatAvatar({
       aria-label={`${name || "User"} is ${isOnline ? "online" : "offline"}`}
       title={isOnline ? "Online" : "Offline"}
     >
+      { /* Avatar photo or initial */ }
       <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50 text-lg font-semibold text-slate-700">
         {photoUrl ? (
           <img
@@ -25,6 +26,8 @@ export default function ChatAvatar({
           <span>{initial}</span>
         )}
       </div>
+
+      { /* Presence indicator */ }
       {showPresence && (
         <span
           className={`absolute bottom-1 right-1 z-10 h-3.5 w-3.5 translate-x-1/4 translate-y-1/4 rounded-full border-2 border-white shadow-sm ${

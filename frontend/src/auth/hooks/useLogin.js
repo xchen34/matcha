@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { writeStoredUser } from "../../utils/userStorage.js";
+import { writeStoredUser } from "@/utils/userStorage.js";
 
 export function useLogin(onLogin) {
   const navigate = useNavigate();

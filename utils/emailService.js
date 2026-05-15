@@ -1,7 +1,3 @@
-/**
- * Email service for sending verification and password reset emails
- */
-
 const nodemailer = require('nodemailer');
 
 const SMTP_PLACEHOLDERS = new Set([
@@ -11,12 +7,14 @@ const SMTP_PLACEHOLDERS = new Set([
 
 let cachedDevMailer = null;
 
+/* ========== Returns the SMTP authentication configuration ========== */
 function getSmtpAuthConfig() {
   const smtpUser = (process.env.SMTP_USER || process.env.ETHEREAL_USER || "").trim();
   const smtpPass = (process.env.SMTP_PASSWORD || process.env.ETHEREAL_PASSWORD || "").trim();
   return { smtpUser, smtpPass };
 }
 
+/* ========== Checks if explicit SMTP credentials are provided (not placeholders) ========== */
 function hasExplicitSmtpConfig() {
   const { smtpUser, smtpPass } = getSmtpAuthConfig();
   if (!smtpUser || !smtpPass) {
@@ -26,6 +24,7 @@ function hasExplicitSmtpConfig() {
   return !SMTP_PLACEHOLDERS.has(smtpUser) && !SMTP_PLACEHOLDERS.has(smtpPass);
 }
 
+/* ========== Determines if SMTP is configured (either explicitly or via development fallback) ========== */
 function isSmtpConfigured() {
   if (hasExplicitSmtpConfig()) {
     return true;
@@ -35,9 +34,7 @@ function isSmtpConfigured() {
   return process.env.NODE_ENV !== 'production';
 }
 
-// 创建邮件传输器。使用环境变量配置SMTP设置。
-// 对于开发环境，可以使用Ethereal Email (nodemailer的测试服务)
-// 生产环境应该配置真实的SMTP服务器 (Gmail, SendGrid, AWS SES 等)
+/* ========== Creates and returns a nodemailer transporter based on the env and config ========== */
 async function createMailer() {
   const smtpHost = process.env.SMTP_HOST || 'smtp.ethereal.email';
   const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
@@ -83,12 +80,7 @@ async function createMailer() {
   return cachedDevMailer;
 }
 
-/**
- * Send email verification link to user
- * @param {string} email - User email address
- * @param {string} verificationToken - Unique verification token
- * @param {string} frontendBaseUrl - Frontend base URL for verification link
- */
+/* ========== Send email verification link to user ========== */
 async function sendVerificationEmail(email, verificationToken, frontendBaseUrl) {
   try {
     const mailer = await createMailer();
@@ -128,12 +120,7 @@ async function sendVerificationEmail(email, verificationToken, frontendBaseUrl) 
   }
 }
 
-/**
- * Send password reset email to user
- * @param {string} email - User email address
- * @param {string} resetToken - Unique reset token
- * @param {string} frontendBaseUrl - Frontend base URL for reset link
- */
+/* ========== Send password reset email to user ========== */
 async function sendPasswordResetEmail(email, resetToken, frontendBaseUrl) {
   try {
     const mailer = await createMailer();
@@ -166,6 +153,7 @@ async function sendPasswordResetEmail(email, resetToken, frontendBaseUrl) {
     if (previewUrl) {
       console.log('Password reset email preview:', previewUrl);
     }
+
     return { success: true, messageId: result.messageId, previewUrl };
   } catch (error) {
     console.error('Failed to send password reset email:', error);

@@ -8,12 +8,15 @@ function normalizePreviewText(text) {
 export function parseQuotedMessageContent(content) {
   const text = String(content || "");
   const lines = text.replace(/\r\n/g, "\n").split("\n");
+  
   if (!lines.length) {
     return { quoteHeader: null, quoteLines: [], replyText: text };
   }
 
   let isQuote = false;
   let headerText = "";
+  
+  /* Check for "X wrote:" pattern or "Replying to message #" pattern */
   const matchWrote = lines[0].match(/^(.*) wrote:\s*$/i);
   if (matchWrote) {
     isQuote = true;
@@ -29,9 +32,12 @@ export function parseQuotedMessageContent(content) {
 
   const quoteLines = [];
   let index = 1;
+  
   while (index < lines.length) {
     const line = lines[index];
+
     if (!/^>\s?/.test(line)) break;
+
     quoteLines.push(line.replace(/^>\s?/, ""));
     index += 1;
   }
@@ -58,16 +64,19 @@ export function formatQuotedMessagePreview(content, maxLength = 72) {
   }
 
   const quoteText = normalizePreviewText(parsed.quoteLines.join(" "));
+  
   if (quoteText) {
     const preview = parsed.quoteHeader
       ? `${parsed.quoteHeader}: ${quoteText}`
       : quoteText;
+    
     return preview.length <= maxLength
       ? preview
       : `${preview.slice(0, maxLength).trimEnd()}…`;
   }
 
   const fallback = normalizePreviewText(content);
+  
   return fallback.length <= maxLength
     ? fallback
     : `${fallback.slice(0, maxLength).trimEnd()}…`;

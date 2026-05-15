@@ -1,6 +1,7 @@
 const pool = require("../db");
 
 class AuthService {
+  /*  ========== Migration  ========== */
   async ensurePendingEmailColumn() {
     await pool.query(
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS pending_email VARCHAR(255)`
@@ -10,25 +11,23 @@ class AuthService {
     );
   }
 
-  async findUserForDeletion(userId, email) {
+  /*  ========== User Finders  ========== */
+  async findUserByIdForEmailChange(userId) {
     const result = await pool.query(
-      `
-      SELECT id, password_hash, email
-      FROM users
-      WHERE ($1::bigint IS NOT NULL AND id = $1)
-         OR ($2 <> '' AND LOWER(email) = LOWER($2))
-      ORDER BY CASE WHEN $1::bigint IS NOT NULL AND id = $1 THEN 0 ELSE 1 END
-      LIMIT 1
-      `,
-      [Number.isInteger(userId) && userId > 0 ? userId : null, email]
+      `SELECT id, email, email_verified, password_hash FROM users WHERE id = $1 LIMIT 1`,
+      [userId]
     );
     return result.rows[0];
   }
 
-  async deleteUser(userId) {
-    await pool.query(`DELETE FROM users WHERE id = $1`, [userId]);
+  async findUserByEmail(email) {
+    const result = await pool.query(
+      `SELECT id, email, email_verified FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+      [email]
+    );
+    return result.rows[0];
   }
-
+  
   async findUserForLogin(identifier) {
     const result = await pool.query(
       `
@@ -43,19 +42,23 @@ class AuthService {
     );
     return result.rows[0];
   }
-
-  async updateLastSeen(userId) {
-    await pool.query(`UPDATE users SET last_seen_at = NOW() WHERE id = $1`, [userId]);
-  }
-
-  async findUserByEmail(email) {
+  
+  async findUserForDeletion(userId, email) {
     const result = await pool.query(
-      `SELECT id, email, email_verified FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
-      [email]
+      `
+      SELECT id, password_hash, email
+      FROM users
+      WHERE ($1::bigint IS NOT NULL AND id = $1)
+         OR ($2 <> '' AND LOWER(email) = LOWER($2))
+      ORDER BY CASE WHEN $1::bigint IS NOT NULL AND id = $1 THEN 0 ELSE 1 END
+      LIMIT 1
+      `,
+      [Number.isInteger(userId) && userId > 0 ? userId : null, email]
     );
     return result.rows[0];
-  }
-
+  }  
+  
+  /*  ========== User State  ========== */
   async checkUserExists(userId) {
     const result = await pool.query(
       `SELECT 1 FROM users WHERE id = $1 LIMIT 1`,
@@ -64,6 +67,15 @@ class AuthService {
     return result.rowCount > 0;
   }
 
+  async updateLastSeen(userId) {
+    await pool.query(`UPDATE users SET last_seen_at = NOW() WHERE id = $1`, [userId]);
+  }
+
+  async deleteUser(userId) {
+    await pool.query(`DELETE FROM users WHERE id = $1`, [userId]);
+  }
+
+  /*  ========== Password Reset  ========== */
   async setPasswordResetToken(userId, token, expiry) {
     await pool.query(
       `UPDATE users SET password_reset_token = $1, password_reset_token_expiry = $2 WHERE id = $3`,
@@ -86,6 +98,7 @@ class AuthService {
     );
   }
 
+  /*  ========== Registration  ========== */
   async registerUser(userData, birthDate) {
     const client = await pool.connect();
     try {
@@ -116,19 +129,13 @@ class AuthService {
     }
   }
 
+  /*  ========== Email Verification & Change  ========== */
   async findUserByVerificationToken(token) {
     const result = await pool.query(
       `SELECT id, email, email_verified, pending_email FROM users WHERE email_verification_token = $1 AND email_verification_token_expiry > NOW() LIMIT 1`,
       [token]
     );
     return result.rows[0];
-  }
-
-  async verifyEmailChange(userId, nextEmail) {
-    await pool.query(
-      `UPDATE users SET email = $1, pending_email = NULL, email_verified = TRUE, email_verification_token = NULL, email_verification_token_expiry = NULL WHERE id = $2`,
-      [nextEmail, userId]
-    );
   }
 
   async verifyEmail(userId) {
@@ -138,20 +145,15 @@ class AuthService {
     );
   }
 
-  async findUserByIdForEmailChange(userId) {
-    const result = await pool.query(
-      `SELECT id, email, email_verified, password_hash FROM users WHERE id = $1 LIMIT 1`,
-      [userId]
+  async verifyEmailChange(userId, nextEmail) {
+    await pool.query(
+      `UPDATE users SET email = $1, 
+      pending_email = NULL, 
+      email_verified = TRUE, 
+      email_verification_token = NULL, 
+      email_verification_token_expiry = NULL WHERE id = $2`,
+      [nextEmail, userId]
     );
-    return result.rows[0];
-  }
-
-  async checkEmailConflict(newEmail, userId) {
-    const result = await pool.query(
-      `SELECT id FROM users WHERE (LOWER(email) = LOWER($1) OR LOWER(COALESCE(pending_email, '')) = LOWER($1)) AND id <> $2 LIMIT 1`,
-      [newEmail, userId]
-    );
-    return result.rowCount > 0;
   }
 
   async setPendingEmailAndToken(userId, newEmail, token, expiry) {
@@ -166,6 +168,15 @@ class AuthService {
       `UPDATE users SET email_verification_token = $1, email_verification_token_expiry = $2 WHERE id = $3`,
       [token, expiry, userId]
     );
+  }
+
+  /*  ========== Email Conflict Check  ========== */
+  async checkEmailConflict(newEmail, userId) {
+    const result = await pool.query(
+      `SELECT id FROM users WHERE (LOWER(email) = LOWER($1) OR LOWER(COALESCE(pending_email, '')) = LOWER($1)) AND id <> $2 LIMIT 1`,
+      [newEmail, userId]
+    );
+    return result.rowCount > 0;
   }
 }
 

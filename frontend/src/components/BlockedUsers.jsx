@@ -1,25 +1,29 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { buildApiHeaders } from "../utils.js";
-import { cardClass } from "../styles/UIClasses.jsx";
+import { buildApiHeaders } from "@/utils/utils.js";
+import { cardClass } from "@/styles/UIClasses.jsx";
 
 function BlockedUsers({ currentUser }) {
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
+  /* ============= Fetch blocked users ============= */
   useEffect(() => {
     let cancelled = false;
 
     async function fetchBlockedUsers() {
       if (!currentUser) return;
+
       setLoading(true);
       setMessage("");
 
       try {
-        const response = await fetch("/api/moderation/blocked-users", {
-          headers: buildApiHeaders(currentUser),
-        });
+        const response = await fetch("/api/moderation/blocked-users", 
+          {
+            headers: buildApiHeaders(currentUser),
+          }
+        );
         const payload = await response.json().catch(() => ({}));
 
         if (!response.ok) {
@@ -52,6 +56,7 @@ function BlockedUsers({ currentUser }) {
     };
   }, [currentUser]);
 
+  /* ============= Unblock user ============= */
   async function handleUnblockUser(userId) {
     if (!currentUser) return;
 
@@ -76,11 +81,18 @@ function BlockedUsers({ currentUser }) {
     }
   }
 
-  if (!currentUser) return <Navigate to="/login" replace />;
-  if (loading) return <p className="text-sm text-slate-600">Loading blocked users...</p>;
+  /* ============= Redirect if not logged in ============= */
+  if (!currentUser?.id) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (loading) {
+    return <p className="text-sm text-slate-600">Loading blocked users...</p>;
+  }
 
   return (
     <section className={cardClass}>
+      {/* Header */}
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold text-neutral-dark">Blocked users</h2>
       </div>
@@ -89,8 +101,10 @@ function BlockedUsers({ currentUser }) {
         Manage users you blocked. You can unblock them at any time.
       </p>
 
+      {/* Message status */}
       {message && <p className="text-sm text-slate-700">{message}</p>}
 
+      {/* Blocked users list */}
       <div className="space-y-2">
         {blockedUsers.length === 0 && (
           <div className="rounded-xl border border-dashed border-primary-medium bg-slate-50 px-4 py-5 text-center text-slate-600">
@@ -103,10 +117,13 @@ function BlockedUsers({ currentUser }) {
             key={user.id}
             className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
           >
+            {/* User info */}
             <div>
               <p className="font-semibold text-neutral-dark">@{user.username}</p>
               <p className="text-xs text-slate-500">{user.email}</p>
             </div>
+
+            {/* Unblock button */}
             <button
               type="button"
               onClick={() => handleUnblockUser(user.id)}

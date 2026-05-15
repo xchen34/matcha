@@ -1,5 +1,6 @@
 export const STORAGE_KEY = "matcha.currentUser";
 
+/* ========== Read stored user data from local storage ========== */
 export function readStoredUser() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -22,10 +23,12 @@ export function readStoredUser() {
   }
 }
 
+/* ========== Write user data to local storage ========== */
 export function writeStoredUser(user) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
 }
 
+/* ========== Clear stored user data from local storage ========== */
 export function clearStoredUser() {
   localStorage.removeItem(STORAGE_KEY);
 }

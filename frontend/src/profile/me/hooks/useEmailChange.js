@@ -1,20 +1,20 @@
 import { useState, useCallback } from "react";
-import { buildApiHeaders } from "@/utils.js";
+import { buildApiHeaders } from "@/utils/utils.js";
 
 export default function useEmailChange({ userId, setMessage }) {
   const [emailChangeOpen, setEmailChangeOpen] = useState(false);
   const [emailChangeLoading, setEmailChangeLoading] = useState(false);
-
   const [emailChangeForm, setEmailChangeForm] = useState({
     new_email: "",
     password: "",
   });
-
+  // URLs for email change confirmation
   const [emailChangePreviewUrl, setEmailChangePreviewUrl] = useState("");
   const [emailChangeDevVerifyUrl, setEmailChangeDevVerifyUrl] = useState("");
-
+  // Error message state
   const [emailChangeError, setEmailChangeError] = useState("");
 
+  /* Handle input changes for email change form */
   function handleEmailChangeInput(event) {
     const { name, value } = event.target;
 
@@ -22,6 +22,7 @@ export default function useEmailChange({ userId, setMessage }) {
     setEmailChangeError(""); // reset erreur quand user tape
   }
 
+  /* Handle email change form submission */
   const handleEmailChangeSubmit = useCallback(async () => {
     setEmailChangeError("");
 
@@ -43,24 +44,25 @@ export default function useEmailChange({ userId, setMessage }) {
     setEmailChangeDevVerifyUrl("");
 
     try {
-      const response = await fetch("/api/auth/request-email-change", {
-        method: "POST",
-        headers: buildApiHeaders(
-          { id: userId },
-          { "Content-Type": "application/json" }
-        ),
-        body: JSON.stringify({ new_email: newEmail, password }),
-      });
+      const response = await fetch("/api/auth/request-email-change", 
+        {
+          method: "POST",
+          headers: buildApiHeaders(
+            { id: userId },
+            { "Content-Type": "application/json" }
+          ),
+          body: JSON.stringify({ new_email: newEmail, password }),
+        }
+      );
 
       const data = await response.json().catch(() => ({}));
-
       if (!response.ok) {
         const errorMsg = data.error || "Unable to request email change";
         setEmailChangeError(errorMsg);
         return;
       }
 
-      // URLs
+      // Store preview and dev verify URLs if provided by the API
       if (data?.email_delivery?.preview_url) {
         setEmailChangePreviewUrl(data.email_delivery.preview_url);
       }
@@ -69,9 +71,8 @@ export default function useEmailChange({ userId, setMessage }) {
         setEmailChangeDevVerifyUrl(data.dev_verify_url);
       }
 
-      // succès
       setEmailChangeForm({ new_email: "", password: "" });
-      setMessage(""); // optionnel : éviter doublon avec message global
+      setMessage("");
     } catch (error) {
       setEmailChangeError(error.message);
     } finally {

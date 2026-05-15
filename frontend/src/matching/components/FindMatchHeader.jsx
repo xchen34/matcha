@@ -4,6 +4,7 @@ function FindMatchHeader({ fameRating, canLikeProfiles }) {
   return (
     <div className="flex flex-col gap-1 mb-12">
       <div className="flex items-start justify-between gap-4">
+        {/* ======== INFO + HEADER ======== */}
         <div className="space-y-1">
           {!canLikeProfiles && (
             <div className="flex items-center rounded-xl text-primary-dark text-center border border-primary/30 bg-primary-light px-2 py-1 shadow-sm gap-2">
@@ -25,6 +26,7 @@ function FindMatchHeader({ fameRating, canLikeProfiles }) {
           </p>
         </div>
 
+        {/* ======== MY FAME RATING ======== */}
         <div className="shrink-0">
           <div className="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-dark text-white shadow-md shadow-primary-light">

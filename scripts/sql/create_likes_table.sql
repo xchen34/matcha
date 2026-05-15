@@ -1,3 +1,4 @@
+-- Create likes table to track user likes
 CREATE TABLE IF NOT EXISTS likes (
     liker_user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     liked_user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,

@@ -9,7 +9,6 @@ export default function ProfileBasics({
 }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      
       {/* USERNAME */}
       <div className="space-y-1">
         <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
@@ -85,7 +84,6 @@ export default function ProfileBasics({
           className={inputClass}
         />
       </div>
-
     </div>
   );
 }

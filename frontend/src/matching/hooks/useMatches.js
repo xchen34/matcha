@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { buildApiHeaders } from "@/utils";
+import { buildApiHeaders } from "@/utils/utils.js";
 
 const PAGE_SIZE = 18;
 
@@ -33,16 +33,16 @@ export function useMatches(currentUser, appliedFilters) {
         params.append("limit", PAGE_SIZE);
         params.append("offset", requestOffset);
 
-        const res = await fetch(`/api/matches?${params}`, {
-          headers: buildApiHeaders(currentUser),
-        });
+        const res = await fetch(`/api/matches?${params}`, 
+          {
+            headers: buildApiHeaders(currentUser),
+          }
+        );
 
         const data = await res.json();
 
         setHasMore(Array.isArray(data) && data.length === PAGE_SIZE);
-
         setUsers((prev) => (append ? [...prev, ...data] : data));
-
         setOffset(requestOffset + (data.length || 0));
       } catch {
         if (!append) setUsers([]);

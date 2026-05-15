@@ -4,9 +4,12 @@ const chatController = require("../../controllers/chats");
 
 const router = express.Router();
 
-router.delete("/chats/:conversationId/messages/:messageId", authSensitiveLimiter, chatController.deleteMessage);
+/*  ========== MESSAGES  ========== */
 router.get("/chats/:conversationId/messages", chatController.getMessages);
-router.post("/chats/:conversationId/read", chatController.markRead);
 router.post("/chats/messages", chatController.sendMessage);
+router.delete("/chats/:conversationId/messages/:messageId", authSensitiveLimiter, chatController.deleteMessage);
+
+/*  ========== MARK AS READ  ========== */
+router.post("/chats/:conversationId/read", chatController.markRead);
 
 module.exports = router;

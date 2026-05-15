@@ -4,8 +4,8 @@ import {
   joinConversationRoom,
   leaveConversationRoom,
   onRealtimeEvent,
-} from "../../realtime/socket.js";
-import { REALTIME_EVENTS } from "../../realtime/events.js";
+} from "@/realtime/socket.js";
+import { REALTIME_EVENTS } from "@/realtime/events.js";
 import { dedupeMessages } from "../utils/messageFormat.js";
 
 export function useChatConversationRealtime({
@@ -23,19 +23,25 @@ export function useChatConversationRealtime({
 }) {
   useEffect(() => {
     const id = Number(conversationId);
+    
     if (!Number.isInteger(id) || id <= 0) return undefined;
+    
     joinConversationRoom(id);
+    
     return () => leaveConversationRoom(id);
   }, [conversationId]);
 
+  /* ========== Realtime event handlers ========== */
   useEffect(() => {
     if (!activeConversationId || !currentUserId) return undefined;
 
+    /* Message created */
     const offCreated = onRealtimeEvent(
       REALTIME_EVENTS.CHAT_MESSAGE_CREATED,
       ({ message }) => {
         if (Number(message?.conversation_id) !== activeConversationId) return;
         setMessages((prev) => dedupeMessages([...prev, message]));
+        
         if (Number(message?.sender_user_id) !== currentUserId) {
           void markConversationAsRead(
             { id: currentUserId },
@@ -49,15 +55,19 @@ export function useChatConversationRealtime({
       REALTIME_EVENTS.CHAT_MESSAGE_DELETED,
       (payload) => {
         if (Number(payload?.conversation_id) !== activeConversationId) return;
+        
         const messageId = Number(payload?.message_id);
+        
         if (!Number.isInteger(messageId)) return;
         setMessages((prev) => prev.filter((m) => Number(m.id) !== messageId));
+        
         setQuotedMessage((prev) =>
           Number(prev?.id) === messageId ? null : prev,
         );
       },
     );
 
+    /* Conversation */
     const offConversationDeleted = onRealtimeEvent(
       REALTIME_EVENTS.CHAT_CONVERSATION_DELETED,
       (payload) => {
@@ -66,18 +76,38 @@ export function useChatConversationRealtime({
       },
     );
 
+    const offBlockStatusChanged = onRealtimeEvent(
+      REALTIME_EVENTS.CHAT_BLOCK_STATUS_CHANGED,
+      (payload) => {
+        const userA = Number(payload?.user_a_id);
+        const userB = Number(payload?.user_b_id);
+        
+        if (!Number.isInteger(userA) || !Number.isInteger(userB)) return;
+        if (Number(currentUserId) !== userA && Number(currentUserId) !== userB)
+          return;
+        if (
+          Number(payload?.conversation_id) &&
+          Number(payload.conversation_id) !== activeConversationId
+        ) return;
+        
+        void loadConversation();
+      },
+    );
+
+    /* Presence updates for the other user */
     const offPresenceUpdate = onRealtimeEvent(
       REALTIME_EVENTS.PRESENCE_UPDATE,
       (payload) => {
         const targetUserId = Number(payload?.user_id);
+        
         if (
           !Number.isInteger(targetUserId) ||
           targetUserId !== Number(otherUserId)
-        )
-          return;
+        ) return;
 
         setConversation((prev) => {
           if (!prev?.other_user) return prev;
+          
           return {
             ...prev,
             other_user: {
@@ -91,29 +121,15 @@ export function useChatConversationRealtime({
       },
     );
 
-    const offBlockStatusChanged = onRealtimeEvent(
-      REALTIME_EVENTS.CHAT_BLOCK_STATUS_CHANGED,
-      (payload) => {
-        const userA = Number(payload?.user_a_id);
-        const userB = Number(payload?.user_b_id);
-        if (!Number.isInteger(userA) || !Number.isInteger(userB)) return;
-        if (Number(currentUserId) !== userA && Number(currentUserId) !== userB)
-          return;
-        if (
-          Number(payload?.conversation_id) &&
-          Number(payload.conversation_id) !== activeConversationId
-        )
-          return;
-        void loadConversation();
-      },
-    );
-
+    /* Match status changes */
     const offMatchStatusChanged = onRealtimeEvent(
       REALTIME_EVENTS.MATCH_STATUS_CHANGED,
       (payload) => {
         if (Number(payload?.userId) !== Number(otherUserId)) return;
+        
         setConversation((prev) => {
           if (!prev) return prev;
+          
           const wasMatched = prev.is_match;
           const isNowMatched = payload.matched;
 

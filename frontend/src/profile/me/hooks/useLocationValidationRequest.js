@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { buildApiHeaders } from "@/utils.js";
+import { buildApiHeaders } from "@/utils/utils.js";
 import { getValidationCacheKey } from "@/utils/locationUtils.js";
 
 export default function useLocationValidationRequest({ userId, form, setMessage }) {
@@ -23,6 +23,7 @@ export default function useLocationValidationRequest({ userId, form, setMessage 
       const latitude = (form.latitude || "").trim();
       const longitude = (form.longitude || "").trim();
 
+      /* Generate cache key and check for cached validation result */
       const cacheKey = getValidationCacheKey(city, neighborhood, latitude, longitude);
       const cached = validationCacheRef.current.get(cacheKey);
       if (cached) {
@@ -41,9 +42,11 @@ export default function useLocationValidationRequest({ userId, form, setMessage 
       setValidatingLocation(true);
       if (!silent) setMessage("Checking location...");
 
+      /* Increment request ID to track the latest validation request */
       const requestId = latestValidationRequestRef.current + 1;
       latestValidationRequestRef.current = requestId;
 
+      /* Build query parameters for validation API */
       const params = new URLSearchParams();
       if (city) params.set("city", city);
       if (neighborhood) params.set("neighborhood", neighborhood);
@@ -72,6 +75,8 @@ export default function useLocationValidationRequest({ userId, form, setMessage 
         const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
         setLocationValidation(data.validation || null);
         setLocationSuggestions(suggestions);
+        
+        /* Cache the validation result and suggestions */
         validationCacheRef.current.set(cacheKey, {
           validation: data.validation || null,
           suggestions,
@@ -86,8 +91,10 @@ export default function useLocationValidationRequest({ userId, form, setMessage 
         }
       } catch (error) {
         if (requestId !== latestValidationRequestRef.current) return;
+        
         setLocationValidation(null);
         setLocationSuggestions([]);
+        
         if (!silent) setMessage(`Error: ${error.message}`);
       } finally {
         if (requestId === latestValidationRequestRef.current) {

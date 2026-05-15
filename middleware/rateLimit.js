@@ -2,6 +2,7 @@ const rateLimit = require("express-rate-limit");
 const { ipKeyGenerator } = require("express-rate-limit");
 const isProduction = process.env.NODE_ENV === "production";
 
+/* ========== Helpers ========== */
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -20,10 +21,12 @@ function getClientKey(req) {
   return "unknown";
 }
 
+/* ========== Config values ========== */
 const globalWindowMs = parsePositiveInt(
   process.env.RATE_LIMIT_GLOBAL_WINDOW_MS,
   isProduction ? 15 * 60 * 1000 : 5 * 60 * 1000,
 );
+
 const globalMax = parsePositiveInt(
   process.env.RATE_LIMIT_GLOBAL_MAX,
   isProduction ? 600 : 5000,
@@ -33,6 +36,7 @@ const authWindowMs = parsePositiveInt(
   process.env.RATE_LIMIT_AUTH_WINDOW_MS,
   15 * 60 * 1000,
 );
+
 const authMax = parsePositiveInt(
   process.env.RATE_LIMIT_AUTH_MAX,
   isProduction ? 20 : 200,
@@ -47,6 +51,7 @@ const authSensitiveMax = parsePositiveInt(
   isProduction ? 8 : 100,
 );
 
+/* ========== Rate limiters ========== */
 const globalApiLimiter = rateLimit({
   windowMs: globalWindowMs,
   max: globalMax,

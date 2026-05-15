@@ -3,6 +3,7 @@ import { useState, useCallback } from "react";
 export default function useTags({ form, setForm, setMessage, tagOptions }) {
   const [selectedTag, setSelectedTag] = useState("");
 
+  // Normalize tag input
   function normalizeTag(tag) {
     let value = (tag || "").trim().toLowerCase();
     if (!value) return "";
@@ -14,6 +15,7 @@ export default function useTags({ form, setForm, setMessage, tagOptions }) {
     return /^#[a-z0-9_]{1,30}$/.test(value) ? value : "";
   }
 
+  // Add a new tag to the form state after validation
   const addTag = useCallback((rawTag) => {
     const tag = normalizeTag(rawTag);
 
@@ -36,6 +38,7 @@ export default function useTags({ form, setForm, setMessage, tagOptions }) {
     setMessage("");
   }, [form.tags, setForm, setMessage]);
 
+  // Remove a tag from the form state
   const removeTag = useCallback((tagToRemove) => {
     setForm((prev) => ({
       ...prev,

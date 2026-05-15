@@ -9,6 +9,7 @@ export default function GenderSelector({
     <>
       {/* GENDER */}
       <div className="space-y-1">
+        {/* Label */}
         <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <span className="inline-flex items-center gap-1.5">
             <User size={13} aria-hidden="true" />
@@ -18,6 +19,7 @@ export default function GenderSelector({
           </span>
         </label>
 
+        {/* Select input */}
         <select
           name="gender"
           value={form.gender}
@@ -34,6 +36,7 @@ export default function GenderSelector({
 
       {/* SEXUAL PREFERENCE */}
       <div className="space-y-1">
+        {/* Label */}
         <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <span className="inline-flex items-center gap-1.5">
             <Compass size={13} aria-hidden="true" />
@@ -41,6 +44,7 @@ export default function GenderSelector({
           </span>
         </label>
 
+        {/* Select input */}
         <select
           name="sexual_preference"
           value={form.sexual_preference}

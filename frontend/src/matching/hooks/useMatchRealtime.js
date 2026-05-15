@@ -5,6 +5,7 @@ export function useMatchRealtime(currentUser, setUsers) {
   useEffect(() => {
     if (!currentUser?.id) return;
 
+    /* ========== Realtime: Presence ========== */
     const offPresence = onRealtimeEvent("presence:update", (payload) => {
       const id = Number(payload?.user_id);
       setUsers((prev) =>
@@ -16,6 +17,7 @@ export function useMatchRealtime(currentUser, setUsers) {
       );
     });
 
+    /* ========== Realtime: Notifications (matches/unlikes) ========== */
     const offNotif = onRealtimeEvent("notification:created", (payload) => {
       const n = payload?.notification;
       if (!n || Number(n.user_id) !== Number(currentUser.id)) return;
@@ -34,6 +36,7 @@ export function useMatchRealtime(currentUser, setUsers) {
       );
     });
 
+    /* ========== Realtime: Profile updates ========== */
     const offProfile = onRealtimeEvent("profile:updated", (payload) => {
       const id = Number(payload?.user_id);
       const profile = payload?.profile || {};

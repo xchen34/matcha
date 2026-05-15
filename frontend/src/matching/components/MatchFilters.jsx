@@ -2,7 +2,12 @@ import { RangeSlider } from "./RangeSlider";
 import { SelectField } from "./SelectField";
 import { TagSelector } from "./TagSelector";
 import { primaryButtonClass, secondaryButtonClass } from "@/styles/UIClasses.jsx";
-import { Search, MapPin, UserRound, Star, ArrowDownUp, ArrowDownWideNarrow, Tags, Check, RotateCw } from "lucide-react"
+import { 
+  Search, MapPin, 
+  UserRound, Star, 
+  ArrowDownUp, ArrowDownWideNarrow, 
+  Tags, Check, RotateCw 
+} from "lucide-react"
 
 export default function MatchFilters({
   draftFilters,
@@ -21,8 +26,7 @@ export default function MatchFilters({
   return (
     <>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-
-      {/* USERNAME */}
+      {/* ======== USERNAME ======== */}
       <div className="relative flex flex-col gap-1 col-span-2">
         <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
           <Search size={16} />
@@ -39,7 +43,7 @@ export default function MatchFilters({
         />
       </div>
 
-      {/* CITY */}
+      {/* ======== CITY ======== */}
       <div className="flex flex-col gap-1 col-span-2">
         <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
           <MapPin size={16} />
@@ -58,6 +62,7 @@ export default function MatchFilters({
             placeholder="Type and choose a city"
           />
 
+          {/* City suggestions dropdown */}
           {!cityConfirmed && citySuggestions.length > 0 && (
             <div className="absolute top-full z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border bg-white p-1 shadow-lg">
               {citySuggestions.map((item) => (
@@ -79,7 +84,7 @@ export default function MatchFilters({
         )}
       </div>
 
-      {/* AGE */}
+      {/* ======== AGE ======== */}
       <div className="flex flex-col gap-2 col-span-2">
         <label className="flex items-center justify-between text-xs font-medium text-slate-500">
           <div className="flex items-center gap-2">
@@ -89,6 +94,7 @@ export default function MatchFilters({
           <span>{draftFilters.min_age} – {draftFilters.max_age}</span>
         </label>
 
+        {/* Age range slider */}
         <div className="px-2">
           <RangeSlider
             min={18}
@@ -99,7 +105,7 @@ export default function MatchFilters({
         </div>
       </div>
 
-      {/* FAME */}
+      {/* ======== FAME ======== */}
       <div className="flex flex-col gap-2 col-span-2">
         <label className="flex items-center justify-between text-xs font-medium text-slate-500">
           <div className="flex items-center gap-2">
@@ -109,6 +115,7 @@ export default function MatchFilters({
           <span>{draftFilters.min_fame} – {draftFilters.max_fame}</span>
         </label>
 
+        {/* Fame range slider */}
         <div className="px-2">
           <RangeSlider
             min={0}
@@ -119,13 +126,14 @@ export default function MatchFilters({
         </div>
       </div>
 
-      {/* SORT */}
+      {/* ======== SORT ======== */}
       <div className="flex flex-col gap-2 col-span-2">
         <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
           <ArrowDownUp size={16} />
           <span>Sort by</span>
         </label>
 
+        {/* Sort by dropdown */}
         <SelectField
           name="sort_by"
           value={draftFilters.sort_by}
@@ -140,13 +148,14 @@ export default function MatchFilters({
         />
       </div>
 
-      {/* ORDER */}
+      {/* ======== ORDER ======== */}
       <div className="flex flex-col gap-2 col-span-2">
         <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
           <ArrowDownWideNarrow size={16} />
           <span>Order</span>
         </label>
 
+        {/* Order dropdown */}
         <SelectField
           name="sort_dir"
           value={draftFilters.sort_dir}
@@ -165,6 +174,7 @@ export default function MatchFilters({
           <span>Interest tags</span>
         </label>
 
+        {/* Tag selector */}
         <TagSelector
           tags={tagOptions}
           selectedTags={draftFilters.tags}
@@ -173,7 +183,9 @@ export default function MatchFilters({
       </div>
     </div>
 
+    {/* ======== ACTIONS BUTTONS ======== */}
     <div className="flex gap-3 flex-wrap">
+      {/* Apply filters button */}
       <button
         type="button"
         onClick={applyFilters}
@@ -183,6 +195,7 @@ export default function MatchFilters({
         <span className="ml-1">Apply filters</span>
       </button>
 
+      {/* Reset filters button */}
       <button
         type="button"
         onClick={resetFilters}
@@ -193,6 +206,7 @@ export default function MatchFilters({
       </button>
     </div>
 
+    {/* ======== ERROR MESSAGE ======== */}
     {filterError && (
       <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         {filterError}

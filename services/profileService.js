@@ -1,6 +1,13 @@
 const pool = require("../db");
 
 class ProfileService {
+  /*  ========== Helpers  ========== */
+  async getUserById(userId) {
+    const result = await pool.query(`SELECT * FROM users WHERE id = $1`, [userId]);
+    return result.rows[0];
+  }
+
+  /*  ========== My Profile  ========== */
   async getMyProfile(userId) {
     const [profileResult, tagsResult, photosResult] = await Promise.all([
       pool.query(
@@ -52,21 +59,7 @@ class ProfileService {
     };
   }
 
-  async getProfileTagsUsage(limit) {
-    const result = await pool.query(
-      `
-      SELECT t.name, COUNT(upt.user_id)::int AS usage_count
-      FROM tags t
-      LEFT JOIN user_profile_tags upt ON upt.tag_id = t.id
-      GROUP BY t.id, t.name
-      ORDER BY usage_count DESC, t.name ASC
-      LIMIT $1
-      `,
-      [limit]
-    );
-    return result.rows;
-  }
-
+  /*  ========== Public Profile  ========== */
   async getPublicProfile(requestedId, currentUserId) {
     const promises = [
       pool.query(
@@ -139,6 +132,22 @@ class ProfileService {
     };
   }
 
+  async getProfileTagsUsage(limit) {
+    const result = await pool.query(
+      `
+      SELECT t.name, COUNT(upt.user_id)::int AS usage_count
+      FROM tags t
+      LEFT JOIN user_profile_tags upt ON upt.tag_id = t.id
+      GROUP BY t.id, t.name
+      ORDER BY usage_count DESC, t.name ASC
+      LIMIT $1
+      `,
+      [limit]
+    );
+    return result.rows;
+  }
+
+  /*  ========== Update Profile  ========== */
   async updateProfile(userId, data, tagsArray, photosArray) {
     const client = await pool.connect();
     try {
@@ -236,10 +245,6 @@ class ProfileService {
     } finally {
       client.release();
     }
-  }
-  async getUserById(userId) {
-    const result = await pool.query(`SELECT * FROM users WHERE id = $1`, [userId]);
-    return result.rows[0];
   }
 }
 

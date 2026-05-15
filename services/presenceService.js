@@ -2,12 +2,14 @@ const pool = require("../db");
 
 const socketsByUser = new Map();
 
+/*  ========== Presence Tracking  ========== */
 function isUserOnline(userId) {
   const key = Number(userId);
   const current = socketsByUser.get(key);
   return Boolean(current && current.size > 0);
 }
 
+/*  ========== Broadcast Presence Update to All Clients  ========== */
 function emitPresence(io, userId, isOnline, lastSeenAt) {
   io.emit("presence:update", {
     user_id: Number(userId),
@@ -16,6 +18,7 @@ function emitPresence(io, userId, isOnline, lastSeenAt) {
   });
 }
 
+/*  ========== Socket Management  ========== */
 function registerSocketForUser(userId, socketId) {
   const key = Number(userId);
   const current = socketsByUser.get(key) || new Set();
@@ -39,6 +42,7 @@ function unregisterSocketForUser(userId, socketId) {
   return current.size;
 }
 
+/*  ========== Update Last Seen Timestamp  ========== */
 async function touchLastSeen(userId) {
   await pool.query(
     `
@@ -50,6 +54,7 @@ async function touchLastSeen(userId) {
   );
 }
 
+/*  ========== Handle Socket Connect/Disconnect  ========== */
 async function onSocketConnect(io, userId, socketId) {
   const totalSockets = registerSocketForUser(userId, socketId);
 

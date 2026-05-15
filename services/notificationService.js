@@ -2,6 +2,7 @@ const pool = require("../db");
 const { getIO, REALTIME_EVENTS } = require("../realtime");
 
 class NotificationService {
+  /*  ========== Create Notification  ========== */
   async createNotification({ userId, actorUserId = null, type, message, metadata = {} }) {
     if (!userId || !type || !message) return;
     if (actorUserId && String(userId) === String(actorUserId)) return;
@@ -41,6 +42,7 @@ class NotificationService {
     }
   }
 
+  /*  ========== Fetch Notifications  ========== */
   async getNotifications(userId) {
     const result = await pool.query(
       `
@@ -56,6 +58,7 @@ class NotificationService {
     return result.rows;
   }
 
+  /*  ========== Mark as Read  ========== */
   async readAll(userId) {
     await pool.query(
       `UPDATE notifications SET is_read = TRUE WHERE user_id = $1 AND is_read = FALSE`,

@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { MIN_BIRTH_DATE_ISO, isValidBirthDateIso } from "@/utils/date.js";
-import { buildApiHeaders } from "@/utils.js";
+import { buildApiHeaders } from "@/utils/utils.js";
 import { writeStoredUser } from "@/utils/userStorage.js";
 
 export default function useProfileSubmit({
@@ -57,6 +57,7 @@ export default function useProfileSubmit({
 
       setMessage("Submitting...");
 
+      // Build headers and payload for profile update API request
       const headers = buildApiHeaders(
         { id: userId },
         {
@@ -81,6 +82,7 @@ export default function useProfileSubmit({
         tags: form.tags,
       };
 
+      // Only include photos in payload if they are valid base64 data URLs
       const photosAreBase64DataUrls =
         Array.isArray(form.photos) &&
         form.photos.every((photo) => {
@@ -92,6 +94,7 @@ export default function useProfileSubmit({
         payload.photos = form.photos;
       }
 
+      // Call profile update API and handle response
       try {
         const response = await fetch("/api/profile/me", {
           method: "PUT",
@@ -111,6 +114,7 @@ export default function useProfileSubmit({
           return;
         }
 
+        // Update form state with response data to reflect any changes from the backend
         setForm((prev) => ({
           ...prev,
           username: data.user?.username || prev.username,
@@ -140,6 +144,7 @@ export default function useProfileSubmit({
             : prev.photos,
         }));
 
+        // Update stored user data
         if (data.user) {
           const nextUser = {
             ...(currentUser || {}),

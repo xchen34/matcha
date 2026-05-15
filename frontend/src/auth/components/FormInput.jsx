@@ -13,10 +13,12 @@ export default function FormInput({
 }) {
   return (
     <div className="space-y-1">
+      {/* Label */}
       <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
         {label}
       </label>
 
+      {/* Input */}
       <input
         name={name}
         type={type}
@@ -27,10 +29,12 @@ export default function FormInput({
         {...props}
       />
 
+      {/* Description */}
       {description && (
         <p className="text-xs text-slate-500">{description}</p>
       )}
 
+      {/* Error message */}
       {error && (
         <p className="text-xs text-red-500">{error}</p>
       )}

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { primaryButtonClass, secondaryButtonClass, tertiaryButtonClass } from "@/styles/UIClasses.jsx"
+import { primaryButtonClass, tertiaryButtonClass } from "@/styles/UIClasses.jsx"
 
 export default function VerificationSentPage() {
   const location = useLocation();
@@ -8,6 +8,8 @@ export default function VerificationSentPage() {
     typeof location.state?.prefillEmail === "string"
       ? location.state.prefillEmail.trim()
       : "";
+
+  /* Email preview URLs (if available) */
   const previewUrl =
     typeof location.state?.previewUrl === "string"
       ? location.state.previewUrl
@@ -20,6 +22,7 @@ export default function VerificationSentPage() {
   return (
     <div className="flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full space-y-4">
+        {/* ==========HEADER ========== */}
         <h1 className="text-3xl font-bold text-gray-800">Verification Email Sent</h1>
         <p className="text-gray-600">
           Your account is created. Please verify your email before login.
@@ -31,6 +34,7 @@ export default function VerificationSentPage() {
           </p>
         )}
 
+        {/* ========== EMAIL PREVIEW LINKS ========== */}
         {(previewUrl || devVerifyUrl) && (
           <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
             {previewUrl && (
@@ -46,6 +50,7 @@ export default function VerificationSentPage() {
                 </a>
               </p>
             )}
+
             {devVerifyUrl && (
               <p>
                 Fallback verify link:{" "}
@@ -62,6 +67,7 @@ export default function VerificationSentPage() {
           </div>
         )}
 
+        {/* ========== RESEND / BACK TO LOGIN LINKS ========== */}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -79,13 +85,15 @@ export default function VerificationSentPage() {
           >
             Resend verification
           </button>
-          <Link
-            to="/login"
+
+          <Link 
+            to="/login" 
             className={tertiaryButtonClass}
           >
             Go to login
           </Link>
         </div>
+
       </div>
     </div>
   );

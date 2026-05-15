@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { buildApiHeaders } from "@/utils.js";
+import { buildApiHeaders } from "@/utils/utils.js";
 import { normalizeLocationPrefix } from "@/utils/locationUtils.js";
 import useCityNeighborhoodOptions from "./useCityNeighborhoodOptions";
 import useLocationValidationRequest from "./useLocationValidationRequest";
@@ -15,9 +15,11 @@ export default function useProfileLocationValidation({
   const [isNeighborhoodSelected, setIsNeighborhoodSelected] = useState(false);
   const [isCityConfirmed, setIsCityConfirmed] = useState(false);
 
+  // Determine presence of city and neighborhood input for validation logic
   const hasCityInput = (form.city || "").trim().length > 0;
   const hasNeighborhoodInput = (form.neighborhood || "").trim().length > 0;
 
+  // Hook for validating location input and managing validation state
   const {
     locationSuggestions,
     setLocationSuggestions,
@@ -27,14 +29,16 @@ export default function useProfileLocationValidation({
     validateLocationInput,
   } = useLocationValidationRequest({ userId, form, setMessage });
 
+  // Determine if location is accepted or exists
   const isLocationAccepted =
     Boolean(locationValidation?.city_exists) || isCityConfirmed;
-
+    
   const isCitySelected =
     (form.city || "").trim().length > 0 &&
     (isCityConfirmed ||
       (!validatingLocation && Boolean(locationValidation?.city_exists)));
 
+  // Hook for loading neighborhood options based on selected city
   const {
     cityNeighborhoodOptions,
     loadingNeighborhoods,
@@ -46,6 +50,7 @@ export default function useProfileLocationValidation({
     isCitySelected,
   });
 
+  // Process location suggestions into options for city autocomplete
   const citySuggestionOptions = useMemo(() => {
     const sourceSuggestions =
       citySearchSuggestions.length > 0
@@ -62,6 +67,7 @@ export default function useProfileLocationValidation({
       }));
   }, [citySearchSuggestions, locationSuggestions]);
 
+  // Process neighborhood suggestions for the selected city
   const neighborhoodByCitySuggestions = useMemo(() => {
     const selectedCity = normalizeLocationPrefix(form.city);
     if (!selectedCity) return [];
@@ -93,6 +99,7 @@ export default function useProfileLocationValidation({
       ? cityNeighborhoodOptions
       : neighborhoodByCitySuggestions;
 
+  // Generate city autocomplete options based on current input and suggestions
   const cityAutocompleteOptions = useMemo(() => {
     const prefix = normalizeLocationPrefix(form.city);
     if (!prefix) return [];
@@ -107,6 +114,7 @@ export default function useProfileLocationValidation({
       .slice(0, 12);
   }, [citySuggestionOptions, form.city]);
 
+  /* ============ Effect to fetch city suggestions based on city input ============ */
   useEffect(() => {
     let cancelled = false;
 
@@ -168,6 +176,7 @@ export default function useProfileLocationValidation({
     };
   }, [userId, form.city, setMessage]);
 
+  /* ============ Effect to validate location input when relevant fields change ============ */
   useEffect(() => {
     if (!userId) return undefined;
 
@@ -204,6 +213,7 @@ export default function useProfileLocationValidation({
     setLocationValidation,
   ]);
 
+  /* ============ Handlers for applying city suggestions and editing location ============ */
   function applyCitySuggestion(option) {
     setForm((prev) => ({ ...prev, city: option.city, neighborhood: "" }));
     setIsCityConfirmed(true);
@@ -223,6 +233,7 @@ export default function useProfileLocationValidation({
     );
   }
 
+  /* =========== Handler for editing location to reset related fields and validation ============ */
   function handleEditLocation() {
     setForm((prev) => ({
       ...prev,
@@ -238,6 +249,7 @@ export default function useProfileLocationValidation({
     setMessage("Edit your city if needed.");
   }
 
+  /* ============ Handler for city input change to manage suggestions and validation ============ */
   function handleCityInputChange(event, handleChange) {
     handleChange(event);
     if (!isNeighborhoodSelected) {

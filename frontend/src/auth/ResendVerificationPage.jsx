@@ -1,19 +1,22 @@
 import { useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import FormInput from "./components/FormInput";
-import { tertiaryButtonClass } from "@/styles/UIClasses.jsx"
 
 export default function ResendVerificationPage() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
+  /*========== Initialize email from state or query params ========== */
   const initialEmailFromState =
-    typeof location.state?.prefillEmail === "string"
+    typeof location.state
+      ?.prefillEmail === "string"
       ? location.state.prefillEmail.trim()
       : "";
+  const initialEmailFromQuery = (
+    searchParams.get("email") || ""
+  ).trim();
 
-  const initialEmailFromQuery = (searchParams.get("email") || "").trim();
-
+  /*========== Form state ========== */
   const [email, setEmail] = useState(
     initialEmailFromState || initialEmailFromQuery
   );
@@ -21,6 +24,8 @@ export default function ResendVerificationPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState(null);
   const [message, setMessage] = useState("");
+  
+  /*========== Email preview URLs ========== */
   const [previewUrl, setPreviewUrl] = useState(
     location.state?.previewUrl || ""
   );
@@ -28,8 +33,10 @@ export default function ResendVerificationPage() {
     location.state?.devVerifyUrl || ""
   );
 
+  /*========== Handle form submission ========== */
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setIsLoading(true);
     setStatus(null);
     setMessage("");
@@ -37,28 +44,33 @@ export default function ResendVerificationPage() {
     setDevVerifyUrl("");
 
     try {
-      const response = await fetch("/api/auth/resend-verification-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: email.trim() }),
-      });
+      const response = await fetch(
+        "/api/auth/resend-verification-email", 
+        {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: email.trim() }),
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok) {
         setStatus("success");
         setMessage(data.message);
+        
         if (data?.email_delivery?.preview_url) {
           setPreviewUrl(data.email_delivery.preview_url);
         }
+        
         if (data?.dev_verify_url) {
           setDevVerifyUrl(data.dev_verify_url);
         }
       } else {
         setStatus("error");
-        setMessage(data.error || "Failed to resend verification email");
+        setMessage(data.error || "Failed to resend verification email",);
       }
     } catch (error) {
       setStatus("error");
@@ -72,14 +84,15 @@ export default function ResendVerificationPage() {
   return (
     <div className="flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
+        {/*  ========== HEADER ========== */}
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Resend Verification Email</h1>
         <p className="text-gray-600 mb-6">
           Enter your email address and we'll send you a new verification link.
         </p>
 
+        {/*  ========== FORM ========== */}
         <form onSubmit={handleSubmit} className="space-y-4">
-
-          {/* EMAIL */}
+          {/* EMAIL INPUT */}
           <FormInput
             label="Email Address"
             name="email"
@@ -90,6 +103,7 @@ export default function ResendVerificationPage() {
             disabled={isLoading}
           />
 
+          {/* STATUS MESSAGES */}
           {status === 'success' && (
             <div className="bg-green-50 border border-valid rounded-lg p-4">
               <p className="text-green-800 text-sm">{message}</p>
@@ -102,6 +116,7 @@ export default function ResendVerificationPage() {
             </div>
           )}
 
+          {/* SUBMIT BUTTON */}
           <button
             type="submit"
             disabled={isLoading || !email}
@@ -110,7 +125,8 @@ export default function ResendVerificationPage() {
             {isLoading ? "Sending..." : "Resend Verification Email"}
           </button>
         </form>
-
+        
+        {/* ========== EMAIL PREVIEW LINKS ========== */}
         {(previewUrl || devVerifyUrl) && (
           <div className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
             {previewUrl && (
@@ -126,6 +142,7 @@ export default function ResendVerificationPage() {
                 </a>
               </p>
             )}
+
             {devVerifyUrl && (
               <p>
                 Fallback verify link:{" "}
@@ -142,6 +159,7 @@ export default function ResendVerificationPage() {
           </div>
         )}
 
+        {/*  ========== BACK TO LOGIN / REGISTER LINKS ========== */}
         <div className="mt-6 text-center space-y-3 text-sm text-gray-600">
           <p>
             Remember your password?{" "}
@@ -149,6 +167,7 @@ export default function ResendVerificationPage() {
               Go to Login
             </Link>
           </p>
+
           <p>
             Don't have an account?{" "}
             <Link to="/register" className="text-rose-500 hover:text-rose-600 font-semibold">

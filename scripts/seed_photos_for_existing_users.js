@@ -3,13 +3,42 @@ const pool = require("../db");
 
 const MIN_PHOTOS = 0;
 const MAX_PHOTOS = 5;
+const UNSPLASH_SIZE = "w=600&h=400&fit=crop&auto=format&q=75";
 
+function unsplashPhoto(id, size = UNSPLASH_SIZE) {
+  return `https://images.unsplash.com/${id}?${size}`;
+}
+
+// Diverse photos: landscapes, nature, architecture, objects - NO people
 const photoThemes = [
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836",
-  "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
-  "https://images.unsplash.com/photo-1519681393784-d120267933ba",
-  "https://images.unsplash.com/photo-1517841905240-472988babdf9",
-  "https://images.unsplash.com/photo-1512436991641-6745cdb1723f",
+  // Nature & Landscapes
+  unsplashPhoto("photo-1506744038136-46273834b3fb"), // mountains
+  unsplashPhoto("photo-1519681393784-d120267933ba"), // ocean
+  unsplashPhoto("photo-1506905925346-21bda4d32df4"), // mountain peaks
+  unsplashPhoto("photo-1441974231531-c6227db76b6e"), // forest
+  unsplashPhoto("photo-1470770841072-f978cf4d019e"), // lake
+  unsplashPhoto("photo-1500530855697-b586d89ba3ee"), // desert
+  unsplashPhoto("photo-1501785888041-af3ef285b470"), // snowy mountains
+  unsplashPhoto("photo-1439066615861-d1af74d74000"), // waterfall
+  unsplashPhoto("photo-1507525428034-b723cf961d3e"), // beach
+
+  // Architecture & Urban
+  unsplashPhoto("photo-1511632765486-a01980e01a18"), // skyline
+  unsplashPhoto("photo-1497366216548-37526070297c"), // buildings
+  unsplashPhoto("photo-1494526585095-c41746248156"), // modern house
+  unsplashPhoto("photo-1479839672679-a46483c0e7c8"), // city night
+  unsplashPhoto("photo-1465447142348-e9952c393450"), // bridge
+
+  // Objects & Lifestyle
+  unsplashPhoto("photo-1460661419201-fd4cecdf8a8b"), // coffee
+  unsplashPhoto("photo-1492684223066-81342ee5ff30"), // books
+  unsplashPhoto("photo-1506157786151-b8491531f063"), // bicycle
+  unsplashPhoto("photo-1498050108023-c5249f4df085"), // laptop setup
+  unsplashPhoto("photo-1515879218367-8466d910aaa4"), // coding desk
+  unsplashPhoto("photo-1512436991641-6745cdb1723f"), // sneakers
+  unsplashPhoto("photo-1503602642458-232111445657"), // vinyl records
+  unsplashPhoto("photo-1496442226666-8d4d0e62e6e9"), // flowers
+  unsplashPhoto("photo-1500534314209-a25ddb2bd429"), // plants
 ];
 
 const portraits = {
@@ -32,6 +61,15 @@ async function main() {
 
   try {
     console.log("📸 Seeding photos...");
+
+    // Skip if seeding already done (check if significant photos already exist)
+    const { rows: photoCount } = await client.query(`
+      SELECT COUNT(*) as total FROM user_photos
+    `);
+    if (photoCount[0].total > 50) {
+      console.log("✅ Photo seeding already completed, skipping...");
+      return;
+    }
 
     const { rows: users } = await client.query(`
       SELECT

@@ -1,6 +1,7 @@
 const pool = require("../db");
 
 class LikeService {
+  /*  ========== Helpers  ========== */
   async checkUsersExist(userIds) {
     const result = await pool.query(
       `SELECT id FROM users WHERE id = ANY($1::int[])`,
@@ -9,6 +10,21 @@ class LikeService {
     return new Set(result.rows.map((row) => Number(row.id)));
   }
 
+  async userHasPrimaryPhoto(userId) {
+    const result = await pool.query(
+      `
+      SELECT 1
+      FROM user_photos
+      WHERE user_id = $1
+        AND is_primary = TRUE
+      LIMIT 1
+      `,
+      [userId]
+    );
+    return result.rowCount > 0;
+  }
+
+  /*  ========== Profile Views & Likes  ========== */
   async insertProfileView(viewerId, viewedId) {
     const result = await pool.query(
       `
@@ -47,24 +63,13 @@ class LikeService {
     return result.rowCount > 0;
   }
 
+  /*  ========== Usernames & Match Status for Conversations List  ========== */
   async getUserNames(userIdA, userIdB) {
     const res = await pool.query(
       `SELECT id, username, first_name FROM users WHERE id = $1 OR id = $2`,
       [userIdA, userIdB]
     );
     return res.rows;
-  }
-
-  async checkMatchExists(userA, userB) {
-    const sql = `
-      SELECT EXISTS (
-        SELECT 1 FROM likes l1
-        JOIN likes l2 ON l1.liker_user_id = l2.liked_user_id AND l1.liked_user_id = l2.liker_user_id
-        WHERE l1.liker_user_id = $1 AND l1.liked_user_id = $2
-      ) AS is_match
-    `;
-    const result = await pool.query(sql, [userA, userB]);
-    return result.rows[0]?.is_match || false;
   }
 
   async getLikesReceived(userId) {
@@ -149,6 +154,19 @@ class LikeService {
     return result.rows;
   }
 
+  async checkMatchExists(userA, userB) {
+    const sql = `
+      SELECT EXISTS (
+        SELECT 1 FROM likes l1
+        JOIN likes l2 ON l1.liker_user_id = l2.liked_user_id AND l1.liked_user_id = l2.liker_user_id
+        WHERE l1.liker_user_id = $1 AND l1.liked_user_id = $2
+      ) AS is_match
+    `;
+    const result = await pool.query(sql, [userA, userB]);
+    return result.rows[0]?.is_match || false;
+  }
+  
+  /*  ========== Match Suggestions with Filters  ========== */
   async getSuggestions(userId, filters, limit, offset) {
     const {
       minAge, maxAge, minFame, maxFame, usernameFilter, tagsFilter, cityFilter, orderBySql
@@ -257,19 +275,6 @@ class LikeService {
       likesGiven,
       likesReceived,
     };
-  }
-  async userHasPrimaryPhoto(userId) {
-    const result = await pool.query(
-      `
-      SELECT 1
-      FROM user_photos
-      WHERE user_id = $1
-        AND is_primary = TRUE
-      LIMIT 1
-      `,
-      [userId]
-    );
-    return result.rowCount > 0;
   }
 }
 

@@ -3,8 +3,10 @@ import { getLatestPerActorAndType } from "../utils/notificationUtils.js";
 
 export function useNotificationGroups(notifications) {
   return useMemo(() => {
+    // Get latest unread notification per actor
     const finalUnreadItems = getLatestPerActorAndType(notifications, true);
 
+    // Define grouping rules and labels
     const definitions = {
       profile_view: {
         section: "views",
@@ -30,6 +32,7 @@ export function useNotificationGroups(notifications) {
 
     const groups = [];
 
+    // Group notifications by type
     for (const [type, def] of Object.entries(definitions)) {
       const items = finalUnreadItems.filter((item) => item.type === type);
       if (items.length === 0) continue;
@@ -50,9 +53,11 @@ export function useNotificationGroups(notifications) {
       });
     }
 
+    // Sort groups by latest notification time
     return groups.sort((a, b) => {
       const aTime = new Date(a.latestAt || 0).getTime();
       const bTime = new Date(b.latestAt || 0).getTime();
+      
       return bTime - aTime;
     });
   }, [notifications]);

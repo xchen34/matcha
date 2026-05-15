@@ -1,8 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { sanitizeText } from "../utils/xssEscape.js";
+import { sanitizeText } from "@/utils/xssEscape.js";
 import { actionButtonClass } from "@/styles/UIClasses.jsx";
-import { Heart, UserRound, Star, MapPin, VenusAndMars, MousePointerClick, Sparkle } from "lucide-react"
+import { 
+  Heart, UserRound, 
+  Star, MapPin, 
+  VenusAndMars, Sparkle 
+} from "lucide-react"
 
 function UserCard({ user, currentUser, canLikeProfiles = true }) {
   const navigate = useNavigate();
@@ -10,6 +14,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  /* ========== Memoized profile photo URL ========== */
   const profilePhotoUrl = useMemo(
     () =>
       user?.profile_photo_url ||
@@ -20,6 +25,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
     [user]
   );
 
+  /* ========== Handle like/unlike with optimistic UI ========== */
   const liked =
     optimistic?.userId === user?.id
       ? optimistic.liked
@@ -30,9 +36,11 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
       ? optimistic.isMatch
       : Boolean(user?.is_match);
 
+  /* ========== Fame rating display logic ========== */
   const fameValue = Number(user?.fame_rating);
   const hasFameValue = Number.isFinite(fameValue);
 
+  /* ========== Toggle Like/unlike ========== */
   async function handleToggleLike() {
     setLoading(true);
     setError("");
@@ -41,28 +49,37 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
       if (!liked && !canLikeProfiles) {
         throw new Error("Add a profile photo first to like users.");
       }
+      
       if (!user?.profile_photo_url && !user?.avatarUrl && !user?.primary_photo_url && !user?.photo_url) {
         throw new Error("User has no profile photo");
       }
+      
       const nextLiked = !liked;
-
       if (!liked) {
-        const res = await fetch(`/api/users/${user.id}/like`, {
-          method: "POST",
-          headers: { "x-user-id": currentUser.id },
-        });
+        const res = await fetch(`/api/users/${user.id}/like`, 
+          {
+            method: "POST",
+            headers: { "x-user-id": currentUser.id },
+          }
+        );
+
         if (!res.ok) throw new Error("Error while liking");
+        
         setOptimistic({
           userId: user.id,
           liked: nextLiked,
           isMatch,
         });
       } else {
-        const res = await fetch(`/api/users/${user.id}/like`, {
-          method: "DELETE",
-          headers: { "x-user-id": currentUser.id },
-        });
+        const res = await fetch(`/api/users/${user.id}/like`, 
+          {
+            method: "DELETE",
+            headers: { "x-user-id": currentUser.id },
+          }
+        );
+        
         if (!res.ok) throw new Error("Error when unliking");
+        
         setOptimistic({
           userId: user.id,
           liked: nextLiked,
@@ -70,9 +87,11 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         });
       }
 
-      const matchRes = await fetch(`/api/users/${user.id}/is-match`, {
-        headers: { "x-user-id": currentUser.id },
-      });
+      const matchRes = await fetch(`/api/users/${user.id}/is-match`, 
+        {
+          headers: { "x-user-id": currentUser.id },
+        }
+      );
 
       const matchData = await matchRes.json();
 
@@ -91,15 +110,14 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   return (
     <div className="
       relative mx-auto flex h-full w-full max-w-[19rem] flex-col overflow-hidden
-      rounded-2xl border border-light
+      rounded-3xl border border-light
       bg-white
       shadow-sm
       transition hover:shadow-md hover:scale-[1.015]
     ">
-
-      {/* IMAGE */}
+      {/* ======== IMAGE + STATUS ======== */}
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-neutral-light">
-
+        {/* Profile photo with fallback */}
         {profilePhotoUrl ? (
           <img
             src={profilePhotoUrl}
@@ -112,24 +130,40 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           </div>
         )}
 
-        {/* GRADIENT BOTTOM */}
+        {/* Gradient bottom */}
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white/100 via-white/30 to-transparent" />
 
-        {/* ONLINE / OFFLINE */}
-        <span
-          className={`absolute top-3 left-3 px-3 py-1 rounded-full text-[11px] font-semibold border
-          ${
-            user.is_online
-              ? "bg-valid text-white border-valid-dark"
-              : "bg-neutral-light text-neutral border-neutral"
-          }`}
-        >
-          {user.is_online ? "Online" : "Offline"}
-        </span>
+        {/* Online status */}
+        <div className="absolute left-3 top-3">
+          <span
+            className={`
+              inline-flex items-center gap-2 rounded-full
+              px-3 py-1.5 text-[11px] font-semibold
+              shadow-lg backdrop-blur-md border
+              ${
+                user.is_online
+                  ? "border-valid-dark bg-valid text-white"
+                  : "border-neutral bg-white/90 text-neutral-dark"
+              }
+            `}
+          >
+            <span
+              className={`
+                h-2 w-2 rounded-full
+                ${
+                  user.is_online
+                    ? "bg-white"
+                    : "bg-neutral"
+                }
+              `}
+            />
 
-        {/* LIKE + STATUS */}
+            {user.is_online ? "Online" : "Offline"}
+          </span>
+        </div>
+
+        {/* Like button */}
         <div className="absolute bottom-3 right-3 flex items-center gap-2">
-
           <span
             className={`
               px-2 py-1 rounded-full text-[11px] font-semibold border
@@ -159,20 +193,18 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           >
             <Heart className={liked ? "text-white" : "text-primary"} size={18} />
           </button>
-
         </div>
       </div>
 
-      {/* CONTENT */}
+      {/* ======== CONTENT ======== */}
       <div className="flex flex-1 flex-col p-4 text-neutral-dark">
-
+        {/* Username */}
         <h3 className="text-lg font-semibold text-neutral-dark">
           @{user.username}
         </h3>
 
-        {/* INFOS */}
+        {/* Infos */}
         <div className="mt-2 flex flex-wrap gap-2 text-sm text-neutral">
-
           <span className="flex items-center gap-1">
             <VenusAndMars className="text-primary" />
             {sanitizeText(user.gender) || "-"}
@@ -194,10 +226,9 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
               {Math.floor(fameValue)}
             </span>
           )}
-          
         </div>
 
-        {/* TAGS */}
+        {/* ======== TAGS ======== */}
         <div className="mt-3 flex flex-wrap gap-1 text-xs">
           {Array.isArray(user.tags) &&
             user.tags.map((tag) => (
@@ -215,12 +246,12 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
             ))}
         </div>
 
-        {/* ERROR */}
+        {/* ======== ERROR ======== */}
         {error && (
           <p className="mt-2 text-xs text-error">{error}</p>
         )}
 
-        { /* VIEW PROFILE BUTTON */ }
+        { /* ======== VIEW PROFILE BUTTON ======== */ }
         <div className="mt-auto pt-4">
           <button
             onClick={() => navigate(`/users/${user.id}`)}
@@ -230,7 +261,6 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
             View profile
           </button>
         </div>
-
       </div>
     </div>
   );

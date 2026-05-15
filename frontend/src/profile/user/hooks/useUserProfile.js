@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { buildApiHeaders } from "@/utils.js";
+import { buildApiHeaders } from "@/utils/utils.js";
 
 export function useUserProfile(id, currentUser) {
   const [data, setData] = useState(null);
@@ -18,16 +18,19 @@ export function useUserProfile(id, currentUser) {
       try {
         let response;
 
+        // If fetching the current user's profile, use the /api/profile/me endpoint
         if (currentUser && String(currentUser.id) === String(id)) {
           response = await fetch(`/api/profile/me`, {
             headers: buildApiHeaders(currentUser),
           });
         } else {
+          // Fetching another user's profile
           response = await fetch(`/api/profile/${id}`, {
             headers: buildApiHeaders(currentUser),
           });
         }
 
+        // Handle unauthorized access by redirecting to login
         if (response.status === 401 || response.status === 403) {
           window.location.href = "/login";
           return;
@@ -42,6 +45,7 @@ export function useUserProfile(id, currentUser) {
           return;
         }
 
+        // Save user data to local storage if it's the current user's profile
         if (!cancelled) {
           setData(payload);
         }
@@ -58,10 +62,16 @@ export function useUserProfile(id, currentUser) {
 
     fetchProfile();
 
+    // Cleanup function to prevent state updates if component unmounts
     return () => {
       cancelled = true;
     };
   }, [id, currentUser]);
 
-  return { data, loading, error, setData };
+  return { 
+    data, 
+    loading, 
+    error, 
+    setData 
+  };
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { cardClass } from "@/styles/UIClasses.jsx";
 import { sanitizeText } from "@/utils/xssEscape.js";
-import { buildApiHeaders } from "@/utils.js";
+import { buildApiHeaders } from "@/utils/utils.js";
 
 import { useUserProfile } from "./hooks/useUserProfile";
 import { useUserRelations } from "./hooks/useUserRelations";
@@ -14,8 +14,8 @@ import ProfileActions from "./components/ProfileActions.jsx";
 import ProfileInfoGrid from "./components/ProfileInfoGrid.jsx";
 import ProfileBio from "./components/ProfileBio.jsx";
 import ProfileTags from "./components/ProfileTags.jsx";
-import { ProfilePhotosGrid } from "./components/ProfilePhotosGrid.jsx";
-import { Flame, ImageIcon } from "lucide-react";
+import { ProfilePhotosGrid } from "@/components/ProfilePhotosGrid.jsx";
+import { Flame, ImageIcon, LoaderCircle } from "lucide-react";
 
 function UserProfilePage({ currentUser }) {
   const { id } = useParams();
@@ -57,7 +57,7 @@ function UserProfilePage({ currentUser }) {
     setModerationMessage,
   });
 
-  // REALTIME (socket events)
+  /* ========== REALTIME : socket events for status / notifications ========== */
   useUserRealtime({
     id,
     currentUser,
@@ -67,6 +67,7 @@ function UserProfilePage({ currentUser }) {
     },
   });
 
+  /* ========== Record profile view ========== */
   useEffect(() => {
     const viewedUserId = Number(id);
     const viewerUserId = Number(currentUser?.id);
@@ -86,7 +87,7 @@ function UserProfilePage({ currentUser }) {
     }).catch(() => {});
   }, [id, currentUser]);
 
-  // AUTH GUARD
+  // AUTH GUARD & LOADING/ERROR STATES
   if (!currentUser) return <Navigate to="/login" replace />;
   if (loading) return <p className="text-sm text-slate-600">Loading profile...</p>;
   if (error) return <p className="text-sm text-red-600">{error}</p>;
@@ -114,9 +115,9 @@ function UserProfilePage({ currentUser }) {
 
   return (
     <section className={cardClass}>
-      {/* HEADER */}
+      {/* ========== HEADER ==========*/}
       <div className="space-y-1">
-        { /* */ }
+        { /* Alert for missing profile photo */ }
         {!canLikeProfiles && (
           <div className="flex items-center rounded-xl text-primary-dark text-center border border-primary/30 bg-primary-light px-2 py-1 shadow-sm gap-2">
             <ImageIcon size={16} />
@@ -126,16 +127,18 @@ function UserProfilePage({ currentUser }) {
           </div>
         )}
         {!hasProfilePhoto && (
-          <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary-light px-3 py-2 text-sm text-primary-dark">
+          <div className="flex items-center rounded-xl text-primary-dark text-center border border-primary/30 bg-primary-light px-2 py-1 shadow-sm gap-2">
             <ImageIcon size={16} />
             This user has no profile photo — you cannot like them.
           </div>
         )}
 
+        {/* SECTION LABEL */ }
         <p className="text-xs uppercase tracking-[0.14em] text-primary-dark font-semibold">
           Profile
         </p>
 
+        {/* NAME, USERNAME, ACTIONS */ }
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-xl sm:text-2xl font-semibold text-neutral-dark break-words">
@@ -180,6 +183,7 @@ function UserProfilePage({ currentUser }) {
             Reason for reporting
           </label>
 
+          {/* REASON TEXTAREA */ }
           <textarea
             value={report.reportReason}
             onChange={(e) => report.setReportReason(e.target.value)}
@@ -193,13 +197,21 @@ function UserProfilePage({ currentUser }) {
             <p className="text-sm text-red-600">{report.error}</p>
           )}
 
+          {/* SUBMIT BUTTON */ }
           <div className="flex items-center gap-2">
             <button
               type="submit"
               disabled={report.reporting}
               className="rounded-full bg-primary-dark px-4 py-2 text-xs font-semibold text-white"
             >
-              {report.reporting ? "Submitting..." : "Submit report"}
+              {report.reporting ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
+                  Submitting...
+                </span>
+              ) : (
+                "Submit report"
+              )}
             </button>
 
             <button
@@ -250,19 +262,20 @@ function UserProfilePage({ currentUser }) {
       </div>
 
       {/* FAME RATING */}
-      <div className="rounded-2xl bg-primary-dark p-5 text-white">
-
+      <div className="rounded-3xl bg-primary-dark p-6 text-white shadow-md">
         <p className="flex items-center gap-2 text-xs uppercase tracking-widest opacity-80">
-          <Flame size={14} aria-hidden="true" />
-          <span>Fame rating</span>
+          <Flame size={14} />
+          Fame rating
         </p>
 
+        {/* FAME RATING VALUE */ }
         <div className="mt-3 text-5xl font-bold">
           {Math.floor(profile.fame_rating ?? 0)}
         </div>
 
-        <p className="mt-2 text-xs opacity-70">
-          This reflects how many users have liked and viewed this profile.
+        {/* FAME RATING INFO */ }
+        <p className="mt-2 text-xs opacity-70 leading-relaxed">
+          Based on likes and profile interactions 
         </p>
       </div>
     </section>

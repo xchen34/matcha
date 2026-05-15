@@ -6,12 +6,12 @@ export function useSettings() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsMenuRef = useRef(null);
 
-  // Handle click outside and escape key
   useEffect(() => {
     if (!isSettingsOpen) {
       return undefined;
     }
 
+    /* ========== Close settings on outside click ========== */
     function handleDocumentMouseDown(event) {
       if (
         settingsMenuRef.current &&
@@ -21,6 +21,7 @@ export function useSettings() {
       }
     }
 
+    /* =========== Close settings on Escape key ========== */
     function handleEscape(event) {
       if (event.key === "Escape") {
         setIsSettingsOpen(false);
@@ -36,6 +37,7 @@ export function useSettings() {
     };
   }, [isSettingsOpen]);
 
+  /* ========== Close settings and navigate ========== */
   function closeSettings() {
     setIsSettingsOpen(false);
   }

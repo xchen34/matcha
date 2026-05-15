@@ -1,3 +1,4 @@
+-- Create chat conversations and messages tables
 CREATE TABLE IF NOT EXISTS chat_conversations (
   id SERIAL PRIMARY KEY,
   user_a_id INT NOT NULL,
@@ -10,9 +11,11 @@ CREATE TABLE IF NOT EXISTS chat_conversations (
   FOREIGN KEY (user_b_id) REFERENCES users(id)
 );
 
+-- Ensure that there is only one conversation per user pair (regardless of order)
 CREATE UNIQUE INDEX IF NOT EXISTS chat_conversations_user_pair_uindex
   ON chat_conversations (user_a_id, user_b_id);
 
+-- Create messages table
 CREATE TABLE IF NOT EXISTS chat_messages (
   id SERIAL PRIMARY KEY,
   conversation_id INT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
@@ -23,5 +26,6 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Indexes to optimize queries for conversations and messages
 CREATE INDEX IF NOT EXISTS chat_messages_conversation_idx ON chat_messages (conversation_id);
 CREATE INDEX IF NOT EXISTS chat_messages_recipient_idx ON chat_messages (recipient_user_id);

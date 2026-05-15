@@ -3,12 +3,12 @@ import {
   connectRealtime,
   disconnectRealtime,
   getRealtimeSocket,
-} from "../realtime/socket.js";
-import { buildApiHeaders } from "../utils.js";
-import { writeStoredUser } from "../utils/userStorage.js";
+} from "@/realtime/socket.js";
+import { buildApiHeaders } from "@/utils/utils.js";
+import { writeStoredUser } from "@/utils/userStorage.js";
 
 export function useRealtimeConnection(currentUser, setCurrentUser) {
-  // Ensure realtime token exists
+  /* ========== Ensure realtime token is available and refreshed ========== */
   useEffect(() => {
     let cancelled = false;
 
@@ -18,9 +18,11 @@ export function useRealtimeConnection(currentUser, setCurrentUser) {
       }
 
       try {
-        const response = await fetch("/api/auth/realtime-token", {
-          headers: buildApiHeaders(currentUser),
-        });
+        const response = await fetch("/api/auth/realtime-token", 
+          {
+            headers: buildApiHeaders(currentUser),
+          }
+        );
 
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload?.realtime_token || cancelled) {
@@ -48,10 +50,11 @@ export function useRealtimeConnection(currentUser, setCurrentUser) {
     };
   }, [currentUser, setCurrentUser]);
 
-  // Connect to realtime when token is ready
+  /* ========== Manage realtime connection lifecycle ========== */
   useEffect(() => {
     if (currentUser?.id && currentUser?.realtime_token) {
       connectRealtime(currentUser.id, currentUser.realtime_token);
+
       return () => {
         disconnectRealtime();
       };
@@ -61,7 +64,7 @@ export function useRealtimeConnection(currentUser, setCurrentUser) {
     return undefined;
   }, [currentUser?.id, currentUser?.realtime_token]);
 
-  // Handle connection errors and token refresh
+  /* ========== Handle connection errors and token refresh ========== */
   useEffect(() => {
     if (!currentUser?.id) return undefined;
 
@@ -74,14 +77,18 @@ export function useRealtimeConnection(currentUser, setCurrentUser) {
       refreshing = true;
 
       try {
-        const response = await fetch("/api/auth/realtime-token", {
-          headers: buildApiHeaders({ id: currentUser.id }),
-        });
+        const response = await fetch("/api/auth/realtime-token", 
+          {
+            headers: buildApiHeaders({ id: currentUser.id }),
+          }
+        );
+
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload?.realtime_token || cancelled) {
           return;
         }
 
+        /* Update the currentUser with the new token and reconnect the socket */
         setCurrentUser((prev) => {
           if (!prev) return prev;
           const next = {
@@ -100,6 +107,7 @@ export function useRealtimeConnection(currentUser, setCurrentUser) {
       }
     }
 
+    /* Listen for connection errors */
     function onConnectError(error) {
       const message = String(error?.message || "");
       if (message.includes("Unauthorized")) {

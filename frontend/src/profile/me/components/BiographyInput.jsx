@@ -8,6 +8,7 @@ export default function BiographyInput({
 }) {
   return (
     <div className="space-y-1">
+      {/* Label */}
       <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
         <span className="inline-flex items-center gap-1.5">
           <Info size={13} aria-hidden="true" />
@@ -15,6 +16,7 @@ export default function BiographyInput({
         </span>
       </label>
 
+      {/* Textarea */}
       <textarea
         name="biography"
         placeholder="Biography"
@@ -25,6 +27,7 @@ export default function BiographyInput({
         maxLength={MAX_BIO_LENGTH}
       />
 
+      {/* Character count */}
       <p className="text-xs text-slate-500 text-right">
         {(form.biography || "").length}/{MAX_BIO_LENGTH}
       </p>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { buildApiHeaders } from "@/utils.js";
+import { buildApiHeaders } from "@/utils/utils.js";
 
 export function useMatchFilters(currentUser) {
   const [draftFilters, setDraftFilters] = useState({
@@ -30,7 +30,7 @@ export function useMatchFilters(currentUser) {
   const [citySuggestions, setCitySuggestions] = useState([]);
   const [cityConfirmed, setCityConfirmed] = useState(false);
 
-  // Fetch city suggestions
+  /* ========== Fetch city suggestions ========== */
   useEffect(() => {
     let cancelled = false;
 
@@ -48,12 +48,14 @@ export function useMatchFilters(currentUser) {
         const params = new URLSearchParams();
         params.set("query", query);
         params.set("limit", "8");
+
         const response = await fetch(
           `/api/profile/city-suggestions?${params.toString()}`,
           {
             headers: buildApiHeaders(currentUser),
           },
         );
+
         const data = await response.json();
 
         if (!response.ok || cancelled) {
@@ -76,13 +78,13 @@ export function useMatchFilters(currentUser) {
     }
 
     const timeoutId = setTimeout(fetchCitySuggestions, 220);
-
     return () => {
       cancelled = true;
       clearTimeout(timeoutId);
     };
   }, [currentUser, draftFilters.city, cityConfirmed]);
 
+  /* ========== Filter Handlers ========== */
   function handleFilterChange(e) {
     const { name, value } = e.target;
     setFilterError("");
@@ -98,15 +100,21 @@ export function useMatchFilters(currentUser) {
         setDraftFilters((prev) => ({ ...prev, [name]: "" }));
         return;
       }
+
       const parsed = Number(value);
       if (!Number.isFinite(parsed)) return;
-      setDraftFilters((prev) => ({ ...prev, [name]: String(parsed) }));
+
+      setDraftFilters((prev) => ({ 
+        ...prev, 
+        [name]: String(parsed),
+      }));
       return;
     }
 
     setDraftFilters((prev) => ({ ...prev, [name]: value }));
   }
 
+  /* ========== Slider Handlers ========== */
   function handleAgeSliderChange([min, max]) {
     setDraftFilters((prev) => ({
       ...prev,
@@ -123,6 +131,7 @@ export function useMatchFilters(currentUser) {
     }));
   }
 
+  /* ========== Add/rm Tags ========== */
   function toggleTag(tagName) {
     setDraftFilters((prev) => {
       const exists = prev.tags.includes(tagName);
@@ -135,12 +144,14 @@ export function useMatchFilters(currentUser) {
     });
   }
 
+  /* ========== Apply a valid city suggestion ========== */
   function applyCitySuggestion(city) {
     setDraftFilters((prev) => ({ ...prev, city }));
     setCityConfirmed(true);
     setCitySuggestions([]);
   }
 
+  /* ========== Apply & Reset Filters ========== */
   async function applyFilters() {
     // Validate age range
     const minAge = draftFilters.min_age ? Number(draftFilters.min_age) : null;
@@ -188,7 +199,9 @@ export function useMatchFilters(currentUser) {
       ...draftFilters,
     };
 
+    // Validate city against suggestions if not already confirmed
     const city = draftFilters.city.trim();
+
     if (city) {
       if (!currentUser) return;
 
@@ -204,7 +217,9 @@ export function useMatchFilters(currentUser) {
               headers: buildApiHeaders(currentUser),
             },
           );
+
           const data = await response.json();
+
           if (!response.ok || !data?.validation?.city_exists) {
             setFilterError(
               "Please select a valid city suggestion before searching.",
@@ -216,15 +231,22 @@ export function useMatchFilters(currentUser) {
             data?.matched_suggestion?.city ||
             data?.suggestions?.[0]?.city ||
             city;
-          setDraftFilters((prev) => ({ ...prev, city: normalizedCity }));
+
+          setDraftFilters((prev) => ({ 
+            ...prev, 
+            city: normalizedCity,
+          }));
+
           setAppliedFilters((prev) => ({
             ...prev,
             ...nextFilters,
             city: normalizedCity,
           }));
+
           setCityConfirmed(true);
           setCitySuggestions([]);
           setFilterError("");
+
           return;
         } catch {
           setFilterError("Failed to validate city. Please try again.");
@@ -237,6 +259,7 @@ export function useMatchFilters(currentUser) {
     setFilterError("");
   }
 
+  /* ========== Reset all filters to default values ========== */
   function resetFilters() {
     const empty = {
       username: "",
@@ -249,6 +272,7 @@ export function useMatchFilters(currentUser) {
       sort_by: "",
       sort_dir: "desc",
     };
+    
     setDraftFilters(empty);
     setAppliedFilters(empty);
     setCityConfirmed(false);

@@ -25,6 +25,7 @@ export default function AuthHeaderNav() {
             <LogIn size={15} />
             <span className="ml-1">Login</span>
           </button>
+
           <button
             onClick={() => navigate("/register")}
             className={primaryButtonClass}
