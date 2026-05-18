@@ -151,8 +151,9 @@ export function ProfilePhotosGrid({
             onClick={(e) => e.stopPropagation()}
           >
             <button
+              type="button"
               onClick={showPrev}
-              className="absolute left-[-3rem] flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-black shadow-lg hover:bg-white"
+              className="absolute left-[-4rem] flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-black shadow-lg hover:bg-white"
             >
               <ChevronLeft size={26} />
             </button>
@@ -163,13 +164,15 @@ export function ProfilePhotosGrid({
             />
 
             <button
+              type="button"
               onClick={showNext}
-              className="absolute right-[-3rem] flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-black shadow-lg hover:bg-white"
+              className="absolute right-[-4rem] flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-black shadow-lg hover:bg-white"
             >
               <ChevronRight size={26} />
             </button>
 
             <button
+              type="button"
               onClick={closeModal}
               className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur hover:bg-black/60"
             >

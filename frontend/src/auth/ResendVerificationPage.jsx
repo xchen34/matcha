@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import FormInput from "./components/FormInput";
+import { secondaryButtonClass } from "@/styles/UIClasses.jsx";
 
 export default function ResendVerificationPage() {
   const location = useLocation();
@@ -120,7 +121,13 @@ export default function ResendVerificationPage() {
           <button
             type="submit"
             disabled={isLoading || !email}
-            className={"w-full bg-rose-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-rose-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"}
+            className="
+              w-full bg-primary text-primary-light 
+              border border-primary-dark font-semibold 
+              py-2 px-4 rounded-lg 
+              hover:bg-primary-dark hover:scale-105 transition 
+              disabled:bg-gray-400 disabled:text-white 
+              disabled:border-none disabled:cursor-not-allowed"
           >
             {isLoading ? "Sending..." : "Resend Verification Email"}
           </button>
@@ -136,7 +143,7 @@ export default function ResendVerificationPage() {
                   href={previewUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-semibold text-rose-600 underline"
+                  className="font-semibold text-primary underline"
                 >
                   Open verification email
                 </a>
@@ -150,7 +157,7 @@ export default function ResendVerificationPage() {
                   href={devVerifyUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-semibold text-rose-600 underline"
+                  className="font-semibold text-primary underline"
                 >
                   Verify directly in app
                 </a>
@@ -163,14 +170,14 @@ export default function ResendVerificationPage() {
         <div className="mt-6 text-center space-y-3 text-sm text-gray-600">
           <p>
             Remember your password?{" "}
-            <Link to="/login" className="text-rose-500 hover:text-rose-600 font-semibold">
+            <Link to="/login" className="text-primary hover:text-primary/80 font-semibold">
               Go to Login
             </Link>
           </p>
 
           <p>
             Don't have an account?{" "}
-            <Link to="/register" className="text-rose-500 hover:text-rose-600 font-semibold">
+            <Link to="/register" className="text-primary hover:text-primary/80 font-semibold">
               Sign up
             </Link>
           </p>

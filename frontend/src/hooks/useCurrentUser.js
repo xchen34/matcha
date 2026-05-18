@@ -70,7 +70,6 @@ export function useCurrentUser() {
 
   /* ========== Logout function ========== */
   function logout() {
-    console.log("[useCurrentUser] logout: calling disconnectRealtime");
     disconnectRealtime();
 
     // Try to notify the backend (fire-and-forget)

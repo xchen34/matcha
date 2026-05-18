@@ -109,7 +109,7 @@ export default function ForgotPasswordPage() {
               href={previewUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-rose-600 underline"
+              className="font-semibold text-primary underline"
             >
               Open reset email
             </a>
@@ -124,7 +124,7 @@ export default function ForgotPasswordPage() {
               href={devResetUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-rose-600 underline"
+              className="font-semibold text-primary underline"
             >
               Reset password directly
             </a>
