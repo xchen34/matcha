@@ -11,6 +11,7 @@ let cachedDevMailer = null;
 function getSmtpAuthConfig() {
   const smtpUser = (process.env.SMTP_USER || process.env.ETHEREAL_USER || "").trim();
   const smtpPass = (process.env.SMTP_PASSWORD || process.env.ETHEREAL_PASSWORD || "").trim();
+  
   return { smtpUser, smtpPass };
 }
 
@@ -113,6 +114,7 @@ async function sendVerificationEmail(email, verificationToken, frontendBaseUrl) 
     if (previewUrl) {
       console.log('Verification email preview:', previewUrl);
     }
+    
     return { success: true, messageId: result.messageId, previewUrl };
   } catch (error) {
     console.error('Failed to send verification email:', error);

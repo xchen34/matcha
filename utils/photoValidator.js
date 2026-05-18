@@ -5,6 +5,7 @@ async function getImageType(buffer) {
     // Dynamically import image-type (ESM default export)
     imageType = (await import("image-type")).default;
   }
+  
   return imageType(buffer);
 }
 

@@ -7,6 +7,7 @@ class ChatService {
       `SELECT 1 FROM users WHERE id = $1 LIMIT 1`,
       [userId],
     );
+
     return result.rowCount > 0;
   }
 
@@ -21,6 +22,7 @@ class ChatService {
       `,
       [messageId, conversationId],
     );
+
     return messageResult.rowCount > 0;
   }
 
@@ -45,6 +47,7 @@ class ChatService {
       `,
       [userId, conversationId],
     );
+
     return conversationResult.rowCount > 0 ? conversationResult.rows[0] : null;
   }
 
@@ -54,6 +57,7 @@ class ChatService {
       `SELECT user_a_id, user_b_id FROM chat_conversations WHERE id = $1 LIMIT 1`,
       [conversationId],
     );
+
     return result.rowCount > 0 ? result.rows[0] : null;
   }
 
@@ -183,6 +187,7 @@ class ChatService {
       `,
       [conversationId, limit + 1, offset, userId],
     );
+
     return historyResult.rows;
   }
 
@@ -215,6 +220,7 @@ class ChatService {
       `,
       [conversationId, userId],
     );
+
     return updateResult.rowCount || 0;
   }
 
@@ -228,6 +234,7 @@ class ChatService {
         `,
       [messageId],
     );
+
     return readResult.rows[0];
   }
 
@@ -341,6 +348,7 @@ class ChatService {
       ORDER BY c.last_message_at DESC NULLS LAST, uc.conversation_id ASC
     `;
     const result = await pool.query(sql, [userId]);
+    
     return result.rows;
   }
 

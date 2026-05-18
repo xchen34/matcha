@@ -9,6 +9,7 @@ const {
 
 function normalizeLocationText(value) {
   if (!isNonEmptyString(value)) return "";
+
   return value
     .trim()
     .toLowerCase()
@@ -19,6 +20,7 @@ function normalizeLocationText(value) {
 
 function splitDisplayName(displayName) {
   if (!isNonEmptyString(displayName)) return "";
+
   return displayName.split(",")[0].trim();
 }
 
@@ -26,7 +28,9 @@ function locationTextMatches(expected, candidate) {
   const wanted = normalizeLocationText(expected);
   const got = normalizeLocationText(candidate);
   if (!wanted) return true;
+
   if (!got) return false;
+
   return wanted === got || got.startsWith(wanted) || wanted.startsWith(got);
 }
 
@@ -133,6 +137,7 @@ async function forwardGeocode({ city, neighborhood, limit }) {
 
   const deduped = dedupeLocationSuggestions(mapped);
   setCachedValue(cacheKey, deduped);
+
   return deduped;
 }
 
@@ -185,6 +190,7 @@ async function searchLocationsByQuery(query, limit) {
   });
 
   setCachedValue(cacheKey, mapped);
+
   return mapped;
 }
 
@@ -274,6 +280,7 @@ async function fetchNeighborhoodsForCity(city, limit) {
     .slice(0, limit);
 
   setCachedValue(cacheKey, result);
+  
   return result;
 }
 

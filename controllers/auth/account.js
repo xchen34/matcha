@@ -30,6 +30,7 @@ async function deleteAccount(req, res, next) {
     }
 
     await authService.deleteUser(user.id);
+    
     return res.json({ message: "Account deleted successfully" });
   } catch (error) {
     return next(error);

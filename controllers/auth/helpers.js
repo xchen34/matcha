@@ -2,7 +2,6 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72;
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]{2,20}$/;
@@ -31,6 +30,7 @@ function parseBirthDate(value) {
   ) {
     return null;
   }
+
   return date;
 }
 
@@ -38,12 +38,14 @@ function isAtLeast18YearsOld(birthDate) {
   const today = new Date();
   let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
   const monthDelta = today.getUTCMonth() - birthDate.getUTCMonth();
+
   if (
     monthDelta < 0 ||
     (monthDelta === 0 && today.getUTCDate() < birthDate.getUTCDate())
   ) {
     age -= 1;
   }
+
   return age >= 18;
 }
 
@@ -75,12 +77,11 @@ function isProfileCompleted(user) {
   );
 }
 
-
-
 function getCommonPasswords() {
   const commonPasswordsPath = path.join(__dirname, "..", "..", "common_passwords.txt");
   try {
     const fileContent = fs.readFileSync(commonPasswordsPath, "utf-8");
+    
     return fileContent
       .split(/\r?\n/)
       .map((w) => w.trim())

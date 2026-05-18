@@ -7,6 +7,7 @@ class LikeService {
       `SELECT id FROM users WHERE id = ANY($1::int[])`,
       [userIds]
     );
+
     return new Set(result.rows.map((row) => Number(row.id)));
   }
 
@@ -21,6 +22,7 @@ class LikeService {
       `,
       [userId]
     );
+
     return result.rowCount > 0;
   }
 
@@ -36,6 +38,7 @@ class LikeService {
       `,
       [viewerId, viewedId]
     );
+
     return result.rowCount > 0;
   }
 
@@ -44,6 +47,7 @@ class LikeService {
       `SELECT 1 FROM likes WHERE liker_user_id = $1 AND liked_user_id = $2`,
       [likerId, likedId]
     );
+
     return result.rowCount > 0;
   }
 
@@ -52,6 +56,7 @@ class LikeService {
       `INSERT INTO likes (liker_user_id, liked_user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING *`,
       [likerId, likedId]
     );
+
     return result.rowCount > 0;
   }
 
@@ -60,6 +65,7 @@ class LikeService {
       `DELETE FROM likes WHERE liker_user_id = $1 AND liked_user_id = $2`,
       [likerId, likedId]
     );
+
     return result.rowCount > 0;
   }
 
@@ -69,6 +75,7 @@ class LikeService {
       `SELECT id, username, first_name FROM users WHERE id = $1 OR id = $2`,
       [userIdA, userIdB]
     );
+
     return res.rows;
   }
 
@@ -96,6 +103,7 @@ class LikeService {
       ORDER BY created_at DESC, id DESC
     `;
     const result = await pool.query(sql, [userId]);
+
     return result.rows;
   }
 
@@ -123,6 +131,7 @@ class LikeService {
       ORDER BY created_at DESC, id DESC
     `;
     const result = await pool.query(sql, [userId]);
+
     return result.rows;
   }
 
@@ -151,6 +160,7 @@ class LikeService {
       ORDER BY matched_at DESC
     `;
     const result = await pool.query(sql, [userId]);
+
     return result.rows;
   }
 
@@ -163,6 +173,7 @@ class LikeService {
       ) AS is_match
     `;
     const result = await pool.query(sql, [userA, userB]);
+    
     return result.rows[0]?.is_match || false;
   }
   

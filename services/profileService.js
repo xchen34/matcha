@@ -4,6 +4,7 @@ class ProfileService {
   /*  ========== Helpers  ========== */
   async getUserById(userId) {
     const result = await pool.query(`SELECT * FROM users WHERE id = $1`, [userId]);
+
     return result.rows[0];
   }
 
@@ -233,6 +234,7 @@ class ProfileService {
       );
 
       await client.query("COMMIT");
+      
       return {
         profileRow: updatedProfile.rows[0],
         userRow: userResult.rows[0],

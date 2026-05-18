@@ -9,6 +9,7 @@ async function reportUser(req, res, next) {
     if (!reporterUserId || !reportedUserId) {
       return res.status(400).json({ error: "x-user-id header and user id param are required" });
     }
+
     if (reporterUserId === reportedUserId) {
       return res.status(400).json({ error: "You cannot report yourself" });
     }
@@ -17,6 +18,7 @@ async function reportUser(req, res, next) {
     if (reason.length < 5) {
       return res.status(400).json({ error: "Please provide a reason (minimum 5 characters)" });
     }
+    
     if (reason.length > MAX_FAKE_REPORT_REASON_LENGTH) {
       return res.status(400).json({ error: `Reason is too long (maximum ${MAX_FAKE_REPORT_REASON_LENGTH} characters)` });
     }

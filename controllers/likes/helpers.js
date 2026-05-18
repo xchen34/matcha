@@ -1,11 +1,13 @@
-
-
 function normalizeTag(tag) {
   if (typeof tag !== "string") return "";
+
   let normalized = tag.trim().toLowerCase();
   if (!normalized) return "";
+
   if (!normalized.startsWith("#")) normalized = `#${normalized}`;
+
   if (!/^#[a-z0-9_]{1,30}$/.test(normalized)) return "";
+
   return normalized;
 }
 
@@ -33,8 +35,6 @@ function parseTagsQueryParam(rawTags) {
 
   return unique.length > 0 ? unique : null;
 }
-
-
 
 module.exports = {
   normalizeTag,

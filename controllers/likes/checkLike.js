@@ -7,6 +7,7 @@ async function checkLike(req, res, next) {
     if (!likerId || !likedId) {
       return res.status(400).json({ error: "x-user-id header and user id param required" });
     }
+
     const liked = await likeService.checkLikeExists(likerId, likedId);
     res.json({ liked });
   } catch (error) {

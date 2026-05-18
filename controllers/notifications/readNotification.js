@@ -7,6 +7,7 @@ async function readNotification(req, res, next) {
     const notificationId = parsePositiveInt(req.params.id);
 
     if (!currentUserId) return res.status(400).json({ error: "x-user-id header is required" });
+    
     if (!notificationId) return res.status(400).json({ error: "Invalid notification id" });
 
     const found = await notificationService.readNotification(notificationId, currentUserId);

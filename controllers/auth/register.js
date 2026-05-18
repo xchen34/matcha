@@ -68,6 +68,7 @@ async function register(req, res, next) {
 
     const frontendBaseUrl = getFrontendBaseUrl();
     let emailDelivery = buildFailedEmailDelivery("unknown");
+
     try {
       const emailResult = await sendVerificationEmail(normalizedEmail, verificationToken, frontendBaseUrl);
       emailDelivery = buildEmailDeliveryFromResult(emailResult);
@@ -90,6 +91,7 @@ async function register(req, res, next) {
       if (error.constraint === "users_username_key") return res.status(409).json({ error: "Username already exists" });
       return res.status(409).json({ error: "Email or username already exists" });
     }
+    
     return next(error);
   }
 }

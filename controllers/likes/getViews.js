@@ -6,7 +6,9 @@ async function getViews(req, res, next) {
     if (!currentUserId) {
       return res.status(400).json({ error: "x-user-id header required" });
     }
+
     const rows = await likeService.getViewsReceived(currentUserId);
+    
     return res.json({
       users: rows.map((row) => ({
         id: row.id,

@@ -4,8 +4,10 @@ const { parseTagsQueryParam } = require("./helpers");
 
 function parseOptionalNumber(value) {
   if (value === undefined || value === null || value === "") return null;
+
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return null;
+
   return parsed;
 }
 
@@ -44,6 +46,7 @@ async function getSuggestions(req, res, next) {
       fame_rating DESC NULLS LAST,
       u.id ASC
     `;
+    
     if (normalizedSortBy === "age") {
       orderBySql = `age_value ${normalizedSortDir} NULLS LAST, u.id ASC`;
     } else if (normalizedSortBy === "location") {

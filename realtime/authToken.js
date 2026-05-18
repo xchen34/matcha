@@ -20,6 +20,7 @@ function base64UrlEncode(value) {
 function base64UrlDecode(value) {
   const padding = "=".repeat((4 - (value.length % 4 || 4)) % 4);
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/") + padding;
+
   return Buffer.from(normalized, "base64").toString("utf8");
 }
 
@@ -45,6 +46,7 @@ function createRealtimeToken(userId) {
 
   const payloadEncoded = base64UrlEncode(JSON.stringify(payload));
   const signature = signPayload(payloadEncoded);
+  
   return `${payloadEncoded}.${signature}`;
 }
 

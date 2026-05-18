@@ -27,6 +27,7 @@ async function verifyEmail(req, res, next) {
     }
 
     await authService.verifyEmail(user.id);
+
     return res.json({ message: "Email verified successfully. You can now log in.", email: user.email, user_id: user.id, redirect_to: "/login" });
   } catch (error) {
     return next(error);
@@ -84,6 +85,7 @@ async function requestEmailChange(req, res, next) {
 
     const frontendBaseUrl = getFrontendBaseUrl();
     let emailDelivery = buildFailedEmailDelivery("unknown");
+
     try {
       const emailResult = await sendVerificationEmail(newEmail, verificationToken, frontendBaseUrl);
       emailDelivery = buildEmailDeliveryFromResult(emailResult);
@@ -127,6 +129,7 @@ async function resendVerificationEmail(req, res, next) {
 
     const frontendBaseUrl = getFrontendBaseUrl();
     let emailDelivery = buildFailedEmailDelivery("unknown");
+    
     try {
       const emailResult = await sendVerificationEmail(user.email, verificationToken, frontendBaseUrl);
       emailDelivery = buildEmailDeliveryFromResult(emailResult);

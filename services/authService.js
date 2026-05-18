@@ -176,6 +176,7 @@ class AuthService {
       `SELECT id FROM users WHERE (LOWER(email) = LOWER($1) OR LOWER(COALESCE(pending_email, '')) = LOWER($1)) AND id <> $2 LIMIT 1`,
       [newEmail, userId]
     );
+    
     return result.rowCount > 0;
   }
 }

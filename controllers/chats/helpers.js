@@ -59,6 +59,7 @@ function parsePositiveInt(value) {
   if (!Number.isInteger(parsed) || parsed <= 0) {
     return null;
   }
+
   return parsed;
 }
 
@@ -67,6 +68,7 @@ function parseNonNegativeInt(value, fallback) {
   if (!Number.isInteger(parsed) || parsed < 0) {
     return fallback;
   }
+  
   return parsed;
 }
 

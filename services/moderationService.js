@@ -7,6 +7,7 @@ class ModerationService {
       `SELECT COUNT(*)::int AS count FROM users WHERE id = ANY($1::int[])`,
       [userIds]
     );
+
     return (result.rows[0]?.count || 0) === userIds.length;
   }
 
@@ -31,6 +32,7 @@ class ModerationService {
       `,
       [blockerId, blockedId]
     );
+
     return result.rowCount > 0;
   }
 
@@ -45,6 +47,7 @@ class ModerationService {
       `,
       [userId]
     );
+
     return result.rows;
   }
 
@@ -60,6 +63,7 @@ class ModerationService {
       `,
       [reporterId, reportedId, reason]
     );
+
     return result.rows[0];
   }
 
@@ -75,6 +79,7 @@ class ModerationService {
         [actorId, targetId]
       ),
     ]);
+    
     return {
       reported_fake: reportResult.rowCount > 0,
       blocked: blockResult.rowCount > 0,

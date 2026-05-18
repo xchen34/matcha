@@ -55,6 +55,7 @@ class NotificationService {
       `,
       [userId]
     );
+    
     return result.rows;
   }
 
@@ -71,6 +72,7 @@ class NotificationService {
       `UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2 RETURNING id, is_read`,
       [notificationId, userId]
     );
+
     return result.rowCount > 0;
   }
 }

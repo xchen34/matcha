@@ -60,27 +60,34 @@ async function main() {
   const client = await pool.connect();
 
   try {
-    console.log("📸 Seeding photos...");
+    console.log("📸 Seeding photos for fake users...");
 
-    // Skip if seeding already done (check if significant photos already exist)
+    // Skip if seeding already done (check if photos for seed users already exist)
     const { rows: photoCount } = await client.query(`
-      SELECT COUNT(*) as total FROM user_photos
+      SELECT COUNT(*) as total FROM user_photos up
+      JOIN users u ON u.id = up.user_id
+      WHERE u.email LIKE 'seed.%@example.com'
     `);
-    if (photoCount[0].total > 50) {
+    if (photoCount[0].total > 0) {
       console.log("✅ Photo seeding already completed, skipping...");
       return;
     }
 
+    // Get only the fake seed users (those with emails starting with seed.)
     const { rows: users } = await client.query(`
       SELECT
         u.id,
+        u.email,
         p.gender,
         COUNT(up.id)::int AS photo_count
       FROM users u
       JOIN profiles p ON p.user_id = u.id
       LEFT JOIN user_photos up ON up.user_id = u.id
-      GROUP BY u.id, p.gender
+      WHERE u.email LIKE 'seed.%@example.com'
+      GROUP BY u.id, u.email, p.gender
     `);
+
+    console.log(`Found ${users.length} fake users to seed with photos`);
 
     for (const user of users) {
       if (Number(user.photo_count) > 0) {
@@ -115,7 +122,7 @@ async function main() {
         );
       }
 
-      console.log(`✔ user ${user.id} seeded (${count} photos)`);
+      console.log(`✔ fake user ${user.id} (${user.email}) seeded (${count} photos)`);
     }
 
     console.log("✅ Photo seeding done");

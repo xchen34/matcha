@@ -7,9 +7,11 @@ async function checkMatch(req, res, next) {
     if (!userA || !userB) {
       return res.status(400).json({ error: "x-user-id header and id param required" });
     }
+
     if (String(userA) === String(userB)) {
       return res.status(400).json({ error: "Impossible to match with yourself" });
     }
+    
     const isMatch = await likeService.checkMatchExists(userA, userB);
     res.json({ is_match: isMatch });
   } catch (error) {

@@ -69,9 +69,11 @@ async function getMessages(req, res, next) {
     if (error && error.code === "42P01") {
       return res.json({ conversation: null, messages: [] });
     }
+    
     if (error.status && error.status >= 400 && error.status < 500) {
       return res.status(error.status).json({ error: error.message });
     }
+
     return next(error);
   }
 }

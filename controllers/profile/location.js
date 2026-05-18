@@ -21,6 +21,7 @@ async function getReverseGeocode(req, res, next) {
     }
 
     const resolved = await reverseGeocode(latitude, longitude);
+
     return res.json(resolved);
   } catch (error) {
     return next(error);
@@ -109,6 +110,7 @@ async function validateLocation(req, res, next) {
       : true;
 
     const isValid = suggestions.length > 0 && cityExists && neighborhoodExists;
+
     return res.json({
       validation: {
         is_valid: isValid,
@@ -140,6 +142,7 @@ async function getCityNeighborhoods(req, res, next) {
       : 20;
 
     const neighborhoods = await fetchNeighborhoodsForCity(city, limit);
+    
     return res.json({ city, neighborhoods });
   } catch (error) {
     return next(error);

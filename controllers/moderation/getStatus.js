@@ -11,6 +11,7 @@ async function getStatus(req, res, next) {
     }
 
     const status = await moderationService.getModerationStatus(actorUserId, targetUserId);
+    
     return res.json(status);
   } catch (error) {
     if (error && error.code === "42P01") {

@@ -11,9 +11,11 @@ async function viewProfile(req, res, next) {
     if (!rawViewerUserId || !rawViewedUserId) {
       return res.status(400).json({ error: "viewer_user_id (header) and viewed_user_id (param) required" });
     }
+
     if (!Number.isInteger(viewerId) || viewerId <= 0 || !Number.isInteger(viewedId) || viewedId <= 0) {
       return res.status(400).json({ error: "IDs must be positive integers" });
     }
+
     if (viewerId === viewedId) {
       return res.status(400).json({ error: "Cannot view yourself" });
     }
@@ -22,6 +24,7 @@ async function viewProfile(req, res, next) {
     if (!existingUsers.has(viewerId)) {
       return res.status(401).json({ error: "Viewer user not found" });
     }
+    
     if (!existingUsers.has(viewedId)) {
       return res.status(404).json({ error: "Viewed user not found" });
     }

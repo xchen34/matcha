@@ -19,10 +19,12 @@ let lastNominatimRequestAt = 0;
 function getCachedValue(cacheKey) {
   const cached = geocodeCache.get(cacheKey);
   if (!cached) return null;
+
   if (cached.expiresAt < Date.now()) {
     geocodeCache.delete(cacheKey);
     return null;
   }
+
   return cached.value;
 }
 
@@ -66,6 +68,7 @@ async function fetchNominatim(endpoint) {
     () => undefined,
     () => undefined,
   );
+
   return task;
 }
 
@@ -80,30 +83,39 @@ function isValidEmail(email) {
 function parseUserIdFromRequest(req) {
   const rawUserId = req.header("x-user-id");
   if (!rawUserId) return null;
+
   const parsed = Number(rawUserId);
   if (!Number.isInteger(parsed) || parsed <= 0) return null;
+
   return parsed;
 }
 
 async function resolveCurrentUserId(req) {
   const requestedUserId = parseUserIdFromRequest(req);
   if (!requestedUserId) return null;
+
   const user = await require("../../services/profileService").getUserById(requestedUserId);
   if (!user) return null;
+
   return user.id;
 }
 
 function normalizeTag(tag) {
   if (typeof tag !== "string") return "";
+
   let normalized = tag.trim().toLowerCase();
   if (!normalized) return "";
+
   if (!normalized.startsWith("#")) normalized = `#${normalized}`;
+
   if (!/^#[a-z0-9_]{1,30}$/.test(normalized)) return "";
+
   return normalized;
 }
 
 function normalizeTagsInput(tags) {
   if (!Array.isArray(tags)) return null;
+
   const normalized = [];
   const seen = new Set();
   for (const tag of tags) {
@@ -112,18 +124,23 @@ function normalizeTagsInput(tags) {
     seen.add(cleaned);
     normalized.push(cleaned);
   }
+
   return normalized;
 }
 
 function parseOptionalCoordinate(value) {
   if (value === undefined || value === null || value === "") return null;
+
   const parsed = Number(value);
+
   if (!Number.isFinite(parsed)) return null;
+
   return parsed;
 }
 
 function parseBirthDate(value) {
   if (typeof value !== "string") return null;
+
   const trimmed = value.trim();
   const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return null;
@@ -141,6 +158,7 @@ function parseBirthDate(value) {
   ) {
     return null;
   }
+
   return date;
 }
 
@@ -154,16 +172,19 @@ function isAtLeast18YearsOld(birthDate) {
   ) {
     age -= 1;
   }
+
   return age >= 18;
 }
 
 function getAge(birthDate) {
   if (!birthDate) return null;
+
   const today = new Date();
   const dob = new Date(birthDate);
   let age = today.getFullYear() - dob.getFullYear();
   const m = today.getMonth() - dob.getMonth();
   if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+
   return age;
 }
 
@@ -229,11 +250,13 @@ async function reverseGeocode(latitude, longitude) {
   };
 
   setCachedValue(cacheKey, resolved);
+
   return resolved;
 }
 
 function extractAddressParts(address) {
   const source = address || {};
+  
   return {
     city:
       source.city || source.town || source.village || source.municipality || "",

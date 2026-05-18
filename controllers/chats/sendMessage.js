@@ -16,6 +16,7 @@ async function sendMessage(req, res, next) {
     if (!currentUserId || !recipientUserId) {
       return res.status(400).json({ error: "x-user-id header and recipient_user_id body field are required" });
     }
+
     if (currentUserId === recipientUserId) {
       return res.status(400).json({ error: "Cannot message yourself" });
     }
@@ -24,6 +25,7 @@ async function sendMessage(req, res, next) {
     if (!safeContent) {
       return res.status(400).json({ error: "Message cannot be empty" });
     }
+
     if (getMessageLengthForLimit(safeContent) > MAX_CHAT_MESSAGE_LENGTH) {
       return res.status(400).json({ error: `Message text cannot exceed ${MAX_CHAT_MESSAGE_LENGTH} characters` });
     }
@@ -73,9 +75,11 @@ async function sendMessage(req, res, next) {
     if (error && error.code === "42P01") {
       return res.status(503).json({ error: "Chat feature not available yet (missing schema)" });
     }
+    
     if (error.status && error.status >= 400 && error.status < 500) {
       return res.status(error.status).json({ error: error.message });
     }
+
     return next(error);
   }
 }

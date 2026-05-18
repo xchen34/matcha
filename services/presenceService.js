@@ -6,6 +6,7 @@ const socketsByUser = new Map();
 function isUserOnline(userId) {
   const key = Number(userId);
   const current = socketsByUser.get(key);
+
   return Boolean(current && current.size > 0);
 }
 
@@ -24,6 +25,7 @@ function registerSocketForUser(userId, socketId) {
   const current = socketsByUser.get(key) || new Set();
   current.add(socketId);
   socketsByUser.set(key, current);
+
   return current.size;
 }
 
@@ -39,6 +41,7 @@ function unregisterSocketForUser(userId, socketId) {
   }
 
   socketsByUser.set(key, current);
+  
   return current.size;
 }
 

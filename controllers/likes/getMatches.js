@@ -6,7 +6,9 @@ async function getMatches(req, res, next) {
     if (!currentUserId) {
       return res.status(400).json({ error: "x-user-id header required" });
     }
+
     const rows = await likeService.getMatches(currentUserId);
+    
     return res.json({
       users: rows.map((row) => ({
         id: row.id,

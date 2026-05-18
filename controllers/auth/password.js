@@ -25,6 +25,7 @@ async function forgotPassword(req, res, next) {
 
     const frontendBaseUrl = getFrontendBaseUrl();
     let emailDelivery = buildFailedEmailDelivery("unknown");
+    
     try {
       const emailResult = await sendPasswordResetEmail(user.email, resetToken, frontendBaseUrl);
       emailDelivery = buildEmailDeliveryFromResult(emailResult);

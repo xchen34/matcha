@@ -38,6 +38,7 @@ async function getConversations(req, res, next) {
     if (error && error.code === "42P01") {
       return res.json({ conversations: [] });
     }
+    
     return next(error);
   }
 }

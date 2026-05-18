@@ -9,6 +9,7 @@ async function getBlockedUsers(req, res, next) {
     }
 
     const users = await moderationService.getBlockedUsers(currentUserId);
+    
     return res.json({ users });
   } catch (error) {
     if (error && error.code === "42P01") {

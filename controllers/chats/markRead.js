@@ -39,6 +39,7 @@ async function markRead(req, res, next) {
     if (error && error.code === "42P01") {
       return res.status(503).json({ error: "Chat feature not available yet (missing schema)" });
     }
+    
     return next(error);
   }
 }

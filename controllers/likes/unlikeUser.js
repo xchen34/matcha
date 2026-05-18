@@ -9,6 +9,7 @@ async function unlikeUser(req, res, next) {
     if (!likerId || !likedId) {
       return res.status(400).json({ error: "x-user-id header and user id param required" });
     }
+    
     if (String(likerId) === String(likedId)) {
       return res.status(400).json({ error: "Cannot unlike yourself" });
     }
