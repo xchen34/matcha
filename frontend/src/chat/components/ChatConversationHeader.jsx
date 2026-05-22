@@ -36,7 +36,7 @@ export default function ChatConversationHeader({
             {/* USERNAME + STATUS */}
             <div>
                 <h2
-                    className="text-2xl font-bold text-neutral-dark cursor-pointer hover:text-slate-700 transition-colors"
+                    className="text-xl font-bold text-neutral-dark cursor-pointer hover:text-slate-700 transition-colors"
                     onClick={() =>
                     navigate(`/users/${conversation?.other_user?.id}`)
                     }
@@ -46,19 +46,19 @@ export default function ChatConversationHeader({
             
                 {/* Status badge */}
                 {conversation?.blocked_by_you ? (
-                    <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-1 py-[1px] text-[11px] font-medium text-red-700">
+                    <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-[1px] text-[11px] font-medium text-red-700">
                     Blocked
                     </span>
                 ) : conversation?.blocked_you ? (
-                    <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-1 py-[1px] text-[11px] font-medium text-red-700">
+                    <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-[1px] text-[11px] font-medium text-red-700">
                     Blocked you
                     </span>
                 ) : conversation?.is_match ? (
-                    <span className="ml-1 rounded-full border border-green-300 bg-green-100 px-1 py-[1px] text-[11px] font-medium text-green-700">
+                    <span className="ml-1 rounded-full border border-green-300 bg-green-100 px-2 py-[1px] text-[11px] font-medium text-green-700">
                     Matched
                     </span>
                 ) : (
-                    <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-1 py-[1px] text-[11px] font-medium text-red-700">
+                    <span className="ml-1 rounded-full border border-yellow-300 bg-yellow-100 px-2 py-[1px] text-[11px] font-medium text-yellow-800">
                     Unmatched
                     </span>
                 )}
@@ -72,7 +72,7 @@ export default function ChatConversationHeader({
                 <button
                     type="button"
                     onClick={() => navigate("/messages")}
-                    className={`${tertiaryButtonClass} h-8 px-2 text-xs sm:text-sm`}
+                    className={`${tertiaryButtonClass} h-8 px-2 text-xs`}
                 >
                     <MoveLeft size={14} />
 
@@ -86,7 +86,7 @@ export default function ChatConversationHeader({
                 type="button"
                 onClick={onDelete}
                 disabled={deletingConversation || !conversation?.id}
-                className={`${deleteButtonClass} h-8 px-2 text-xs sm:text-sm`}
+                className={`${deleteButtonClass} h-8 px-2 text-xs`}
             >
                 <Trash2 size={14} />
 

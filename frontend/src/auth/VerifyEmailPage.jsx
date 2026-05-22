@@ -142,9 +142,6 @@ export default function VerifyEmailPage() {
         { /*  ========== ERROR  ========== */}
         {status === 'error' && (
           <div className="text-center">
-            <div className="inline-block bg-red-100 rounded-full p-3 mb-4">
-              <BellRing />
-            </div>
             {/* Header*/}
             <h1 className="text-2xl font-bold text-primary-dark mb-2">
               Verification Failed

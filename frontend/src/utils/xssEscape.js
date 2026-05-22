@@ -17,6 +17,7 @@ export function escapeHtml(text) {
 /* ========== Sanitize text by trimming and escaping HTML ========== */
 export function sanitizeText(text) {
   if (!text) return "";
+  
   return escapeHtml(String(text).trim());
 }
 

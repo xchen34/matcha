@@ -8,7 +8,7 @@ import {
   ArrowDownUp, ArrowDownWideNarrow, 
   Tags, Check, RotateCw 
 } from "lucide-react"
-
+import { formatTag } from "@/utils/utils.js";
 export default function MatchFilters({
   draftFilters,
   handleFilterChange,
@@ -176,8 +176,8 @@ export default function MatchFilters({
 
         {/* Tag selector */}
         <TagSelector
-          tags={tagOptions}
-          selectedTags={draftFilters.tags}
+          tags={tagOptions.map(formatTag)}
+          selectedTags={draftFilters.tags.map(formatTag)}
           onToggle={toggleTag}
         />
       </div>

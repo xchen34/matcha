@@ -46,6 +46,7 @@ const authSensitiveWindowMs = parsePositiveInt(
   process.env.RATE_LIMIT_AUTH_SENSITIVE_WINDOW_MS,
   isProduction ? 15 * 60 * 1000 : 5 * 60 * 1000,
 );
+
 const authSensitiveMax = parsePositiveInt(
   process.env.RATE_LIMIT_AUTH_SENSITIVE_MAX,
   isProduction ? 8 : 100,

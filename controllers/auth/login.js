@@ -8,10 +8,20 @@ async function login(req, res, next) {
     const { username, password } = req.body;
     const identifier = typeof username === "string" ? username.trim() : "";
     const rawPassword = typeof password === "string" ? password : "";
-    const normalizedPassword = rawPassword.trim();
 
     if (!identifier || !rawPassword) {
-      return res.status(400).json({ error: "username and password are required" });
+      return res
+        .status(400)
+        .json({ error: "username and password are required" });
+    }
+
+    if (/\s/.test(rawPassword)) {
+      return res
+        .status(400)
+        .json({
+          error:
+            "password must not contain spaces or other whitespace characters",
+        });
     }
 
     const user = await authService.findUserForLogin(identifier);
@@ -21,16 +31,15 @@ async function login(req, res, next) {
     }
 
     let isPasswordValid = await bcrypt.compare(rawPassword, user.password_hash);
-    if (!isPasswordValid && normalizedPassword !== rawPassword) {
-      isPasswordValid = await bcrypt.compare(normalizedPassword, user.password_hash);
-    }
+
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
     if (!user.email_verified) {
       return res.status(403).json({
-        error: "Email not verified. Please check your email and click the verification link to complete registration.",
+        error:
+          "Email not verified. Please check your email and click the verification link to complete registration.",
         requires_email_verification: true,
         email: user.email,
       });

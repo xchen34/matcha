@@ -1,5 +1,3 @@
-
-
 const MAX_BIO_LENGTH = 500;
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]{2,20}$/;
 const MIN_BIRTH_DATE_ISO = "1900-01-01";
@@ -188,14 +186,19 @@ function getAge(birthDate) {
   return age;
 }
 
+
 function isProfileCompleted(user, profile) {
-  const hasUsername = typeof user?.username === "string" && user.username.trim().length > 0;
-  const hasFirstName = typeof user?.first_name === "string" && user.first_name.trim().length > 0;
-  const hasLastName = typeof user?.last_name === "string" && user.last_name.trim().length > 0;
-  const hasEmail = typeof user?.email === "string" && user.email.trim().length > 0;
-  const hasGender = typeof profile?.gender === "string" && profile.gender.trim().length > 0;
+  const hasValue = (value) =>
+    typeof value === "string" && value.trim().length > 0;
+
+  const hasUsername = hasValue(user?.username);
+  const hasFirstName = hasValue(user?.first_name);
+  const hasLastName = hasValue(user?.last_name);
+  const hasEmail = hasValue(user?.email);
+
+  const hasGender = hasValue(profile?.gender);
   const hasBirthDate = Boolean(profile?.birth_date);
-  const hasCity = typeof profile?.city === "string" && profile.city.trim().length > 0;
+  const hasCity = hasValue(profile?.city);
 
   return (
     hasUsername &&
@@ -256,7 +259,7 @@ async function reverseGeocode(latitude, longitude) {
 
 function extractAddressParts(address) {
   const source = address || {};
-  
+
   return {
     city:
       source.city || source.town || source.village || source.municipality || "",

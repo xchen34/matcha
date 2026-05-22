@@ -1,5 +1,6 @@
 import { Tags, LayersPlus } from "lucide-react";
 import { secondaryButtonClass, selectClass } from "@/styles/UIClasses.jsx";
+import { formatTag } from "@/utils/utils.js";
 
 export default function TagsSelector({
   tagOptions,
@@ -30,7 +31,7 @@ export default function TagsSelector({
             .sort((a, b) => a.name.localeCompare(b.name))
             .map((item) => (
               <option key={item.name} value={item.name}>
-                {item.name}
+                {formatTag(item.name)}
               </option>
           ))}
         </select>
@@ -67,7 +68,7 @@ export default function TagsSelector({
               className="inline-flex items-center gap-2 rounded-full bg-primary-light text-primary-dark border border-primary-dark text-xs px-3 py-1"
             >
               <span className="font-bold">
-                {tag}
+                {formatTag(tag)}
               </span>
               
               {/* Remove tag button */}

@@ -58,13 +58,16 @@ function generateResetToken() {
 }
 
 function isProfileCompleted(user) {
-  const hasUsername = typeof user?.username === "string" && user.username.trim().length > 0;
-  const hasFirstName = typeof user?.first_name === "string" && user.first_name.trim().length > 0;
-  const hasLastName = typeof user?.last_name === "string" && user.last_name.trim().length > 0;
-  const hasEmail = typeof user?.email === "string" && user.email.trim().length > 0;
-  const hasGender = typeof user?.gender === "string" && user.gender.trim().length > 0;
+  const hasValue = (value) =>
+    typeof value === "string" && value.trim().length > 0;
+
+  const hasUsername = hasValue(user?.username);
+  const hasFirstName = hasValue(user?.first_name);
+  const hasLastName = hasValue(user?.last_name);
+  const hasEmail = hasValue(user?.email);
+  const hasGender = hasValue(user?.gender);
   const hasBirthDate = Boolean(user?.birth_date);
-  const hasCity = typeof user?.city === "string" && user.city.trim().length > 0;
+  const hasCity = hasValue(user?.city);
 
   return (
     hasUsername &&
@@ -78,10 +81,15 @@ function isProfileCompleted(user) {
 }
 
 function getCommonPasswords() {
-  const commonPasswordsPath = path.join(__dirname, "..", "..", "common_passwords.txt");
+  const commonPasswordsPath = path.join(
+    __dirname,
+    "..",
+    "..",
+    "common_passwords.txt",
+  );
   try {
     const fileContent = fs.readFileSync(commonPasswordsPath, "utf-8");
-    
+
     return fileContent
       .split(/\r?\n/)
       .map((w) => w.trim())
@@ -105,6 +113,14 @@ function validatePasswordStrength(password, commonPasswords) {
     return {
       valid: false,
       error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters long.`,
+    };
+  }
+
+  if (/\s/.test(value)) {
+    return {
+      valid: false,
+      error:
+        "Password must not contain spaces, tabs, or other whitespace characters.",
     };
   }
 

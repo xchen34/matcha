@@ -22,7 +22,7 @@ export default function ChatInputForm({
     };
 
     return (
-        <form onSubmit={handleSubmit} className="shrink-0 bg-white border-t">
+        <form onSubmit={handleSubmit} className="shrink-0 border-t">
         {/* ========= QUOTED MESSAGE PREVIEW (IF ANY) ========== */}
         {quotedMessage && (
             <div className="mb-2 flex items-center justify-between rounded-lg border border-l-4 border-primary-dark bg-primary-light p-2.5 text-xs text-slate-600 shadow-sm">

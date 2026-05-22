@@ -91,7 +91,7 @@ export function TopHeaderNav({
   return (
     <header className="fixed top-2 inset-x-0 z-50 flex justify-center px-2 sm:px-4">
       {/* CAPSULE */}
-      <div className="w-full max-w-5xl flex items-center h-14 bg-white/70 backdrop-blur-xl border border-slate/60 shadow-md rounded-full px-2 gap-2 sm:gap-3">
+      <div className="w-full max-w-5xl flex items-center h-14 bg-white/70 backdrop-blur-xl border border-white/40 shadow-md rounded-full px-2 gap-2 sm:gap-3">
 
         {/* LEFT */}
         <nav className="py-2 flex-1 flex flex-nowrap items-center gap-1 sm:gap-2 overflow-hidden">
