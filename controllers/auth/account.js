@@ -27,7 +27,7 @@ async function deleteAccount(req, res, next) {
         .status(400)
         .json({
           error:
-            "password must not contain spaces, tabs, or other whitespace characters",
+            "Password must not contain spaces, tabs, or other whitespace characters",
         });
     }
 

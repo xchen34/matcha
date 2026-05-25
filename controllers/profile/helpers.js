@@ -1,6 +1,5 @@
 const MAX_BIO_LENGTH = 500;
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]{2,20}$/;
-const MIN_BIRTH_DATE_ISO = "1900-01-01";
 const allowedGenders = ["male", "female", "non_binary", "other"];
 const allowedPreferences = ["male", "female", "both", "other"];
 const GEO_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -174,6 +173,14 @@ function isAtLeast18YearsOld(birthDate) {
   return age >= 18;
 }
 
+function getMinBirthDateIso() {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(date.getUTCFullYear() - 100);
+
+  return date.toISOString().slice(0, 10);
+}
+
 function getAge(birthDate) {
   if (!birthDate) return null;
 
@@ -276,7 +283,7 @@ function extractAddressParts(address) {
 module.exports = {
   MAX_BIO_LENGTH,
   USERNAME_PATTERN,
-  MIN_BIRTH_DATE_ISO,
+  getMinBirthDateIso,
   allowedGenders,
   allowedPreferences,
   getCachedValue,

@@ -37,7 +37,7 @@ export function useRegister() {
     setDevVerifyUrl("");
 
     if (!isValidBirthDateIso(form.birth_date, MIN_BIRTH_DATE_ISO, maxAdultBirthDateIso)) {
-      setMessage(`Invalid birth date`);
+      setMessage(`Invalid birth date must be between ${MIN_BIRTH_DATE_ISO} and ${maxAdultBirthDateIso}`);
       return;
     }
 

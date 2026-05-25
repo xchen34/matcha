@@ -15,18 +15,9 @@ async function login(req, res, next) {
         .json({ error: "username and password are required" });
     }
 
-    if (/\s/.test(rawPassword)) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "password must not contain spaces or other whitespace characters",
-        });
-    }
-
     const user = await authService.findUserForLogin(identifier);
 
-    if (!user) {
+    if (!user && /\s/.test(rawPassword)) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 

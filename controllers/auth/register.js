@@ -7,14 +7,15 @@ const {
   buildFailedEmailDelivery,
 } = require("./shared");
 const {
-  MIN_BIRTH_DATE_ISO,
-  USERNAME_PATTERN,
+  getTodayUTCStart,
+  getMinBirthDateIso,
   isValidEmail,
+  isValidUsername,
   parseBirthDate,
   isAtLeast18YearsOld,
+  isValidatePassword,
   generateVerificationToken,
-  getCommonPasswords,
-  validatePasswordStrength,
+  generateResetToken,
 } = require("./helpers");
 
 const normalizeString = (value) =>
@@ -22,28 +23,14 @@ const normalizeString = (value) =>
 
 async function register(req, res, next) {
   try {
-    const {
-      email,
-      username,
-      first_name,
-      last_name,
-      birth_date,
-      password: rawPassword,
-    } = req.body;
+    const { email, username, first_name, last_name, birth_date, password: rawPassword } = req.body;
     const normalizedEmail = normalizeString(email);
     const normalizedUsername = normalizeString(username);
     const normalizedFirstName = normalizeString(first_name);
     const normalizedLastName = normalizeString(last_name);
     const password = typeof rawPassword === "string" ? rawPassword : "";
 
-    if (
-      !normalizedEmail ||
-      !normalizedUsername ||
-      !normalizedFirstName ||
-      !normalizedLastName ||
-      !birth_date ||
-      !password
-    ) {
+    if (!normalizedEmail || !normalizedUsername || !normalizedFirstName || !normalizedLastName || !birth_date || !password) {
       return res
         .status(400)
         .json({
@@ -52,15 +39,22 @@ async function register(req, res, next) {
       });
     }
 
-    if (/\s/.test(password)) {
+    // Check email format
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    // Check username format
+    if (!isValidUsername(normalizedUsername)) {
       return res
         .status(400)
         .json({
         error:
-          "password must not contain spaces or other whitespace characters",
+          "username is invalid (use 2-20 characters: letters, numbers, dot, underscore, hyphen)",
       });
     }
 
+    // Check birth date format and age
     const parsedBirthDate = parseBirthDate(birth_date);
     if (!parsedBirthDate) {
       return res
@@ -68,19 +62,19 @@ async function register(req, res, next) {
         .json({ error: "birth_date must be a valid date (YYYY-MM-DD)" });
     }
 
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    if (parsedBirthDate > today) {
+    if (parsedBirthDate > getTodayUTCStart()) {
       return res
         .status(400)
         .json({ error: "birth_date cannot be in the future" });
     }
 
-    if (parsedBirthDate < new Date(MIN_BIRTH_DATE_ISO)) {
+    const minBirthDateIso = getMinBirthDateIso();
+
+    if (parsedBirthDate < new Date(minBirthDateIso)) {
       return res
         .status(400)
         .json({
-        error: `birth_date must be on or after ${MIN_BIRTH_DATE_ISO}`,
+        error: `birth_date must be on or after ${minBirthDateIso}`,
       });
     }
 
@@ -90,32 +84,19 @@ async function register(req, res, next) {
         .json({ error: "You must be at least 18 years old to register" });
     }
 
-    const commonPasswords = getCommonPasswords();
-    const passwordValidation = validatePasswordStrength(
-      password,
-      commonPasswords,
-    );
+    // Check password format and not common passwords
+    const passwordValidation = isValidatePassword(password);
     if (!passwordValidation.valid) {
       return res.status(400).json({ error: passwordValidation.error });
     }
 
-    if (!isValidEmail(normalizedEmail)) {
-      return res.status(400).json({ error: "Invalid email format" });
-    }
-
-    if (!USERNAME_PATTERN.test(normalizedUsername)) {
-      return res
-        .status(400)
-        .json({
-        error:
-          "username is invalid (use 2-20 characters: letters, numbers, dot, underscore, hyphen)",
-      });
-    }
-
     const passwordHash = await bcrypt.hash(password, 10);
+
+    // Check token for email verification and create user
     const verificationToken = generateVerificationToken();
     const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+    // Check for existing email or username conflicts before creating user
     const user = await authService.registerUser(
       {
         email: normalizedEmail,
@@ -160,6 +141,7 @@ async function register(req, res, next) {
     if (error.code === "23505") {
       if (error.constraint === "users_email_key")
         return res.status(409).json({ error: "Email already exists" });
+      
       if (error.constraint === "users_username_key")
         return res.status(409).json({ error: "Username already exists" });
 

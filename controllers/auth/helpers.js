@@ -4,15 +4,36 @@ const path = require("path");
 
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72;
-const USERNAME_PATTERN = /^[A-Za-z0-9._-]{2,20}$/;
-const MIN_BIRTH_DATE_ISO = "1900-01-01";
 
+/* ========== DATE ========== */
+const getTodayUTCStart = () => {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  return date;
+};
+
+const getMinBirthDateIso = () => {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(date.getUTCFullYear() - 100);
+
+  return date.toISOString().slice(0, 10);
+};
+
+/* ========== EMAIL ========== */
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/* ========== USERNAME ========== */
+function isValidUsername(username) {
+  return /^[A-Za-z0-9._-]{2,20}$/.test(username);
+}
+
+/* ========== BIRTH DATE ========== */
 function parseBirthDate(value) {
   if (typeof value !== "string") return null;
+
   const trimmed = value.trim();
   const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return null;
@@ -49,37 +70,21 @@ function isAtLeast18YearsOld(birthDate) {
   return age >= 18;
 }
 
-function generateVerificationToken() {
-  return crypto.randomBytes(32).toString("hex");
+/* ========== Password ========== */
+function isValidatePassword(password) {
+  if (/\s/.test(password)) {
+    return {
+      valid: false,
+      error: "password must not contain spaces",
+    };
+  }
+
+  const commonPasswords = getCommonPasswords();
+
+  return validatePasswordStrength(password, commonPasswords);
 }
 
-function generateResetToken() {
-  return crypto.randomBytes(32).toString("hex");
-}
-
-function isProfileCompleted(user) {
-  const hasValue = (value) =>
-    typeof value === "string" && value.trim().length > 0;
-
-  const hasUsername = hasValue(user?.username);
-  const hasFirstName = hasValue(user?.first_name);
-  const hasLastName = hasValue(user?.last_name);
-  const hasEmail = hasValue(user?.email);
-  const hasGender = hasValue(user?.gender);
-  const hasBirthDate = Boolean(user?.birth_date);
-  const hasCity = hasValue(user?.city);
-
-  return (
-    hasUsername &&
-    hasFirstName &&
-    hasLastName &&
-    hasEmail &&
-    hasGender &&
-    hasBirthDate &&
-    hasCity
-  );
-}
-
+// Gets a list of common passwords
 function getCommonPasswords() {
   const commonPasswordsPath = path.join(
     __dirname,
@@ -99,6 +104,7 @@ function getCommonPasswords() {
   }
 }
 
+// Validates password strength and checks
 function validatePasswordStrength(password, commonPasswords) {
   const value = typeof password === "string" ? password : "";
 
@@ -146,17 +152,49 @@ function validatePasswordStrength(password, commonPasswords) {
   return { valid: true };
 }
 
+/* ========== TOKENS ========== */
+function generateVerificationToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function generateResetToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+/*  ========== PROFILE ========== */
+function isProfileCompleted(user) {
+  const hasValue = (value) =>
+    typeof value === "string" && value.trim().length > 0;
+
+  const hasUsername = hasValue(user?.username);
+  const hasFirstName = hasValue(user?.first_name);
+  const hasLastName = hasValue(user?.last_name);
+  const hasEmail = hasValue(user?.email);
+  const hasGender = hasValue(user?.gender);
+  const hasBirthDate = Boolean(user?.birth_date);
+  const hasCity = hasValue(user?.city);
+
+  return (
+    hasUsername &&
+    hasFirstName &&
+    hasLastName &&
+    hasEmail &&
+    hasGender &&
+    hasBirthDate &&
+    hasCity
+  );
+}
+
+/* ========== EXPORTS ========== */
 module.exports = {
-  MIN_PASSWORD_LENGTH,
-  MAX_PASSWORD_LENGTH,
-  USERNAME_PATTERN,
-  MIN_BIRTH_DATE_ISO,
+  getTodayUTCStart,
+  getMinBirthDateIso,
   isValidEmail,
+  isValidUsername,
+  isValidatePassword,
   parseBirthDate,
   isAtLeast18YearsOld,
   generateVerificationToken,
   generateResetToken,
   isProfileCompleted,
-  getCommonPasswords,
-  validatePasswordStrength,
 };

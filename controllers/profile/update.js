@@ -4,12 +4,12 @@ const {
   resolveCurrentUserId,
   isNonEmptyString,
   USERNAME_PATTERN,
-  MIN_BIRTH_DATE_ISO,
   allowedGenders,
   allowedPreferences,
   normalizeTagsInput,
   parseBirthDate,
   isAtLeast18YearsOld,
+  getMinBirthDateIso,
   getAge,
   isProfileCompleted,
 } = require("./helpers");
@@ -143,8 +143,10 @@ async function updateMyProfile(req, res, next) {
         return res.status(400).json({ error: "birth_date must be a valid date (YYYY-MM-DD)" });
       }
 
-      if (normalizedBirthDate < MIN_BIRTH_DATE_ISO) {
-        return res.status(400).json({ error: `birth_date must be on or after ${MIN_BIRTH_DATE_ISO}` });
+      const minBirthDateIso = getMinBirthDateIso();
+
+      if (normalizedBirthDate < minBirthDateIso) {
+        return res.status(400).json({ error: `birth_date must be on or after ${minBirthDateIso}` });
       }
 
       const today = new Date();
