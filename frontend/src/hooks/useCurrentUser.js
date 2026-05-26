@@ -108,7 +108,7 @@ export function useCurrentUser() {
         {
           method: "DELETE",
           headers: buildApiHeaders(
-            { id: currentUser.id },
+            currentUser,
             { "Content-Type": "application/json" },
           ),
           body: JSON.stringify({ password, email: currentUser.email || "" }),

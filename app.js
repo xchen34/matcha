@@ -1,4 +1,5 @@
 const express = require("express");
+const { requireAuth } = require("./middleware/auth");
 const cors = require("cors");
 const helmet = require("helmet");
 const pool = require("./db");
@@ -115,15 +116,15 @@ app.use((req, res, next) => {
  */
 
 //挂载子路由 不算中间件 /api：统一前缀，便于前端或反向代理只转发以 /api 开头的请求，页面静态资源等保持分离。实际路径分别是 /api/health, /api/db-health, /api/users, /api/auth/...。
-app.use("/api", healthRouter);
+app.use("/api", healthRouter); 
 app.use("/api", dbHealthRouter);
-app.use("/api", usersRouter);
-app.use("/api", authRouter);
-app.use("/api", likesRouter);
-app.use("/api", notificationsRouter);
-app.use("/api", chatsRouter);
-app.use("/api", moderationRouter);
-app.use("/api", profileRouter);
+app.use("/api", authRouter); 
+app.use("/api", requireAuth, usersRouter);
+app.use("/api", requireAuth, likesRouter);
+app.use("/api", requireAuth, notificationsRouter);
+app.use("/api", requireAuth, chatsRouter);
+app.use("/api", requireAuth, moderationRouter);
+app.use("/api", requireAuth, profileRouter);
 
 // Fallback for unknown routesFallback for unknown routes：是兜底路由，只有当前面所有路由/方法都没匹配到时才执行，返回 404。
 app.use((req, res) => {

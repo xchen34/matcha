@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
 
-initRealtime(server);
+initRealtime(server); 
 
 async function start() {
   await ensureChatVisibilityTables();

@@ -3,10 +3,9 @@ const { createRealtimeToken } = require("./shared");
 
 async function getRealtimeToken(req, res, next) {
   try {
-    const rawUserId = req.header("x-user-id");
-    const userId = Number(rawUserId);
-    if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(400).json({ error: "x-user-id header is required" });
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     const exists = await authService.checkUserExists(userId);

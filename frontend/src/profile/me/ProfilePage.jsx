@@ -101,7 +101,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
     handleEmailChangeInput,
     handleEmailChangeSubmit,
     emailChangeError,
-  } = useEmailChange({ userId, setMessage });
+  } = useEmailChange({ currentUser, setMessage });
 
   const { handleSubmit } = useProfileSubmit({
     userId,

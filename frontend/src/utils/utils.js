@@ -7,8 +7,8 @@ export function bytesToKB(value) {
 export function buildApiHeaders(currentUser, extraHeaders = {}) {
   const headers = { ...extraHeaders };
   
-  if (currentUser?.id) {
-    headers["x-user-id"] = String(currentUser.id);
+  if (currentUser?.realtime_token) {
+    headers["Authorization"] = `Bearer ${currentUser.realtime_token}`;
   }
 
   return headers;

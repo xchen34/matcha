@@ -81,13 +81,8 @@ function isValidEmail(email) {
 }
 
 function parseUserIdFromRequest(req) {
-  const rawUserId = req.header("x-user-id");
-  if (!rawUserId) return null;
-
-  const parsed = Number(rawUserId);
-  if (!Number.isInteger(parsed) || parsed <= 0) return null;
-
-  return parsed;
+  // 中间件鉴权通过后，userId 会直接被挂在 req.userId 上
+  return req.userId || null;
 }
 
 async function resolveCurrentUserId(req) {

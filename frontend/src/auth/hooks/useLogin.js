@@ -2,10 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { writeStoredUser } from "@/utils/userStorage.js";
 
-export function useLogin(onLogin) {
-  const navigate = useNavigate();
+//useLogin handle the login logic
+//it will redirect the user to the find-match page if the profile is completed
+//otherwise it will redirect the user to the profile page
+//if the email is not verified, it will redirect the user to the resend-verification page
+//if the login is successful, it will write the user to the local storage
+//it will also update the user in the parent component
+//
+export function useLogin(onLogin) {  //onLogin is the function to update the user in the parent component which is the App.jsx
+  const navigate = useNavigate(); //useNavigate is used to navigate the user to the find-match page if the profile is completed
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState({   //useState is a hook that is used to store the state of the component, it will return an array with two elements, the first element is the state, and the second element is the function to update the state
     username: "",
     password: "",
   });

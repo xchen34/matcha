@@ -78,7 +78,7 @@ function App() {
               path="/"
               element={<Navigate to={currentUser ? (isProfileLocked ? "/profile" : "/find-match") : "/login"} replace />}
             />
-            <Route path="/login" element={<LoginPage onLogin={setCurrentUser} />} />
+            <Route path="/login" element={<LoginPage onLogin={setCurrentUser} />} />  //Element is to define what component to render when the user navigates to the /login route, onLogin is the function to update the user in the parent component.Route is to define a route to a component.
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/verification-sent" element={<VerificationSentPage />} />

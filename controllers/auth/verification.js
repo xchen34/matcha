@@ -37,13 +37,13 @@ async function verifyEmail(req, res, next) {
 async function requestEmailChange(req, res, next) {
   try {
     await authService.ensurePendingEmailColumn();
-    const userId = Number(req.header("x-user-id"));
+    const userId = req.userId;
     const newEmail = typeof req.body?.new_email === "string" ? req.body.new_email.trim() : "";
     const rawPassword = typeof req.body?.password === "string" ? req.body.password : "";
     const normalizedPassword = rawPassword.trim();
 
-    if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(400).json({ error: "x-user-id header is required" });
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
     if (!newEmail || !rawPassword) {
       return res.status(400).json({ error: "new_email and password are required" });

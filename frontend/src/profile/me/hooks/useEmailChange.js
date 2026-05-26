@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { buildApiHeaders } from "@/utils/utils.js";
 
-export default function useEmailChange({ userId, setMessage }) {
+export default function useEmailChange({ currentUser, setMessage }) {
+  const userId = currentUser?.id ?? null;
   const [emailChangeOpen, setEmailChangeOpen] = useState(false);
   const [emailChangeLoading, setEmailChangeLoading] = useState(false);
   const [emailChangeForm, setEmailChangeForm] = useState({
@@ -48,7 +49,7 @@ export default function useEmailChange({ userId, setMessage }) {
         {
           method: "POST",
           headers: buildApiHeaders(
-            { id: userId },
+            currentUser,
             { "Content-Type": "application/json" }
           ),
           body: JSON.stringify({ new_email: newEmail, password }),
@@ -78,7 +79,7 @@ export default function useEmailChange({ userId, setMessage }) {
     } finally {
       setEmailChangeLoading(false);
     }
-  }, [emailChangeForm, userId, setMessage]);
+  }, [emailChangeForm, currentUser, setMessage]);
 
   return {
     emailChangeOpen,

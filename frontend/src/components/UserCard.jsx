@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { sanitizeText } from "@/utils/xssEscape.js";
 import { actionButtonClass } from "@/styles/UIClasses.jsx";
+import { buildApiHeaders } from "@/utils/utils.js";
 import { 
   Heart, UserRound, 
   Star, MapPin, 
@@ -59,7 +60,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         const res = await fetch(`/api/users/${user.id}/like`, 
           {
             method: "POST",
-            headers: { "x-user-id": currentUser.id },
+            headers: buildApiHeaders(currentUser),
           }
         );
 
@@ -74,7 +75,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         const res = await fetch(`/api/users/${user.id}/like`, 
           {
             method: "DELETE",
-            headers: { "x-user-id": currentUser.id },
+            headers: buildApiHeaders(currentUser),
           }
         );
         
@@ -89,7 +90,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
 
       const matchRes = await fetch(`/api/users/${user.id}/is-match`, 
         {
-          headers: { "x-user-id": currentUser.id },
+          headers: buildApiHeaders(currentUser),
         }
       );
 

@@ -3,13 +3,13 @@ const authService = require("../../services/authService");
 
 async function deleteAccount(req, res, next) {
   try {
-    const currentUserId = Number(req.header("x-user-id"));
+    const currentUserId = req.userId;
     const rawEmail = typeof req.body?.email === "string" ? req.body.email.trim() : "";
     const rawPassword = typeof req.body?.password === "string" ? req.body.password : "";
     const normalizedPassword = rawPassword.trim();
 
-    if ((!Number.isInteger(currentUserId) || currentUserId <= 0) && !rawEmail) {
-      return res.status(400).json({ error: "x-user-id header or email is required" });
+    if (!currentUserId) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
     if (!rawPassword) {
       return res.status(400).json({ error: "password is required" });
