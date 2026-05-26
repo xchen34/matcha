@@ -1,3 +1,5 @@
+import { readStoredUser } from "./userStorage.js";
+
 /* ========== Convert bytes to kilobytes ========== */
 export function bytesToKB(value) {
   return Math.round(value / 1024);
@@ -7,8 +9,14 @@ export function bytesToKB(value) {
 export function buildApiHeaders(currentUser, extraHeaders = {}) {
   const headers = { ...extraHeaders };
   
-  if (currentUser?.realtime_token) {
-    headers["Authorization"] = `Bearer ${currentUser.realtime_token}`;
+  let token = currentUser?.realtime_token;
+  if (!token) {
+    const stored = readStoredUser();
+    token = stored?.realtime_token;
+  }
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   return headers;
