@@ -27,10 +27,10 @@ export default function GenderSelector({
           className={selectClass}
         >
           <option value="">Select gender</option>
-          <option value="male">male</option>
-          <option value="female">female</option>
-          <option value="non_binary">non_binary</option>
-          <option value="other">other</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="non_binary">Non-binary</option>
+          <option value="other">Other</option>
         </select>
       </div>
 
@@ -52,10 +52,10 @@ export default function GenderSelector({
           className={selectClass}
         >
           <option value="">Select sexual preference</option>
-          <option value="male">male</option>
-          <option value="female">female</option>
-          <option value="both">both</option>
-          <option value="other">other</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="both">Both</option>
+          <option value="other">Other</option>
         </select>
       </div>
     </>

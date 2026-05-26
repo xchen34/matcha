@@ -4,6 +4,7 @@ import {
   primaryButtonClass, 
   secondaryButtonClass 
 } from "@/styles/UIClasses.jsx";
+import PasswordInput from "@/auth/components/PasswordInput";
 
 export default function EmailChangeForm({
   email,
@@ -83,9 +84,8 @@ export default function EmailChangeForm({
             <span className="text-xs tracking-[0.12em] text-slate-500 font-semibold">
               Confirm your current password to authorize the change
             </span>
-            <input
+            <PasswordInput
               name="password"
-              type="password"
               placeholder="Current password"
               value={emailChangeForm.password}
               onChange={handleEmailChangeInput}

@@ -6,10 +6,10 @@ async function deleteAccount(req, res, next) {
     const currentUserId = req.userId;
     const rawEmail = typeof req.body?.email === "string" ? req.body.email.trim() : "";
     const rawPassword = typeof req.body?.password === "string" ? req.body.password : "";
-    const normalizedPassword = rawPassword.trim();
 
     if (!currentUserId) {
       return res.status(401).json({ error: "Unauthorized" });
+
     }
     if (!rawPassword) {
       return res.status(400).json({ error: "password is required" });
@@ -21,16 +21,25 @@ async function deleteAccount(req, res, next) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    let isPasswordValid = await bcrypt.compare(rawPassword, user.password_hash);
-    if (!isPasswordValid && normalizedPassword !== rawPassword) {
-      isPasswordValid = await bcrypt.compare(normalizedPassword, user.password_hash);
+    if (/\s/.test(rawPassword)) {
+      return res
+        .status(400)
+        .json({
+          error:
+            "Password must not contain spaces, tabs, or other whitespace characters",
+        });
     }
+
+    const isPasswordValid = await bcrypt.compare(
+      rawPassword,
+      user.password_hash,
+    );
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid password" });
     }
 
     await authService.deleteUser(user.id);
-    
+
     return res.json({ message: "Account deleted successfully" });
   } catch (error) {
     return next(error);

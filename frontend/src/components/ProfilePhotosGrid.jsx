@@ -106,7 +106,7 @@ export function ProfilePhotosGrid({
 
             {/* REORDER */}
             {editable && (
-              <div className="flex items-center gap-2 rounded-full bg-black/5 px-2 py-1 border border-slate-200">
+              <div className="flex items-center gap-2 rounded-full bg-primary-light/50 px-2 py-1 border border-primary-medium">
                 <button
                   type="button"
                   disabled={idx === 0}
@@ -114,7 +114,7 @@ export function ProfilePhotosGrid({
                     e.stopPropagation();
                     onMovePhoto?.(idx, -1);
                   }}
-                  className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-200 disabled:opacity-30"
+                  className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-primary-medium/50 disabled:opacity-30"
                 >
                   <ChevronLeft size={18} />
                 </button>
@@ -130,7 +130,7 @@ export function ProfilePhotosGrid({
                     e.stopPropagation();
                     onMovePhoto?.(idx, 1);
                   }}
-                  className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-200 disabled:opacity-30"
+                  className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-primary-medium/50 disabled:opacity-30"
                 >
                   <ChevronRight size={18} />
                 </button>

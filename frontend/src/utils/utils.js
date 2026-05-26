@@ -13,3 +13,24 @@ export function buildApiHeaders(currentUser, extraHeaders = {}) {
 
   return headers;
 }
+
+/* ========== Capitalize first letter and add # for tags  ========== */
+export function formatTag(tag) {
+  if (!tag) return "";
+
+  if (tag.startsWith("#")) {
+    return "#" + tag[1].toUpperCase() + tag.slice(2);
+  }
+  
+  return tag;
+}
+
+/* ========== Capitalize first letter for display (keeps empty/null safe) ========== */
+export function capitalizeFirst(str) {
+  if (!str) return "";
+  const s = String(str).trim();
+  
+  if (!s) return "";
+  
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

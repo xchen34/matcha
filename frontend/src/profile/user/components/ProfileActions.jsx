@@ -1,4 +1,4 @@
-import { Heart, BadgeAlert, Ban, BadgeCheck } from "lucide-react";
+import { Heart, Zap, BadgeAlert, Ban, BadgeCheck } from "lucide-react";
 
 export default function ProfileActions({
   user,
@@ -32,16 +32,19 @@ export default function ProfileActions({
         : liked
           ? "Unlike"
           : "Like";
-
+  const theyLikedYou = profile.likedYou;
+  
   return (
     <div className="relative flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end sm:justify-start">
       {/* RELATION STATUS BADGE (MATCHED, LIKED, ETC) */}
       <span
         className={`
-          px-2 py-1 rounded-full text-[11px] font-semibold border
+          inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border transition
           ${
             isMatch
               ? "bg-primary text-white border-primary"
+              : likedByProfile
+              ? "bg-primary-light text-primary border-primary"
               : liked
               ? "bg-primary-light text-primary border-primary"
               : "bg-white text-neutral border-neutral"
@@ -58,20 +61,35 @@ export default function ProfileActions({
         disabled={
           loadingLike ||
           user.id === currentUser.id ||
-          (!liked && (!canLikeProfiles || !Array.isArray(profile.photos) || !profile.photos.some((p)=>p.is_primary)))
+          (!liked &&
+            (!canLikeProfiles ||
+              !Array.isArray(profile.photos) ||
+              !profile.photos.some((p) => p.is_primary)))
         }
-        aria-label={isMatch ? "Disconnect from this profile" : liked ? "Remove like" : "Like this user"}
+        aria-label={
+          isMatch ? "Disconnect from this profile" : liked ? "Remove like" : "Like this user"
+        }
         title={likeTitle}
         className={`
           h-11 w-11 rounded-full flex items-center justify-center
-          border transition shadow-sm
-          ${liked
-            ? "bg-primary border-primary"
-            : "bg-white border-neutral hover:border-primary"
+          border shadow-sm transition-all duration-200
+          hover:scale-110 active:scale-95
+          ${
+            isMatch
+              ? "bg-primary border-primary"
+              : liked
+              ? "bg-primary-light border-primary"
+              : "bg-white border-neutral hover:border-primary"
           }
         `}
       >
-        <Heart className={liked ? "text-white" : "text-primary"} size={18} />
+        {isMatch ? (
+          <Zap className="text-white fill-white" size={18} />
+        ) : liked ? (
+          <Heart className="text-primary fill-primary" size={18} />
+        ) : (
+          <Heart className="text-neutral fill-white" size={18} />
+        )}
       </button>
       
       {/* MORE ACTIONS MENU */}

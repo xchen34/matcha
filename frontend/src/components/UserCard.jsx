@@ -1,13 +1,16 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { sanitizeText } from "@/utils/xssEscape.js";
 import { actionButtonClass } from "@/styles/UIClasses.jsx";
 import { buildApiHeaders } from "@/utils/utils.js";
+import { onRealtimeEvent } from "@/realtime/socket.js";
+import { REALTIME_EVENTS } from "@/realtime/events.js";
 import { 
-  Heart, UserRound, 
+  Heart, Zap, UserRound, 
   Star, MapPin, 
   VenusAndMars, Sparkle 
 } from "lucide-react"
+import { capitalizeFirst, formatTag } from "@/utils/utils.js";
 
 function UserCard({ user, currentUser, canLikeProfiles = true }) {
   const navigate = useNavigate();
@@ -25,6 +28,46 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
       null,
     [user]
   );
+
+  /* ========== Listen for real-time like and match status changes ========== */
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Listen for like status changes
+    const offLikeStatusChanged = onRealtimeEvent(
+      REALTIME_EVENTS.LIKE_STATUS_CHANGED,
+      (payload) => {
+        // Update state if the event is for the current user
+        if (Number(payload?.userId) === Number(user.id)) {
+          setOptimistic((prev) => ({
+            userId: user.id,
+            liked: payload.liked,
+            isMatch: prev?.isMatch ?? Boolean(user?.is_match), // Keep the current match status
+          }));
+        }
+      }
+    );
+
+    // Listen for match status changes
+    const offMatchStatusChanged = onRealtimeEvent(
+      REALTIME_EVENTS.MATCH_STATUS_CHANGED,
+      (payload) => {
+        // Update state if the event is for the current user
+        if (Number(payload?.userId) === Number(user.id)) {
+          setOptimistic((prev) => ({
+            userId: user.id,
+            liked: prev?.liked ?? Boolean(user?.liked), // Keep the current liked status
+            isMatch: payload.matched,
+          }));
+        }
+      }
+    );
+
+    return () => {
+      offLikeStatusChanged();
+      offMatchStatusChanged();
+    };
+  }, [user?.id, user?.is_match, user?.liked]);
 
   /* ========== Handle like/unlike with optimistic UI ========== */
   const liked =
@@ -111,10 +154,9 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
   return (
     <div className="
       relative mx-auto flex h-full w-full max-w-[19rem] flex-col overflow-hidden
-      rounded-3xl border border-light
-      bg-white
-      shadow-sm
-      transition hover:shadow-md hover:scale-[1.015]
+      rounded-3xl border border-light bg-white
+      shadow-sm transition-all duration-300
+      hover:-translate-y-1 hover:shadow-xl
     ">
       {/* ======== IMAGE + STATUS ======== */}
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-neutral-light">
@@ -138,27 +180,22 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         <div className="absolute left-3 top-3">
           <span
             className={`
-              inline-flex items-center gap-2 rounded-full
-              px-3 py-1.5 text-[11px] font-semibold
-              shadow-lg backdrop-blur-md border
+              inline-flex items-center rounded-full px-2 py-1
+              text-[11px] font-semibold border
+              transition
               ${
                 user.is_online
-                  ? "border-valid-dark bg-valid text-white"
-                  : "border-neutral bg-white/90 text-neutral-dark"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-slate-100 text-slate-600 border-slate-200"
               }
             `}
           >
             <span
               className={`
-                h-2 w-2 rounded-full
-                ${
-                  user.is_online
-                    ? "bg-white"
-                    : "bg-neutral"
-                }
+                mr-2 h-2 w-2 rounded-full
+                ${user.is_online ? "bg-emerald-500" : "bg-slate-400"}
               `}
             />
-
             {user.is_online ? "Online" : "Offline"}
           </span>
         </div>
@@ -167,7 +204,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         <div className="absolute bottom-3 right-3 flex items-center gap-2">
           <span
             className={`
-              px-2 py-1 rounded-full text-[11px] font-semibold border
+              px-2 py-1 rounded-full text-[11px] font-semibold border transition
               ${
                 isMatch
                   ? "bg-primary text-white border-primary"
@@ -185,14 +222,24 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
             disabled={loading || user.id === currentUser.id}
             className={`
               h-11 w-11 rounded-full flex items-center justify-center
-              border transition shadow-sm
-              ${liked
-                ? "bg-primary border-primary"
-                : "bg-white border-neutral hover:border-primary"
+              border shadow-sm transition-all duration-200
+              hover:scale-110 active:scale-95
+              ${
+                isMatch
+                  ? "bg-primary border-primary"
+                  : liked
+                  ? "bg-primary-light border-primary"
+                  : "bg-white border-neutral"
               }
             `}
           >
-            <Heart className={liked ? "text-white" : "text-primary"} size={18} />
+            {isMatch ? (
+              <Zap className="text-white fill-white" size={18} />
+            ) : liked ? (
+              <Heart className="text-primary fill-primary" size={18} />
+            ) : (
+              <Heart className="text-neutral fill-white" size={18} />
+            )}
           </button>
         </div>
       </div>
@@ -205,10 +252,10 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         </h3>
 
         {/* Infos */}
-        <div className="mt-2 flex flex-wrap gap-2 text-sm text-neutral">
+        <div className="mt-2 flex flex-wrap gap-3 text-sm text-neutral/80">
           <span className="flex items-center gap-1">
             <VenusAndMars className="text-primary" />
-            {sanitizeText(user.gender) || "-"}
+            {sanitizeText(capitalizeFirst(user.gender)) || "-"}
           </span>
 
           <span className="flex items-center gap-1">
@@ -237,12 +284,13 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
                 key={tag}
                 className="
                   rounded-full px-2 py-0.5
-                  bg-primary-light
-                  text-primary
-                  border border-primary
+                  bg-primary/10 text-primary
+                  text-[11px] font-medium
+                  border border-primary/10
+                  hover:bg-primary/20 transition
                 "
               >
-                {sanitizeText(tag)}
+                {sanitizeText(formatTag(tag))}
               </span>
             ))}
         </div>
@@ -256,7 +304,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         <div className="mt-auto pt-4">
           <button
             onClick={() => navigate(`/users/${user.id}`)}
-            className={`w-full ${actionButtonClass} inline-flex items-center justify-center de`}
+            className={`w-full ${actionButtonClass} inline-flex items-center justify-center`}
           >
             <Sparkle size={16} aria-hidden="true" className="mr-2" />
             View profile

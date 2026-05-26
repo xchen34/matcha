@@ -5,7 +5,7 @@ import { CornerUpLeft, Trash2 } from "lucide-react"
 export default function ChatConversationMessage({
   msg,
   showDay,
-  currentUserId,
+  isMine,
   conversation,
   expandedMessageId,
   setExpandedMessageId,
@@ -16,8 +16,8 @@ export default function ChatConversationMessage({
   const [isHovered, setIsHovered] = useState(false);
   
   const isExpanded = expandedMessageId === msg.id;
-  const isMine = msg.sender_user_id === currentUserId;
   const lines = msg.content.split("\n");
+  const alignmentClass = isMine ? "items-end" : "items-start";
 
   const quoteLines = [];
   const normalLines = [];
@@ -64,8 +64,8 @@ export default function ChatConversationMessage({
         {/* MESSAGE */}
         <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
           <div
-            className={`max-w-[68%] rounded-2xl px-3 py-2 text-sm cursor-pointer transition-all
-              ${isMine ? "bg-primary text-white" : "bg-slate-300 text-neutral-dark"}
+            className={`max-w-[68%] rounded-2xl px-3 py-1.5 text-sm cursor-pointer transition-all
+              ${isMine ? "bg-primary text-white" : "bg-slate-200 text-neutral-dark"}
             `}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -88,9 +88,7 @@ export default function ChatConversationMessage({
 
         {/* ========== ACTIONS ========== */}
         {(isHovered || isExpanded) && (
-          <div
-            className={`flex flex-col items-${isMine ? "end" : "start"} gap-2 text-[11px] mt-1 text-slate-500`}
-          >
+          <div className={`flex flex-col ${alignmentClass} gap-2 mt-1 text-[11px] text-slate-500`}>
             {/* TIMESTAMP */ }
             <span>{formatTime(msg.created_at)}</span>
 

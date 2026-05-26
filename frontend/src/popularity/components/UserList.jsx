@@ -8,12 +8,21 @@ function UserList({ users, mode, unreadUserSet, startingChatFor, startChatWith, 
     <div className="space-y-2 mt-3">
       {/* EMPTY STATE */}
       {users.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-primary-medium bg-slate-50 px-4 py-5 text-center text-slate-600">
+        <div className="rounded-2xl border border-dashed border-primary bg-slate-50 px-4 py-5 text-center text-slate-600">
           No users to display.
         </div>
       ) : (
         users.map((user) => (
-          <div key={user.id} className="relative flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <div
+            key={user.id}
+            className="
+              relative flex items-center justify-between
+              rounded-2xl bg-white px-4 py-3
+              border border-slate-200/70 shadow-sm
+              transition-all duration-200
+              hover:shadow-md hover:-translate-y-0.5
+            "
+          >
             {/* NEW BADGE FOR UNREAD USERS */}
             {unreadUserSet.has(String(user.id)) && (
               <span className="absolute -left-2 -top-2 px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold uppercase">NEW</span>

@@ -81,7 +81,7 @@ export default function ChatConversationStatusBadge({
   ) {
     return (
       <li className="text-center py-3">
-        <span className="inline-flex rounded-full bg-red-100 px-4 py-2 text-xs font-medium text-red-800 border border-red-300">
+        <span className="inline-flex rounded-full bg-yellow-100 px-4 py-2 text-xs font-medium text-yellow-800 border border-yellow-300">
           You unmatched with {"@" + otherUsername} on {unmatchedDate} at {unmatchedTime}
         </span>
       </li>

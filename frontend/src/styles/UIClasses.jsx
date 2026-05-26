@@ -20,20 +20,20 @@ export const actionButtonClass =
 
 // Form element classes
 export const inputClass =
-  "w-full border border-neutral-medium px-4 py-3 rounded-xl text-sm text-neutral-dark focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary";
+  "w-full border border-slate-400 px-4 py-3 rounded-xl text-sm text-neutral-dark focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary";
 
 export const textareaClass =
-  "w-full rounded-2xl border border-neutral-medium px-4 py-3 text-sm text-neutral-dark shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition min-h-[140px]";
+  "w-full rounded-2xl border border-slate-400 px-4 py-3 text-sm text-neutral-dark shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition min-h-[140px]";
 
 export const selectClass =
-  "w-full rounded-xl border border-neutral-medium px-4 py-3 text-sm text-neutral-dark shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition bg-white";
+  "w-full rounded-xl border border-slate-400 px-4 py-3 text-sm text-neutral-dark shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition bg-white";
 
 // Chat related classes
 export const chatBubbleClass =
-  "rounded-2xl border border-neutral px-3 py-1 text-sm leading-tight shadow-sm cursor-default";
+  "rounded-2xl border border-slate-400 px-3 py-1 text-sm leading-tight shadow-sm cursor-default";
 
 export const chatInputClass =
-  "w-full rounded-lg border border-neutral px-4 py-2 text-base text-neutral-dark shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition min-h-[72px]";
+  "w-full rounded-lg border border-slate-400 px-4 py-2 text-base text-neutral-dark shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition min-h-[72px]";
 
 export const chatButtonClass = (isDisabled) =>
   isDisabled

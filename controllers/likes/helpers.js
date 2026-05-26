@@ -7,7 +7,7 @@ function normalizeTag(tag) {
   if (!normalized.startsWith("#")) normalized = `#${normalized}`;
 
   if (!/^#[a-z0-9_]{1,30}$/.test(normalized)) return "";
-
+  
   return normalized;
 }
 
@@ -29,6 +29,7 @@ function parseTagsQueryParam(rawTags) {
   for (const value of values) {
     const normalized = normalizeTag(value);
     if (!normalized || seen.has(normalized)) continue;
+    
     seen.add(normalized);
     unique.push(normalized);
   }
