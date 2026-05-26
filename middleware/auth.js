@@ -6,10 +6,15 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ error: "Access denied. No token provided." });
   }
 
-  const token = authHeader.substring(7); // 提取 "Bearer " 后面的 token 字符串
+  const token = authHeader.substring(7); // Remove "Bearer " prefix
   const claims = verifyRealtimeToken(token);
 
+  console.log("[requireAuth DEBUG] URL:", req.originalUrl);
+  console.log("[requireAuth DEBUG] authHeader:", authHeader);
+  console.log("[requireAuth DEBUG] claims:", claims);
+
   if (!claims || !claims.userId) {
+    console.log("[requireAuth DEBUG] Rejecting request 401");
     return res.status(401).json({ error: "Invalid or expired token." });
   }
 
