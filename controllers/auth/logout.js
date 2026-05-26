@@ -2,7 +2,7 @@ const pool = require("../../db");
 
 async function logout(req, res, next) {
   try {
-    const currentUserId = Number(req.header("x-user-id"));
+    const currentUserId = Number(req.userId);
 
     if (!Number.isInteger(currentUserId) || currentUserId <= 0) {
       return res.status(401).json({ error: "Unauthorized" });

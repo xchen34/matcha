@@ -3,9 +3,9 @@ const { parsePositiveInt } = require("./helpers");
 
 async function getBlockedUsers(req, res, next) {
   try {
-    const currentUserId = parsePositiveInt(req.header("x-user-id"));
+    const currentUserId = parsePositiveInt(req.userId);
     if (!currentUserId) {
-      return res.status(400).json({ error: "x-user-id header is required" });
+      return res.status(400).json({ error: "authenticated user is required" });
     }
 
     const users = await moderationService.getBlockedUsers(currentUserId);

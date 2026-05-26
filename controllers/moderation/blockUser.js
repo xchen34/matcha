@@ -4,11 +4,11 @@ const { parsePositiveInt } = require("./helpers");
 
 async function blockUser(req, res, next) {
   try {
-    const blockerUserId = parsePositiveInt(req.header("x-user-id"));
+    const blockerUserId = parsePositiveInt(req.userId);
     const blockedUserId = parsePositiveInt(req.params.id);
 
     if (!blockerUserId || !blockedUserId) {
-      return res.status(400).json({ error: "x-user-id header and user id param are required" });
+      return res.status(400).json({ error: "authenticated user and user id param are required" });
     }
     
     if (blockerUserId === blockedUserId) {

@@ -17,11 +17,11 @@ async function login(req, res, next) {
 
     const user = await authService.findUserForLogin(identifier);
 
-    if (!user && /\s/.test(rawPassword)) {
+    if (!user) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
-    let isPasswordValid = await bcrypt.compare(rawPassword, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(rawPassword, user.password_hash);
 
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid username or password" });

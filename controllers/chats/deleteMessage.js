@@ -4,12 +4,12 @@ const { parsePositiveInt } = require("./helpers");
 
 async function deleteMessage(req, res, next) {
   try {
-    const currentUserId = parsePositiveInt(req.header("x-user-id"));
+    const currentUserId = parsePositiveInt(req.userId);
     const conversationId = parsePositiveInt(req.params.conversationId);
     const messageId = parsePositiveInt(req.params.messageId);
     if (!currentUserId || !conversationId || !messageId) {
       return res.status(400).json({
-        error: "x-user-id header, conversation id and message id are required",
+        error: "authenticated user, conversation id and message id are required",
       });
     }
 

@@ -13,9 +13,9 @@ function parseOptionalNumber(value) {
 
 async function getSuggestions(req, res, next) {
   try {
-    const userId = req.header("x-user-id");
+    const userId = String(req.userId ?? "");
     if (!userId) {
-      return res.status(400).json({ error: "x-user-id header required" });
+      return res.status(400).json({ error: "authenticated user required" });
     }
 
     const { min_age, max_age, min_fame, max_fame, username, city, tags, sort_by, sort_dir } = req.query;

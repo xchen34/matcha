@@ -3,8 +3,8 @@ const { parsePositiveInt } = require("./helpers");
 
 async function readAllNotifications(req, res, next) {
   try {
-    const currentUserId = parsePositiveInt(req.header("x-user-id"));
-    if (!currentUserId) return res.status(400).json({ error: "x-user-id header is required" });
+    const currentUserId = parsePositiveInt(req.userId);
+    if (!currentUserId) return res.status(400).json({ error: "authenticated user is required" });
 
     await notificationService.readAll(currentUserId);
     

@@ -2,9 +2,9 @@ const likeService = require("../../services/likeService");
 
 async function getLikes(req, res, next) {
   try {
-    const currentUserId = req.header("x-user-id");
+    const currentUserId = String(req.userId ?? "");
     if (!currentUserId) {
-      return res.status(400).json({ error: "x-user-id header required" });
+      return res.status(400).json({ error: "authenticated user required" });
     }
 
     const rows = await likeService.getLikesReceived(currentUserId);

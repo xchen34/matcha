@@ -1,5 +1,6 @@
 const express = require("express");
 const { requireAuth } = require("./middleware/auth");
+const { verifyRealtimeToken } = require("./realtime/authToken");
 const cors = require("cors");
 const helmet = require("helmet");
 const pool = require("./db");
@@ -61,7 +62,7 @@ const corsOptions = {
     return callback(new Error("CORS origin not allowed"));
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-user-id"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 app.use(cors(corsOptions));
@@ -80,8 +81,13 @@ app.use(csrfProtection);
 app.use("/api", globalApiLimiter);
 
 app.use((req, res, next) => {
-  const rawUserId = req.header("x-user-id");
-  const userId = Number(rawUserId);
+  const authHeader = req.header("authorization");
+  const token =
+    typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : "";
+  const claims = verifyRealtimeToken(token);
+  const userId = Number(claims?.userId);
 
   if (Number.isInteger(userId) && userId > 0) {
     pool

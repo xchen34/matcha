@@ -7,7 +7,7 @@ async function getMyProfile(req, res, next) {
     const currentUserId = await resolveCurrentUserId(req);
     if (!currentUserId) {
       return res.status(401).json({
-        error: "Not authenticated. Please login and provide x-user-id.",
+        error: "Not authenticated. Please login again.",
       });
     }
 
@@ -70,7 +70,7 @@ async function getPublicProfile(req, res, next) {
       return res.status(400).json({ error: "Invalid user id" });
     }
 
-    const currentUserId = Number(req.header("x-user-id"));
+    const currentUserId = Number(req.userId);
     const { profileRow, tagsRows, photosRows, relationRow } = await profileService.getPublicProfile(requestedId, currentUserId);
 
     if (!profileRow) {

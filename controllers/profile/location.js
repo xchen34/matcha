@@ -11,7 +11,7 @@ async function getReverseGeocode(req, res, next) {
   try {
     const currentUserId = await resolveCurrentUserId(req);
     if (!currentUserId) {
-      return res.status(401).json({ error: "Not authenticated. Please login and provide x-user-id." });
+      return res.status(401).json({ error: "Not authenticated. Please login again." });
     }
 
     const latitude = parseOptionalCoordinate(req.query.latitude);

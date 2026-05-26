@@ -20,8 +20,6 @@ function requireAuth(req, res, next) {
 
   // 将验证解析出的 userId 挂载在 req 对象上，传递给下游
   req.userId = claims.userId;
-  // Overwrite the header internally on the server to keep legacy controllers working securely
-  req.headers["x-user-id"] = String(claims.userId);
   next();
 }
 

@@ -3,10 +3,10 @@ const { parsePositiveInt } = require("./helpers");
 
 async function readNotification(req, res, next) {
   try {
-    const currentUserId = parsePositiveInt(req.header("x-user-id"));
+    const currentUserId = parsePositiveInt(req.userId);
     const notificationId = parsePositiveInt(req.params.id);
 
-    if (!currentUserId) return res.status(400).json({ error: "x-user-id header is required" });
+    if (!currentUserId) return res.status(400).json({ error: "authenticated user is required" });
     
     if (!notificationId) return res.status(400).json({ error: "Invalid notification id" });
 

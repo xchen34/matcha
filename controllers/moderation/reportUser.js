@@ -3,11 +3,11 @@ const { parsePositiveInt, MAX_FAKE_REPORT_REASON_LENGTH } = require("./helpers")
 
 async function reportUser(req, res, next) {
   try {
-    const reporterUserId = parsePositiveInt(req.header("x-user-id"));
+    const reporterUserId = parsePositiveInt(req.userId);
     const reportedUserId = parsePositiveInt(req.params.id);
 
     if (!reporterUserId || !reportedUserId) {
-      return res.status(400).json({ error: "x-user-id header and user id param are required" });
+      return res.status(400).json({ error: "authenticated user and user id param are required" });
     }
 
     if (reporterUserId === reportedUserId) {

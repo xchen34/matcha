@@ -11,10 +11,10 @@ const {
 
 async function sendMessage(req, res, next) {
   try {
-    const currentUserId = parsePositiveInt(req.header("x-user-id"));
+    const currentUserId = parsePositiveInt(req.userId);
     const recipientUserId = parsePositiveInt(req.body?.recipient_user_id);
     if (!currentUserId || !recipientUserId) {
-      return res.status(400).json({ error: "x-user-id header and recipient_user_id body field are required" });
+      return res.status(400).json({ error: "authenticated user and recipient_user_id body field are required" });
     }
 
     if (currentUserId === recipientUserId) {

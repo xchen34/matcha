@@ -92,16 +92,11 @@ export function useCurrentUser() {
   }
 
   /* ========== Delete account ========== */
-  async function handleDeleteAccount() {
+  async function handleDeleteAccount(password) {
     if (!currentUser?.id) return;
-
-    const confirmed = window.confirm(
-      "Delete your account permanently? This action cannot be undone.",
-    );
-    if (!confirmed) return;
-
-    const password = window.prompt("Please enter your password to confirm:");
-    if (password === null) return;
+    if (typeof password !== "string" || password.length === 0) {
+      return { ok: false, error: "Password is required." };
+    }
 
     try {
       const response = await fetch("/api/auth/delete-account", 
@@ -117,14 +112,13 @@ export function useCurrentUser() {
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        window.alert(data.error || "Failed to delete account.");
-        return;
+        return { ok: false, error: data.error || "Failed to delete account." };
       }
 
-      window.alert("Your account has been deleted.");
       logout();
+      return { ok: true };
     } catch {
-      window.alert("Network error while deleting account.");
+      return { ok: false, error: "Network error while deleting account." };
     }
   }
 

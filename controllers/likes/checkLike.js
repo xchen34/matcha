@@ -2,10 +2,10 @@ const likeService = require("../../services/likeService");
 
 async function checkLike(req, res, next) {
   try {
-    const likerId = req.header("x-user-id");
+    const likerId = String(req.userId ?? "");
     const likedId = req.params.id;
     if (!likerId || !likedId) {
-      return res.status(400).json({ error: "x-user-id header and user id param required" });
+      return res.status(400).json({ error: "authenticated user and user id param required" });
     }
 
     const liked = await likeService.checkLikeExists(likerId, likedId);

@@ -26,7 +26,7 @@ async function updateMyProfile(req, res, next) {
     const currentUserId = await resolveCurrentUserId(req);
     if (!currentUserId) {
       return res.status(401).json({
-        error: "Not authenticated. Please login and provide x-user-id.",
+        error: "Not authenticated. Please login again.",
       });
     }
 

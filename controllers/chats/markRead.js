@@ -4,10 +4,10 @@ const { parsePositiveInt } = require("./helpers");
 
 async function markRead(req, res, next) {
   try {
-    const currentUserId = parsePositiveInt(req.header("x-user-id"));
+    const currentUserId = parsePositiveInt(req.userId);
     const conversationId = parsePositiveInt(req.params.conversationId);
     if (!currentUserId || !conversationId) {
-      return res.status(400).json({ error: "x-user-id header and conversation id are required" });
+      return res.status(400).json({ error: "authenticated user and conversation id are required" });
     }
 
     const conversation = await chatService.checkConversationValidAndUndeleted(currentUserId, conversationId);

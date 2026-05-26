@@ -16,6 +16,7 @@ export default function useProfileData({
   const currentUsername = currentUser?.username ?? "";
   const currentEmail = currentUser?.email ?? "";
   const currentProfileCompleted = Boolean(currentUser?.profile_completed);
+  const currentRealtimeToken = currentUser?.realtime_token ?? "";
   const lastLoadedUserIdRef = useRef(null);
   const loadingRef = useRef(false);
 
@@ -90,6 +91,7 @@ export default function useProfileData({
           id: data.user?.id ?? currentUserId,
           username: data.user?.username ?? currentUsername,
           email: data.user?.email ?? currentEmail,
+          realtime_token: data.user?.realtime_token ?? currentRealtimeToken,
           profile_completed:
             data.user?.profile_completed ?? currentProfileCompleted,
         };
@@ -116,6 +118,7 @@ export default function useProfileData({
     currentUsername,
     currentEmail,
     currentProfileCompleted,
+    currentRealtimeToken,
     onProfileUpdate,
     setForm,
     setIsCityConfirmed,

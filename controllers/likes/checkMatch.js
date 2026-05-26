@@ -2,10 +2,10 @@ const likeService = require("../../services/likeService");
 
 async function checkMatch(req, res, next) {
   try {
-    const userA = req.header("x-user-id");
+    const userA = String(req.userId ?? "");
     const userB = req.params.id;
     if (!userA || !userB) {
-      return res.status(400).json({ error: "x-user-id header and id param required" });
+      return res.status(400).json({ error: "authenticated user and id param required" });
     }
 
     if (String(userA) === String(userB)) {

@@ -3,11 +3,11 @@ const { parsePositiveInt, ensureConnectionAllowed } = require("./helpers");
 
 async function createConversation(req, res, next) {
   try {
-    const currentUserId = parsePositiveInt(req.header("x-user-id"));
+    const currentUserId = parsePositiveInt(req.userId);
     const otherUserId = parsePositiveInt(req.body?.other_user_id);
 
     if (!currentUserId || !otherUserId) {
-      return res.status(400).json({ error: "x-user-id header and other_user_id body field are required" });
+      return res.status(400).json({ error: "authenticated user and other_user_id body field are required" });
     }
     if (currentUserId === otherUserId) {
       return res.status(400).json({ error: "Cannot open chat with yourself" });
