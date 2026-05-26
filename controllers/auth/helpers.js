@@ -1,6 +1,14 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const {
+  USERNAME_PATTERN,
+  MIN_BIRTH_DATE_ISO,
+  isValidEmail,
+  parseBirthDate,
+  isAtLeast18YearsOld,
+  isProfileCompleted,
+} = require("../../utils/userValidation");
 
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72;
@@ -20,54 +28,9 @@ const getMinBirthDateIso = () => {
   return date.toISOString().slice(0, 10);
 };
 
-/* ========== EMAIL ========== */
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 /* ========== USERNAME ========== */
 function isValidUsername(username) {
-  return /^[A-Za-z0-9._-]{2,20}$/.test(username);
-}
-
-/* ========== BIRTH DATE ========== */
-function parseBirthDate(value) {
-  if (typeof value !== "string") return null;
-
-  const trimmed = value.trim();
-  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return null;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-
-  const date = new Date(Date.UTC(year, month - 1, day));
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
-    return null;
-  }
-
-  return date;
-}
-
-function isAtLeast18YearsOld(birthDate) {
-  const today = new Date();
-  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
-  const monthDelta = today.getUTCMonth() - birthDate.getUTCMonth();
-
-  if (
-    monthDelta < 0 ||
-    (monthDelta === 0 && today.getUTCDate() < birthDate.getUTCDate())
-  ) {
-    age -= 1;
-  }
-
-  return age >= 18;
+  return USERNAME_PATTERN.test(username);
 }
 
 /* ========== Password ========== */
@@ -161,32 +124,12 @@ function generateResetToken() {
   return crypto.randomBytes(32).toString("hex");
 }
 
-/*  ========== PROFILE ========== */
-function isProfileCompleted(user) {
-  const hasValue = (value) =>
-    typeof value === "string" && value.trim().length > 0;
-
-  const hasUsername = hasValue(user?.username);
-  const hasFirstName = hasValue(user?.first_name);
-  const hasLastName = hasValue(user?.last_name);
-  const hasEmail = hasValue(user?.email);
-  const hasGender = hasValue(user?.gender);
-  const hasBirthDate = Boolean(user?.birth_date);
-  const hasCity = hasValue(user?.city);
-
-  return (
-    hasUsername &&
-    hasFirstName &&
-    hasLastName &&
-    hasEmail &&
-    hasGender &&
-    hasBirthDate &&
-    hasCity
-  );
-}
-
 /* ========== EXPORTS ========== */
 module.exports = {
+  MIN_PASSWORD_LENGTH,
+  MAX_PASSWORD_LENGTH,
+  USERNAME_PATTERN,
+  MIN_BIRTH_DATE_ISO,
   getTodayUTCStart,
   getMinBirthDateIso,
   isValidEmail,
@@ -197,4 +140,6 @@ module.exports = {
   generateVerificationToken,
   generateResetToken,
   isProfileCompleted,
+  getCommonPasswords,
+  validatePasswordStrength,
 };

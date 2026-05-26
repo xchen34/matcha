@@ -1,5 +1,12 @@
+const {
+  USERNAME_PATTERN,
+  isValidEmail,
+  parseBirthDate,
+  isAtLeast18YearsOld,
+  isProfileCompleted,
+} = require("../../utils/userValidation");
+
 const MAX_BIO_LENGTH = 500;
-const USERNAME_PATTERN = /^[A-Za-z0-9._-]{2,20}$/;
 const allowedGenders = ["male", "female", "non_binary", "other"];
 const allowedPreferences = ["male", "female", "both", "other"];
 const GEO_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -73,10 +80,6 @@ function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 function parseUserIdFromRequest(req) {
   // 中间件鉴权通过后，userId 会直接被挂在 req.userId 上
   return req.userId || null;
@@ -130,44 +133,6 @@ function parseOptionalCoordinate(value) {
   return parsed;
 }
 
-function parseBirthDate(value) {
-  if (typeof value !== "string") return null;
-
-  const trimmed = value.trim();
-  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return null;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-
-  const date = new Date(Date.UTC(year, month - 1, day));
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
-    return null;
-  }
-
-  return date;
-}
-
-function isAtLeast18YearsOld(birthDate) {
-  const today = new Date();
-  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
-  const monthDelta = today.getUTCMonth() - birthDate.getUTCMonth();
-  if (
-    monthDelta < 0 ||
-    (monthDelta === 0 && today.getUTCDate() < birthDate.getUTCDate())
-  ) {
-    age -= 1;
-  }
-
-  return age >= 18;
-}
-
 function getMinBirthDateIso() {
   const date = new Date();
   date.setUTCHours(0, 0, 0, 0);
@@ -188,31 +153,6 @@ function getAge(birthDate) {
   return age;
 }
 
-
-function isProfileCompleted(user, profile) {
-  const hasValue = (value) =>
-    typeof value === "string" && value.trim().length > 0;
-
-  const hasUsername = hasValue(user?.username);
-  const hasFirstName = hasValue(user?.first_name);
-  const hasLastName = hasValue(user?.last_name);
-  const hasEmail = hasValue(user?.email);
-
-  const hasGender = hasValue(profile?.gender);
-  const hasBirthDate = Boolean(profile?.birth_date);
-  const hasCity = hasValue(profile?.city);
-
-  return (
-    hasUsername &&
-    hasFirstName &&
-    hasLastName &&
-    hasEmail &&
-    hasGender &&
-    hasBirthDate &&
-    hasCity
-  );
-}
-
 async function reverseGeocode(latitude, longitude) {
   const cacheKey = `reverse:${latitude}:${longitude}`;
   const cached = getCachedValue(cacheKey);
@@ -222,7 +162,7 @@ async function reverseGeocode(latitude, longitude) {
   let response;
   try {
     response = await fetchNominatim(endpoint);
-  } catch {
+  } catch (error) {
     return { city: "", neighborhood: "", display_name: "" };
   }
 
@@ -233,7 +173,7 @@ async function reverseGeocode(latitude, longitude) {
   let data;
   try {
     data = await response.json();
-  } catch {
+  } catch (error) {
     return { city: "", neighborhood: "", display_name: "" };
   }
 
