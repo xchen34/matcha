@@ -1,5 +1,29 @@
 import { useEffect, useState } from "react";
-import { CircleX, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import {
+  CircleX,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  Star,
+} from "lucide-react";
+
+/** Detect mobile */
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [breakpoint]);
+
+  return isMobile;
+}
 
 export function ProfilePhotosGrid({
   photos,
@@ -11,6 +35,7 @@ export function ProfilePhotosGrid({
   const FRAME_SIZE = 224;
 
   const [modalIndex, setModalIndex] = useState(null);
+  const isMobile = useIsMobile();
 
   const openModal = (idx) => setModalIndex(idx);
   const closeModal = () => setModalIndex(null);
@@ -49,7 +74,6 @@ export function ProfilePhotosGrid({
       <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
         {photos.map((photo, idx) => (
           <div key={photo.id || idx} className="flex flex-col items-center gap-2">
-
             {/* IMAGE */}
             <div
               className={`
@@ -116,7 +140,11 @@ export function ProfilePhotosGrid({
                   }}
                   className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-primary-medium/50 disabled:opacity-30"
                 >
-                  <ChevronLeft size={18} />
+                  {isMobile ? (
+                    <ChevronUp size={18} />
+                  ) : (
+                    <ChevronLeft size={18} />
+                  )}
                 </button>
 
                 <span className="text-[10px] text-slate-500 select-none whitespace-nowrap">
@@ -132,7 +160,11 @@ export function ProfilePhotosGrid({
                   }}
                   className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-primary-medium/50 disabled:opacity-30"
                 >
-                  <ChevronRight size={18} />
+                  {isMobile ? (
+                    <ChevronDown size={18} />
+                  ) : (
+                    <ChevronRight size={18} />
+                  )}
                 </button>
               </div>
             )}
@@ -150,27 +182,42 @@ export function ProfilePhotosGrid({
             className="relative flex items-center"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* PREV */}
             <button
               type="button"
               onClick={showPrev}
-              className="absolute left-[-4rem] flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-black shadow-lg hover:bg-white"
+              className="
+                absolute flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-black shadow-lg hover:bg-white
+                left-1/2 sm:left-[-4rem]
+                -translate-x-1/2 sm:translate-x-0
+                top-[-4rem] sm:top-1/2 sm:-translate-y-1/2
+              "
             >
-              <ChevronLeft size={26} />
+              {isMobile ? <ChevronUp size={26} /> : <ChevronLeft size={26} />}
             </button>
 
+            {/* IMAGE */}
             <img
               src={photos[modalIndex]?.data_url}
               className="max-h-[70vh] max-w-[70vw] rounded-xl border-4 border-white shadow-2xl"
+              alt="Profile"
             />
 
+            {/* NEXT */}
             <button
               type="button"
               onClick={showNext}
-              className="absolute right-[-4rem] flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-black shadow-lg hover:bg-white"
+              className="
+                absolute flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-black shadow-lg hover:bg-white
+                left-1/2 sm:left-auto sm:right-[-4rem]
+                -translate-x-1/2 sm:translate-x-0
+                bottom-[-4rem] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2
+              "
             >
-              <ChevronRight size={26} />
+              {isMobile ? <ChevronDown size={26} /> : <ChevronRight size={26} />}
             </button>
 
+            {/* CLOSE */}
             <button
               type="button"
               onClick={closeModal}

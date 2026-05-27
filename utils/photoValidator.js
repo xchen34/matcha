@@ -1,11 +1,11 @@
 let imageType;
 
+// Dynamically import image-type (ESM default export)
 async function getImageType(buffer) {
   if (!imageType) {
-    // Dynamically import image-type (ESM default export)
     imageType = (await import("image-type")).default;
   }
-  
+
   return imageType(buffer);
 }
 
@@ -18,9 +18,9 @@ const ALLOWED_PHOTO_MIMES = new Set([
   "image/gif",
 ]);
 
-const MAX_PHOTO_SIZE_BYTES = 300 * 1024; // 300KB per photo
+const MAX_PHOTO_SIZE_BYTES = 500 * 1024; // 500KB per photo
 const MAX_PHOTOS_COUNT = 5;
-const MAX_TOTAL_PHOTOS_SIZE_BYTES = MAX_PHOTO_SIZE_BYTES * MAX_PHOTOS_COUNT; // 1500KB total for 5 photos
+const MAX_TOTAL_PHOTOS_SIZE_BYTES = MAX_PHOTO_SIZE_BYTES * MAX_PHOTOS_COUNT; // 2500KB total for 5 photos
 
 /* ========== Validate MIME type from a data URL string ========== */
 function validatePhotoMimeType(dataUrl) {
@@ -41,7 +41,10 @@ function validatePhotoMimeType(dataUrl) {
     };
   }
 
-  return { valid: true, mimeType };
+  return {
+    valid: true,
+    mimeType,
+  };
 }
 
 /* ========== Validate and normalize photos array for database storage ========== */
@@ -59,7 +62,9 @@ async function normalizePhotosInput(photos) {
 
   for (const item of photos) {
     if (!item || typeof item.data_url !== "string") {
-      return { error: "Each photo must include a data_url string" };
+      return {
+        error: "Each photo must include a data_url string",
+      };
     }
 
     const dataUrl = item.data_url.trim();
@@ -67,33 +72,39 @@ async function normalizePhotosInput(photos) {
     // Validate MIME type (data URL)
     const mimeValidation = validatePhotoMimeType(dataUrl);
     if (!mimeValidation.valid) {
-      return { error: mimeValidation.error };
+      return {
+        error: mimeValidation.error,
+      };
     }
 
     // Decoding base64 to check actual file content and size (security measure)
     const base64Match = dataUrl.match(/^data:[^;]+;base64,(.*)$/);
     if (!base64Match) {
-      return { error: "Invalid photo format (base64 missing)" };
+      return {
+        error: "Invalid photo format (base64 missing)",
+      };
     }
     let buffer;
     try {
       buffer = Buffer.from(base64Match[1], "base64");
     } catch (e) {
-      return { error: "Photo base64 decoding failed" };
+      return {
+        error: "Photo base64 decoding failed",
+      };
     }
 
     // Check actual file type from content (not just MIME type in data URL)
     const detected = await getImageType(buffer);
     if (!detected || !ALLOWED_PHOTO_MIMES.has(`image/${detected.ext}`)) {
       return {
-        error: `Le contenu du fichier n'est pas une image valide (${detected ? detected.ext : "inconnu"}).`,
+        error: `File is not a valid image (${detected ? detected.ext : "inconnu"}).`,
       };
     }
 
     // Check individual photo size (en bytes)
     if (buffer.length > MAX_PHOTO_SIZE_BYTES) {
       return {
-        error: `Photo is too large (max 300KB). Size: ${Math.round(buffer.length / 1024)}KB.`,
+        error: `Photo is too large (max 500KB). Size: ${Math.round(buffer.length / 1024)}KB.`,
       };
     }
 
@@ -106,7 +117,11 @@ async function normalizePhotosInput(photos) {
 
     const isPrimary = Boolean(item.is_primary);
     if (isPrimary) hasPrimary = true;
-    normalized.push({ data_url: dataUrl, is_primary: isPrimary });
+
+    normalized.push({
+      data_url: dataUrl,
+      is_primary: isPrimary,
+    });
   }
 
   // Ensure exactly one primary photo
@@ -125,7 +140,9 @@ async function normalizePhotosInput(photos) {
     }
   }
 
-  return { photos: normalized };
+  return {
+    photos: normalized,
+  };
 }
 
 module.exports = {

@@ -6,7 +6,6 @@ async function getProfileTags(req, res, next) {
     const limit = Number.isInteger(rawLimit)
       ? Math.max(1, Math.min(rawLimit, 100))
       : 100;
-
     const rows = await profileService.getProfileTagsUsage(limit);
 
     return res.json({

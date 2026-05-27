@@ -280,7 +280,7 @@ async function fetchNeighborhoodsForCity(city, limit) {
     .slice(0, limit);
 
   setCachedValue(cacheKey, result);
-  
+
   return result;
 }
 

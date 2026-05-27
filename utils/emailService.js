@@ -7,6 +7,11 @@ const SMTP_PLACEHOLDERS = new Set([
 
 let cachedDevMailer = null;
 
+/* ========== Normalize email input (trim and lowercase) ========== */
+function normalizeEmail(email) {
+  return typeof email === "string" ? email.trim().toLowerCase() : "";
+}
+
 /* ========== Returns the SMTP authentication configuration ========== */
 function getSmtpAuthConfig() {
   const smtpUser = (process.env.SMTP_USER || process.env.ETHEREAL_USER || "").trim();
@@ -164,6 +169,7 @@ async function sendPasswordResetEmail(email, resetToken, frontendBaseUrl) {
 }
 
 module.exports = {
+  normalizeEmail,
   sendVerificationEmail,
   sendPasswordResetEmail,
   createMailer,

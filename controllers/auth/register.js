@@ -9,6 +9,7 @@ const {
 const {
   getTodayUTCStart,
   getMinBirthDateIso,
+  normalizeString,
   isValidEmail,
   isValidUsername,
   parseBirthDate,
@@ -17,9 +18,6 @@ const {
   generateVerificationToken,
   generateResetToken,
 } = require("./helpers");
-
-const normalizeString = (value) =>
-  typeof value === "string" ? value.trim() : "";
 
 async function register(req, res, next) {
   try {
@@ -41,14 +39,14 @@ async function register(req, res, next) {
 
     // Check email format
     if (!isValidEmail(normalizedEmail)) {
-      return res.status(400).json({ error: "Invalid email format" });
+      return res.status(400).json({
+        error: "Invalid email format",
+      });
     }
 
     // Check username format
     if (!isValidUsername(normalizedUsername)) {
-      return res
-        .status(400)
-        .json({
+      return res.status(400).json({
         error:
           "username is invalid (use 2-20 characters: letters, numbers, dot, underscore, hyphen)",
       });
@@ -57,37 +55,36 @@ async function register(req, res, next) {
     // Check birth date format and age
     const parsedBirthDate = parseBirthDate(birth_date);
     if (!parsedBirthDate) {
-      return res
-        .status(400)
-        .json({ error: "birth_date must be a valid date (YYYY-MM-DD)" });
+      return res.status(400).json({
+        error: "birth_date must be a valid date (YYYY-MM-DD)",
+      });
     }
 
     if (parsedBirthDate > getTodayUTCStart()) {
-      return res
-        .status(400)
-        .json({ error: "birth_date cannot be in the future" });
+      return res.status(400).json({
+        error: "birth_date cannot be in the future",
+      });
     }
 
     const minBirthDateIso = getMinBirthDateIso();
-
     if (parsedBirthDate < new Date(minBirthDateIso)) {
-      return res
-        .status(400)
-        .json({
+      return res.status(400).json({
         error: `birth_date must be on or after ${minBirthDateIso}`,
       });
     }
 
     if (!isAtLeast18YearsOld(parsedBirthDate)) {
-      return res
-        .status(400)
-        .json({ error: "You must be at least 18 years old to register" });
+      return res.status(400).json({
+        error: "You must be at least 18 years old to register",
+      });
     }
 
     // Check password format and not common passwords
     const passwordValidation = isValidatePassword(password);
     if (!passwordValidation.valid) {
-      return res.status(400).json({ error: passwordValidation.error });
+      return res.status(400).json({
+        error: passwordValidation.error,
+      });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -110,6 +107,7 @@ async function register(req, res, next) {
       birth_date,
     );
 
+    // Send the verification email
     const frontendBaseUrl = getFrontendBaseUrl();
     let emailDelivery = buildFailedEmailDelivery("unknown");
 
@@ -140,14 +138,18 @@ async function register(req, res, next) {
   } catch (error) {
     if (error.code === "23505") {
       if (error.constraint === "users_email_key")
-        return res.status(409).json({ error: "Email already exists" });
-      
-      if (error.constraint === "users_username_key")
-        return res.status(409).json({ error: "Username already exists" });
+        return res.status(409).json({
+          error: "Email already exists",
+        });
 
-      return res
-        .status(409)
-        .json({ error: "Email or username already exists" });
+      if (error.constraint === "users_username_key")
+        return res.status(409).json({
+          error: "Username already exists",
+        });
+
+      return res.status(409).json({
+        error: "Email or username already exists",
+      });
     }
 
     return next(error);

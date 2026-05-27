@@ -9,10 +9,12 @@ import { writeStoredUser } from "@/utils/userStorage.js";
 //if the login is successful, it will write the user to the local storage
 //it will also update the user in the parent component
 //
-export function useLogin(onLogin) {  //onLogin is the function to update the user in the parent component which is the App.jsx
+export function useLogin(onLogin) {
+  //onLogin is the function to update the user in the parent component which is the App.jsx
   const navigate = useNavigate(); //useNavigate is used to navigate the user to the find-match page if the profile is completed
 
-  const [form, setForm] = useState({   //useState is a hook that is used to store the state of the component, it will return an array with two elements, the first element is the state, and the second element is the function to update the state
+  const [form, setForm] = useState({
+    //useState is a hook that is used to store the state of the component, it will return an array with two elements, the first element is the state, and the second element is the function to update the state
     username: "",
     password: "",
   });
@@ -29,10 +31,17 @@ export function useLogin(onLogin) {  //onLogin is the function to update the use
     setMessage("Submitting...");
 
     try {
+      const loginPayload = {
+        ...form,
+        username: (form.username || "").includes("@")
+          ? (form.username || "").trim().toLowerCase()
+          : (form.username || "").trim(),
+      };
+
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(loginPayload),
       });
 
       const data = await response.json();
@@ -40,8 +49,11 @@ export function useLogin(onLogin) {  //onLogin is the function to update the use
       if (!response.ok) {
         if (response.status === 403 && data?.requires_email_verification) {
           const fallbackEmail =
-            (typeof data?.email === "string" && data.email.trim()) ||
-            ((form.username || "").includes("@") ? form.username.trim() : "");
+            (typeof data?.email === "string" &&
+              data.email.trim().toLowerCase()) ||
+            ((form.username || "").includes("@")
+              ? (form.username || "").trim().toLowerCase()
+              : "");
 
           setMessage("Email not verified...");
 
@@ -63,8 +75,9 @@ export function useLogin(onLogin) {  //onLogin is the function to update the use
 
       setMessage(`Welcome ${data.user.username}`);
 
-      const nextPath =
-        data?.user?.profile_completed ? "/find-match" : "/profile";
+      const nextPath = data?.user?.profile_completed
+        ? "/find-match"
+        : "/profile";
 
       setTimeout(() => navigate(nextPath), 400);
     } catch (err) {

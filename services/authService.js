@@ -1,3 +1,4 @@
+const { normalizeEmail } = require("../utils/emailService");
 const pool = require("../db");
 
 class AuthService {
@@ -7,14 +8,14 @@ class AuthService {
       `
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS pending_email VARCHAR(255)
-      `
+      `,
     );
 
     await pool.query(
       `
       CREATE INDEX IF NOT EXISTS idx_users_pending_email 
       ON users(pending_email)
-      `
+      `,
     );
   }
 
@@ -27,13 +28,15 @@ class AuthService {
       WHERE id = $1 
       LIMIT 1
       `,
-      [userId]
+      [userId],
     );
-    
+
     return result.rows[0];
   }
 
   async findUserByEmail(email) {
+    email = normalizeEmail(email);
+
     const result = await pool.query(
       `
       SELECT id, email, email_verified 
@@ -41,12 +44,12 @@ class AuthService {
       WHERE LOWER(email) = LOWER($1) 
       LIMIT 1
       `,
-      [email]
+      [email],
     );
 
     return result.rows[0];
   }
-  
+
   async findUserForLogin(identifier) {
     const result = await pool.query(
       `
@@ -61,12 +64,12 @@ class AuthService {
         LOWER(u.email) = LOWER($1)
       LIMIT 1
       `,
-      [identifier]
+      [identifier],
     );
 
     return result.rows[0];
   }
-  
+
   async findUserForDeletion(userId, email) {
     const result = await pool.query(
       `
@@ -84,12 +87,12 @@ class AuthService {
         END
       LIMIT 1
       `,
-      [Number.isInteger(userId) && userId > 0 ? userId : null, email]
+      [Number.isInteger(userId) && userId > 0 ? userId : null, email],
     );
 
     return result.rows[0];
-  }  
-  
+  }
+
   /*  ========== User State  ========== */
   async checkUserExists(userId) {
     const result = await pool.query(
@@ -99,7 +102,7 @@ class AuthService {
       WHERE id = $1 
       LIMIT 1
       `,
-      [userId]
+      [userId],
     );
 
     return result.rowCount > 0;
@@ -111,8 +114,8 @@ class AuthService {
       UPDATE users 
       SET last_seen_at = NOW() 
       WHERE id = $1
-      `, 
-      [userId]
+      `,
+      [userId],
     );
   }
 
@@ -121,8 +124,8 @@ class AuthService {
       `
       DELETE FROM users 
       WHERE id = $1
-      `, 
-      [userId]
+      `,
+      [userId],
     );
   }
 
@@ -136,7 +139,7 @@ class AuthService {
         password_reset_token_expiry = $2 
       WHERE id = $3
       `,
-      [token, expiry, userId]
+      [token, expiry, userId],
     );
   }
 
@@ -150,7 +153,7 @@ class AuthService {
         password_reset_token_expiry > NOW() 
       LIMIT 1
       `,
-      [token]
+      [token],
     );
 
     return result.rows[0];
@@ -166,7 +169,7 @@ class AuthService {
         password_reset_token_expiry = NULL 
       WHERE id = $2
       `,
-      [passwordHash, userId]
+      [passwordHash, userId],
     );
   }
 
@@ -174,6 +177,8 @@ class AuthService {
   async registerUser(userData, birthDate) {
     const client = await pool.connect();
     try {
+      userData.email = normalizeEmail(userData.email);
+
       await client.query("BEGIN");
       const result = await client.query(
         `
@@ -184,11 +189,16 @@ class AuthService {
                 email_verified, created_at
         `,
         [
-          userData.email, userData.username, userData.first_name, userData.last_name,
-          userData.passwordHash, userData.verificationToken, userData.tokenExpiry
-        ]
+          userData.email,
+          userData.username,
+          userData.first_name,
+          userData.last_name,
+          userData.passwordHash,
+          userData.verificationToken,
+          userData.tokenExpiry,
+        ],
       );
-      
+
       const userId = result.rows[0].id;
       await client.query(
         `
@@ -198,7 +208,7 @@ class AuthService {
         DO UPDATE 
         SET birth_date = EXCLUDED.birth_date
         `,
-        [userId, birthDate]
+        [userId, birthDate],
       );
       await client.query("COMMIT");
 
@@ -223,9 +233,9 @@ class AuthService {
         email_verification_token_expiry > NOW() 
       LIMIT 1
       `,
-      [token]
+      [token],
     );
-    
+
     return result.rows[0];
   }
 
@@ -239,11 +249,13 @@ class AuthService {
         email_verification_token_expiry = NULL 
       WHERE id = $1
       `,
-      [userId]
+      [userId],
     );
   }
 
   async verifyEmailChange(userId, nextEmail) {
+    nextEmail = normalizeEmail(nextEmail);
+
     await pool.query(
       `
       UPDATE users 
@@ -255,11 +267,13 @@ class AuthService {
         email_verification_token_expiry = NULL 
       WHERE id = $2
       `,
-      [nextEmail, userId]
+      [nextEmail, userId],
     );
   }
 
   async setPendingEmailAndToken(userId, newEmail, token, expiry) {
+    newEmail = normalizeEmail(newEmail);
+
     await pool.query(
       `
       UPDATE users 
@@ -269,7 +283,7 @@ class AuthService {
         email_verification_token_expiry = $3 
       WHERE id = $4
       `,
-      [newEmail, token, expiry, userId]
+      [newEmail, token, expiry, userId],
     );
   }
 
@@ -282,7 +296,7 @@ class AuthService {
         email_verification_token_expiry = $2 
       WHERE id = $3
       `,
-      [token, expiry, userId]
+      [token, expiry, userId],
     );
   }
 
@@ -300,9 +314,9 @@ class AuthService {
         AND id <> $2 
       LIMIT 1
       `,
-      [newEmail, userId]
+      [newEmail, userId],
     );
-    
+
     return result.rowCount > 0;
   }
 }

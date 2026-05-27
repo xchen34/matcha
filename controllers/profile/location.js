@@ -1,4 +1,10 @@
-const { isNonEmptyString, parseUserIdFromRequest, resolveCurrentUserId, parseOptionalCoordinate, reverseGeocode } = require("./helpers");
+const {
+  isNonEmptyString,
+  parseUserIdFromRequest,
+  resolveCurrentUserId,
+  parseOptionalCoordinate,
+  reverseGeocode,
+} = require("./helpers");
 const {
   normalizeLocationText,
   locationTextMatches,
@@ -11,13 +17,17 @@ async function getReverseGeocode(req, res, next) {
   try {
     const currentUserId = await resolveCurrentUserId(req);
     if (!currentUserId) {
-      return res.status(401).json({ error: "Not authenticated. Please login again." });
+      return res.status(401).json({
+        error: "Not authenticated. Please login again.",
+      });
     }
 
     const latitude = parseOptionalCoordinate(req.query.latitude);
     const longitude = parseOptionalCoordinate(req.query.longitude);
     if (latitude === null || longitude === null) {
-      return res.status(400).json({ error: "latitude and longitude query params are required" });
+      return res.status(400).json({
+        error: "latitude and longitude query params are required",
+      });
     }
 
     const resolved = await reverseGeocode(latitude, longitude);
@@ -77,15 +87,17 @@ async function validateLocation(req, res, next) {
         Math.max(limit * 3, 20),
       );
 
-      suggestions = fallbackResults.map((item) => ({
-        display_name: item.display_name || "",
-        latitude: null,
-        longitude: null,
-        city: item.city || "",
-        neighborhood: item.neighborhood || "",
-        country: item.country || "",
-        importance: item.importance || 0,
-      })).slice(0, limit);
+      suggestions = fallbackResults
+        .map((item) => ({
+          display_name: item.display_name || "",
+          latitude: null,
+          longitude: null,
+          city: item.city || "",
+          neighborhood: item.neighborhood || "",
+          country: item.country || "",
+          importance: item.importance || 0,
+        }))
+        .slice(0, limit);
     }
 
     const wantedCity = normalizeLocationText(city);
@@ -106,7 +118,9 @@ async function validateLocation(req, res, next) {
       ? suggestions.some((item) => locationTextMatches(wantedCity, item.city))
       : true;
     const neighborhoodExists = wantedNeighborhood
-      ? suggestions.some((item) => locationTextMatches(wantedNeighborhood, item.neighborhood))
+      ? suggestions.some((item) =>
+          locationTextMatches(wantedNeighborhood, item.neighborhood),
+        )
       : true;
 
     const isValid = suggestions.length > 0 && cityExists && neighborhoodExists;
@@ -133,17 +147,21 @@ async function getCityNeighborhoods(req, res, next) {
     parseUserIdFromRequest(req);
     const city = isNonEmptyString(req.query.city) ? req.query.city.trim() : "";
     if (!city) {
-      return res.status(400).json({ error: "city query param is required" });
+      return res.status(400).json({
+        error: "city query param is required",
+      });
     }
 
     const rawLimit = Number(req.query.limit);
     const limit = Number.isInteger(rawLimit)
       ? Math.max(1, Math.min(rawLimit, 30))
       : 20;
-
     const neighborhoods = await fetchNeighborhoodsForCity(city, limit);
-    
-    return res.json({ city, neighborhoods });
+
+    return res.json({
+      city,
+      neighborhoods,
+    });
   } catch (error) {
     return next(error);
   }
@@ -152,16 +170,20 @@ async function getCityNeighborhoods(req, res, next) {
 async function getCitySuggestions(req, res, next) {
   try {
     parseUserIdFromRequest(req);
-    const query = isNonEmptyString(req.query.query) ? req.query.query.trim() : "";
+    const query = isNonEmptyString(req.query.query)
+      ? req.query.query.trim()
+      : "";
     if (query.length < 2) {
-      return res.json({ query, suggestions: [] });
+      return res.json({
+        query,
+        suggestions: [],
+      });
     }
 
     const rawLimit = Number(req.query.limit);
     const limit = Number.isInteger(rawLimit)
       ? Math.max(1, Math.min(rawLimit, 50))
       : 20;
-
     const searchLimit = Math.max(limit * 6, 60);
     const primaryResults = await searchLocationsByQuery(query, searchLimit);
     let results = primaryResults;
@@ -189,13 +211,13 @@ async function getCitySuggestions(req, res, next) {
     if (countryFilter) {
       filteredResults = results.filter((item) => {
         const itemCountry = (item.country || "").trim();
+
         return itemCountry && itemCountry === countryFilter;
       });
     }
 
     const normalizedQuery = normalizeLocationText(query);
     const byCity = new Map();
-
     for (const item of filteredResults) {
       const cityName = (item.city || item.display_name || "").trim();
       if (!cityName) continue;
@@ -221,10 +243,14 @@ async function getCitySuggestions(req, res, next) {
 
     const suggestions = Array.from(byCity.values())
       .sort((a, b) => {
-        const aStarts = normalizeLocationText(a.city).startsWith(normalizedQuery)
+        const aStarts = normalizeLocationText(a.city).startsWith(
+          normalizedQuery,
+        )
           ? 1
           : 0;
-        const bStarts = normalizeLocationText(b.city).startsWith(normalizedQuery)
+        const bStarts = normalizeLocationText(b.city).startsWith(
+          normalizedQuery,
+        )
           ? 1
           : 0;
         if (aStarts !== bStarts) return bStarts - aStarts;

@@ -4,6 +4,8 @@ const path = require("path");
 const {
   USERNAME_PATTERN,
   MIN_BIRTH_DATE_ISO,
+  getMinBirthDateIso,
+  normalizeString,
   isValidEmail,
   parseBirthDate,
   isAtLeast18YearsOld,
@@ -17,15 +19,8 @@ const MAX_PASSWORD_LENGTH = 72;
 const getTodayUTCStart = () => {
   const date = new Date();
   date.setUTCHours(0, 0, 0, 0);
+
   return date;
-};
-
-const getMinBirthDateIso = () => {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCFullYear(date.getUTCFullYear() - 100);
-
-  return date.toISOString().slice(0, 10);
 };
 
 /* ========== USERNAME ========== */
@@ -132,6 +127,7 @@ module.exports = {
   MIN_BIRTH_DATE_ISO,
   getTodayUTCStart,
   getMinBirthDateIso,
+  normalizeString,
   isValidEmail,
   isValidUsername,
   isValidatePassword,

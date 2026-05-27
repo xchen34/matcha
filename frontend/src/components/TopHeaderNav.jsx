@@ -8,9 +8,15 @@ import {
   Zap, Cog, User, 
   Users, Eye, Heart, 
   LogOut, Trash2, Ban, 
+  Lock, X,
   MessageSquareHeart 
 } from "lucide-react";
-import { notificationBadgeClass } from "@/styles/UIClasses.jsx";
+import {
+  notificationBadgeClass,
+  inputClass,
+  secondaryButtonClass,
+  deleteButtonClass,
+} from "@/styles/UIClasses.jsx";
 
 export function TopHeaderNav({
   currentUser,
@@ -25,11 +31,27 @@ export function TopHeaderNav({
 }) {
   const location = useLocation();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
   const { attentionBadges = {}, clearAttentionMode } = useNotifications();
   const previousPathRef = useRef(location.pathname);
+
+  useEffect(() => {
+    if (!showDeleteDialog) {
+      setDeleteDialogVisible(false);
+      return undefined;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      setDeleteDialogVisible(true);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [showDeleteDialog]);
 
   /* ========== Clear attention badges on navigation ========== */
   useEffect(() => {
@@ -93,6 +115,23 @@ export function TopHeaderNav({
 
   if (!currentUser || isLoginPage) return null;
 
+  function openDeleteDialog() {
+    setIsSettingsOpen(false);
+    setShowDeleteDialog(true);
+    setDeleteDialogVisible(false);
+    setDeleteError("");
+    setDeletePassword("");
+  }
+
+  function closeDeleteDialog() {
+    if (deletingAccount) return;
+
+    setDeleteDialogVisible(false);
+    window.setTimeout(() => {
+      setShowDeleteDialog(false);
+    }, 180);
+  }
+
   async function onDeleteAccountConfirm() {
     if (!deletePassword) {
       setDeleteError("Password is required.");
@@ -109,7 +148,10 @@ export function TopHeaderNav({
       return;
     }
 
-    setShowDeleteDialog(false);
+    setDeleteDialogVisible(false);
+    window.setTimeout(() => {
+      setShowDeleteDialog(false);
+    }, 180);
     setDeletePassword("");
   }
 
@@ -205,10 +247,7 @@ export function TopHeaderNav({
                 {/* Delete account */}
                 <button
                   onClick={() => {
-                    setIsSettingsOpen(false);
-                    setShowDeleteDialog(true);
-                    setDeleteError("");
-                    setDeletePassword("");
+                    openDeleteDialog();
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
                 >
@@ -223,47 +262,60 @@ export function TopHeaderNav({
               </div>
             )}
           </div>
-
         </div>
-
       </div>
 
+      {/* ========== DELETE ACCOUNT DIALOG ========== */}
       {showDeleteDialog && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-4 shadow-xl border border-slate-200 space-y-3">
-            <h3 className="text-base font-semibold text-slate-900">Delete account</h3>
+        <div
+          className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 transition-opacity duration-200 ease-out ${
+            deleteDialogVisible ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <div
+            className={`w-full max-w-md rounded-xl bg-white p-4 shadow-xl border border-slate-200 space-y-3 transition-all duration-200 ease-out ${
+              deleteDialogVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-95 opacity-0"
+            }`}
+          >
+            <h3 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+              <Trash2 size={16} className="text-red-600" />
+              DELETE ACCOUNT
+            </h3>
             <p className="text-sm text-slate-600">
               This action is permanent. Enter your password to confirm.
             </p>
-            <PasswordInput
-              value={deletePassword}
-              onChange={(event) => setDeletePassword(event.target.value)}
-              placeholder="Current password"
-              autoComplete="current-password"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
+            <div className="relative">
+              <Lock
+                size={16}
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <PasswordInput
+                value={deletePassword}
+                onChange={(event) => setDeletePassword(event.target.value)}
+                placeholder="Current password"
+                autoComplete="current-password"
+                className={`${inputClass}`}
+              />
+            </div>
             {deleteError && (
               <p className="text-sm text-red-600">{deleteError}</p>
             )}
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                onClick={() => {
-                  if (deletingAccount) return;
-                  setShowDeleteDialog(false);
-                  setDeletePassword("");
-                  setDeleteError("");
-                }}
+                className={secondaryButtonClass}
+                onClick={closeDeleteDialog}
               >
+                <X size={14} className="mr-1" />
                 Cancel
               </button>
               <button
                 type="button"
-                className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className={deleteButtonClass}
                 disabled={deletingAccount}
                 onClick={onDeleteAccountConfirm}
               >
+                <Trash2 size={14} className="mr-1" />
                 {deletingAccount ? "Deleting..." : "Delete account"}
               </button>
             </div>

@@ -1,6 +1,7 @@
 const profileService = require("../../services/profileService");
 const { getIO, REALTIME_EVENTS } = require("../../realtime");
 const {
+  MAX_BIO_LENGTH,
   resolveCurrentUserId,
   isNonEmptyString,
   USERNAME_PATTERN,
@@ -18,8 +19,6 @@ const {
   validatePhotoMimeType,
   normalizePhotosInput,
 } = require("../../utils/photoValidator");
-
-const MAX_BIO_LENGTH = 500;
 
 async function updateMyProfile(req, res, next) {
   try {
@@ -48,31 +47,49 @@ async function updateMyProfile(req, res, next) {
       photos,
     } = req.body;
 
-    if (biography !== undefined && biography !== null && typeof biography !== "string") {
-      return res.status(400).json({ error: "biography must be a string" });
+    if (
+      biography !== undefined &&
+      biography !== null &&
+      typeof biography !== "string"
+    ) {
+      return res.status(400).json({
+        error: "biography must be a string",
+      });
     }
 
     const safeBiography = typeof biography === "string" ? biography.trim() : "";
     if (safeBiography.length > MAX_BIO_LENGTH) {
-      return res.status(400).json({ error: `biography must be at most ${MAX_BIO_LENGTH} characters` });
+      return res.status(400).json({
+        error: `biography must be at most ${MAX_BIO_LENGTH} characters`,
+      });
     }
 
     const safeGender = isNonEmptyString(gender) ? gender.trim() : null;
     if (!safeGender) {
-      return res.status(400).json({ error: "gender is required" });
+      return res.status(400).json({
+        error: "gender is required",
+      });
     }
     if (!allowedGenders.includes(safeGender)) {
-      return res.status(400).json({ error: "gender must be valid", allowed_values: allowedGenders });
+      return res.status(400).json({
+        error: "gender must be valid",
+        allowed_values: allowedGenders,
+      });
     }
 
     let safeSexualPreference = sexual_preference;
-    if (!safeSexualPreference || !allowedPreferences.includes(safeSexualPreference)) {
+    if (
+      !safeSexualPreference ||
+      !allowedPreferences.includes(safeSexualPreference)
+    ) {
       safeSexualPreference = "both";
     }
 
     const gpsConsent = Boolean(gps_consent);
     let safeCity = isNonEmptyString(city) ? city.trim() : "";
-    let safeNeighborhood = isNonEmptyString(neighborhood) ? neighborhood.trim() : "";
+    let safeNeighborhood = isNonEmptyString(neighborhood)
+      ? neighborhood.trim()
+      : "";
 
     const parsedLatitude = Number(latitude);
     const parsedLongitude = Number(longitude);
@@ -82,7 +99,8 @@ async function updateMyProfile(req, res, next) {
     if (gpsConsent) {
       if (!hasLatitude || !hasLongitude) {
         return res.status(400).json({
-          error: "latitude and longitude are required when gps_consent is enabled",
+          error:
+            "latitude and longitude are required when gps_consent is enabled",
         });
       }
 
@@ -93,7 +111,9 @@ async function updateMyProfile(req, res, next) {
       });
 
       if (locationSuggestions.length === 0) {
-        return res.status(400).json({ error: "Unable to validate the provided city" });
+        return res.status(400).json({
+          error: "Unable to validate the provided city",
+        });
       }
 
       if (!safeCity) {
@@ -103,17 +123,23 @@ async function updateMyProfile(req, res, next) {
         }
       }
     } else if (!safeCity) {
-      return res.status(400).json({ error: "city is required when gps_consent is disabled" });
+      return res.status(400).json({
+        error: "city is required when gps_consent is disabled",
+      });
     }
 
     let normalizedTags = null;
     if (tags !== undefined) {
       normalizedTags = normalizeTagsInput(tags);
       if (normalizedTags === null) {
-        return res.status(400).json({ error: "tags must be an array of strings" });
+        return res.status(400).json({
+          error: "tags must be an array of strings",
+        });
       }
       if (normalizedTags.length > 10) {
-        return res.status(400).json({ error: "A maximum of 10 tags is allowed" });
+        return res.status(400).json({
+          error: "A maximum of 10 tags is allowed",
+        });
       }
     }
 
@@ -121,42 +147,60 @@ async function updateMyProfile(req, res, next) {
     if (photos !== undefined) {
       const photoResult = await normalizePhotosInput(photos);
       if (photoResult && photoResult.error) {
-        return res.status(400).json({ error: photoResult.error });
+        return res.status(400).json({
+          error: photoResult.error,
+        });
       }
       normalizedPhotos = photoResult ? photoResult.photos : null;
     }
 
-    const normalizedFirstName = isNonEmptyString(first_name) ? first_name.trim() : null;
-    const normalizedLastName = isNonEmptyString(last_name) ? last_name.trim() : null;
-    const normalizedUsername = isNonEmptyString(username) ? username.trim() : null;
-    let normalizedBirthDate = isNonEmptyString(birth_date) ? birth_date.trim() : null;
+    const normalizedFirstName = isNonEmptyString(first_name)
+      ? first_name.trim()
+      : null;
+    const normalizedLastName = isNonEmptyString(last_name)
+      ? last_name.trim()
+      : null;
+    const normalizedUsername = isNonEmptyString(username)
+      ? username.trim()
+      : null;
+    let normalizedBirthDate = isNonEmptyString(birth_date)
+      ? birth_date.trim()
+      : null;
 
     if (normalizedUsername && !USERNAME_PATTERN.test(normalizedUsername)) {
       return res.status(400).json({
-        error: "username is invalid (use 2-20 characters: letters, numbers, dot, underscore, hyphen)",
+        error:
+          "username is invalid (use 2-20 characters: letters, numbers, dot, underscore, hyphen)",
       });
     }
 
     if (normalizedBirthDate) {
       const parsedBirthDate = parseBirthDate(normalizedBirthDate);
       if (!parsedBirthDate) {
-        return res.status(400).json({ error: "birth_date must be a valid date (YYYY-MM-DD)" });
+        return res.status(400).json({
+          error: "birth_date must be a valid date (YYYY-MM-DD)",
+        });
       }
 
       const minBirthDateIso = getMinBirthDateIso();
-
       if (normalizedBirthDate < minBirthDateIso) {
-        return res.status(400).json({ error: `birth_date must be on or after ${minBirthDateIso}` });
+        return res.status(400).json({
+          error: `birth_date must be on or after ${minBirthDateIso}`,
+        });
       }
 
       const today = new Date();
       today.setUTCHours(0, 0, 0, 0);
       if (parsedBirthDate > today) {
-        return res.status(400).json({ error: "birth_date cannot be in the future" });
+        return res.status(400).json({
+          error: "birth_date cannot be in the future",
+        });
       }
 
       if (!isAtLeast18YearsOld(parsedBirthDate)) {
-        return res.status(400).json({ error: "You must be at least 18 years old" });
+        return res.status(400).json({
+          error: "You must be at least 18 years old",
+        });
       }
 
       normalizedBirthDate = parsedBirthDate.toISOString().slice(0, 10);
@@ -176,10 +220,10 @@ async function updateMyProfile(req, res, next) {
         neighborhood: safeNeighborhood,
         gps_consent: gpsConsent,
         latitude: hasLatitude ? parsedLatitude : null,
-        longitude: hasLongitude ? parsedLongitude : null
+        longitude: hasLongitude ? parsedLongitude : null,
       },
       normalizedTags,
-      normalizedPhotos
+      normalizedPhotos,
     );
 
     const updatedProfile = result.profileRow;
@@ -199,7 +243,7 @@ async function updateMyProfile(req, res, next) {
       latitude: updatedProfile.latitude,
       longitude: updatedProfile.longitude,
       fame_rating: updatedProfile.fame_rating ?? 0,
-      tags: tagsResultRows ? tagsResultRows.map((row) => row.name) : (tags || []),
+      tags: tagsResultRows ? tagsResultRows.map((row) => row.name) : tags || [],
       photos: photosResultData.map((item) => ({
         id: item.id,
         data_url: item.data_url,
@@ -215,9 +259,12 @@ async function updateMyProfile(req, res, next) {
         updates: { ...profilePayload },
         profile_completed: isCompletedNow,
       };
-      if (userResult.username) socketPayload.updates.username = userResult.username;
-      if (userResult.first_name) socketPayload.updates.first_name = userResult.first_name;
-      if (userResult.last_name) socketPayload.updates.last_name = userResult.last_name;
+      if (userResult.username)
+        socketPayload.updates.username = userResult.username;
+      if (userResult.first_name)
+        socketPayload.updates.first_name = userResult.first_name;
+      if (userResult.last_name)
+        socketPayload.updates.last_name = userResult.last_name;
 
       io.emit(REALTIME_EVENTS.USER_PROFILE_UPDATED, socketPayload);
     }
@@ -238,7 +285,9 @@ async function updateMyProfile(req, res, next) {
     });
   } catch (error) {
     if (error.code === "23505" && error.constraint === "users_username_key") {
-      return res.status(409).json({ error: "Username already exists" });
+      return res.status(409).json({
+        error: "Username already exists",
+      });
     }
     return next(error);
   }
