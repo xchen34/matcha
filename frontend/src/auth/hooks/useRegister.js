@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  MIN_BIRTH_DATE_ISO, 
-  isValidBirthDateIso, 
-  getMaxAdultBirthDateIso 
+import {
+  MIN_BIRTH_DATE_ISO,
+  isValidBirthDateIso,
+  getMaxAdultBirthDateIso,
 } from "@/utils/date.js";
 
 export function useRegister() {
@@ -36,8 +36,16 @@ export function useRegister() {
     setPreviewUrl("");
     setDevVerifyUrl("");
 
-    if (!isValidBirthDateIso(form.birth_date, MIN_BIRTH_DATE_ISO, maxAdultBirthDateIso)) {
-      setMessage(`Invalid birth date must be between ${MIN_BIRTH_DATE_ISO} and ${maxAdultBirthDateIso}`);
+    if (
+      !isValidBirthDateIso(
+        form.birth_date,
+        MIN_BIRTH_DATE_ISO,
+        maxAdultBirthDateIso,
+      )
+    ) {
+      setMessage(
+        `Invalid birth date must be between ${MIN_BIRTH_DATE_ISO} and ${maxAdultBirthDateIso}`,
+      );
       return;
     }
 
@@ -47,10 +55,15 @@ export function useRegister() {
     }
 
     try {
+      const payload = {
+        ...form,
+        email: (form.email || "").trim().toLowerCase(),
+      };
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();

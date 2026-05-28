@@ -10,24 +10,29 @@ async function login(req, res, next) {
     const identifier = typeof username === "string" ? username.trim() : "";
     const rawPassword = typeof password === "string" ? password : "";
 
+    // Check required fields
     if (!identifier || !rawPassword) {
-      return res
-        .status(400)
-        .json({ error: "username and password are required" });
+      return res.status(400).json({ 
+        error: "Username and password are required" 
+      });
     }
 
+    // Check user existence and password validity
     const user = await authService.findUserForLogin(identifier);
-
     if (!user) {
-      return res.status(401).json({ error: "Invalid username or password" });
+      return res.status(401).json({ 
+        error: "Invalid username or password" 
+      });
     }
 
     const isPasswordValid = await bcrypt.compare(rawPassword, user.password_hash);
-
     if (!isPasswordValid) {
-      return res.status(401).json({ error: "Invalid username or password" });
+      return res.status(401).json({ 
+        error: "Invalid username or password" 
+      });
     }
 
+    // Check if email is verified
     if (!user.email_verified) {
       return res.status(403).json({
         error:
@@ -37,6 +42,7 @@ async function login(req, res, next) {
       });
     }
 
+    // Update last seen timestamp for connectivity and activity tracking
     await authService.updateLastSeen(user.id);
 
     return res.json({

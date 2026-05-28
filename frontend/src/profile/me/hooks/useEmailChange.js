@@ -32,7 +32,7 @@ export default function useEmailChange({ currentUser, setMessage }) {
       return;
     }
 
-    const newEmail = (emailChangeForm.new_email || "").trim();
+    const newEmail = (emailChangeForm.new_email || "").trim().toLowerCase();
     const password = emailChangeForm.password || "";
 
     if (!newEmail || !password) {
@@ -45,16 +45,13 @@ export default function useEmailChange({ currentUser, setMessage }) {
     setEmailChangeDevVerifyUrl("");
 
     try {
-      const response = await fetch("/api/auth/request-email-change", 
-        {
-          method: "POST",
-          headers: buildApiHeaders(
-            currentUser,
-            { "Content-Type": "application/json" }
-          ),
-          body: JSON.stringify({ new_email: newEmail, password }),
-        }
-      );
+      const response = await fetch("/api/auth/request-email-change", {
+        method: "POST",
+        headers: buildApiHeaders(currentUser, {
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ new_email: newEmail, password }),
+      });
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {

@@ -1,6 +1,10 @@
 const profileService = require("../../services/profileService");
 const { isUserOnline } = require("../../services/presenceService");
-const { resolveCurrentUserId, isProfileCompleted, getAge } = require("./helpers");
+const {
+  resolveCurrentUserId,
+  isProfileCompleted,
+  getAge,
+} = require("./helpers");
 
 async function getMyProfile(req, res, next) {
   try {
@@ -11,10 +15,13 @@ async function getMyProfile(req, res, next) {
       });
     }
 
-    const { profileRow, tagsRows, photosRows } = await profileService.getMyProfile(currentUserId);
+    const { profileRow, tagsRows, photosRows } =
+      await profileService.getMyProfile(currentUserId);
 
     if (!profileRow) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({
+        error: "User not found",
+      });
     }
 
     const profilePayload = {
@@ -67,14 +74,19 @@ async function getPublicProfile(req, res, next) {
   try {
     const requestedId = Number(req.params.id);
     if (!Number.isInteger(requestedId) || requestedId <= 0) {
-      return res.status(400).json({ error: "Invalid user id" });
+      return res.status(400).json({
+        error: "Invalid user id",
+      });
     }
 
     const currentUserId = Number(req.userId);
-    const { profileRow, tagsRows, photosRows, relationRow } = await profileService.getPublicProfile(requestedId, currentUserId);
+    const { profileRow, tagsRows, photosRows, relationRow } =
+      await profileService.getPublicProfile(requestedId, currentUserId);
 
     if (!profileRow) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({
+        error: "User not found",
+      });
     }
 
     const relation = relationRow || {

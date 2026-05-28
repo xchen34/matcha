@@ -1,12 +1,15 @@
 const {
   USERNAME_PATTERN,
+  getMinBirthDateIso,
   isValidEmail,
   parseBirthDate,
   isAtLeast18YearsOld,
   isProfileCompleted,
+  isNonEmptyString,
+  MAX_BIO_LENGTH,
+  normalizeTag,
 } = require("../../utils/userValidation");
 
-const MAX_BIO_LENGTH = 500;
 const allowedGenders = ["male", "female", "non_binary", "other"];
 const allowedPreferences = ["male", "female", "both", "other"];
 const GEO_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -76,12 +79,7 @@ async function fetchNominatim(endpoint) {
   return task;
 }
 
-function isNonEmptyString(value) {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
 function parseUserIdFromRequest(req) {
-  // 中间件鉴权通过后，userId 会直接被挂在 req.userId 上
   return req.userId || null;
 }
 
@@ -89,23 +87,12 @@ async function resolveCurrentUserId(req) {
   const requestedUserId = parseUserIdFromRequest(req);
   if (!requestedUserId) return null;
 
-  const user = await require("../../services/profileService").getUserById(requestedUserId);
+  const user = await require("../../services/profileService").getUserById(
+    requestedUserId,
+  );
   if (!user) return null;
 
   return user.id;
-}
-
-function normalizeTag(tag) {
-  if (typeof tag !== "string") return "";
-
-  let normalized = tag.trim().toLowerCase();
-  if (!normalized) return "";
-
-  if (!normalized.startsWith("#")) normalized = `#${normalized}`;
-
-  if (!/^#[a-z0-9_]{1,30}$/.test(normalized)) return "";
-
-  return normalized;
 }
 
 function normalizeTagsInput(tags) {
@@ -131,14 +118,6 @@ function parseOptionalCoordinate(value) {
   if (!Number.isFinite(parsed)) return null;
 
   return parsed;
-}
-
-function getMinBirthDateIso() {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCFullYear(date.getUTCFullYear() - 100);
-
-  return date.toISOString().slice(0, 10);
 }
 
 function getAge(birthDate) {
@@ -186,7 +165,7 @@ async function reverseGeocode(latitude, longitude) {
       address.municipality ||
       "",
     neighborhood:
-      address.neighbourhood ||
+      address.neighborhood ||
       address.suburb ||
       address.quarter ||
       address.city_district ||
@@ -206,7 +185,7 @@ function extractAddressParts(address) {
     city:
       source.city || source.town || source.village || source.municipality || "",
     neighborhood:
-      source.neighbourhood ||
+      source.neighborhood ||
       source.suburb ||
       source.quarter ||
       source.city_district ||

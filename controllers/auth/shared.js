@@ -5,10 +5,12 @@ const {
 } = require("../../middleware/rateLimit");
 const { sendVerificationEmail, sendPasswordResetEmail } = require("../../utils/emailService");
 
+/*  Return the frontend base URL for constructing links in emails */
 function getFrontendBaseUrl() {
   return process.env.FRONTEND_BASE_URL || "http://localhost:5173";
 }
 
+/* Email delivery status */
 function buildEmailDeliveryFromResult(emailResult) {
   return {
     sent: true,
@@ -17,6 +19,7 @@ function buildEmailDeliveryFromResult(emailResult) {
   };
 }
 
+/* Build a failed email delivery response */
 function buildFailedEmailDelivery(reason) {
   return {
     sent: false,

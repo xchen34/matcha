@@ -1,13 +1,30 @@
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]{2,20}$/;
 const MIN_BIRTH_DATE_ISO = "1900-01-01";
 
+const normalizeString = (value) =>
+  typeof value === "string" ? value.trim() : "";
+
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function getMinBirthDateIso() {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(date.getUTCFullYear() - 100);
+
+  return date.toISOString().slice(0, 10);
+}
+
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function parseBirthDate(value) {
   if (typeof value !== "string") return null;
+
   const trimmed = value.trim();
+
   const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return null;
 
@@ -50,13 +67,13 @@ function isProfileCompleted(user, profile = {}) {
   const birthDate = p.birth_date || u.birth_date;
   const city = p.city || u.city;
 
-  const hasUsername = typeof u.username === "string" && u.username.trim().length > 0;
-  const hasFirstName = typeof u.first_name === "string" && u.first_name.trim().length > 0;
-  const hasLastName = typeof u.last_name === "string" && u.last_name.trim().length > 0;
-  const hasEmail = typeof u.email === "string" && u.email.trim().length > 0;
-  const hasGender = typeof gender === "string" && gender.trim().length > 0;
+  const hasUsername = isNonEmptyString(u.username);
+  const hasFirstName = isNonEmptyString(u.first_name);
+  const hasLastName = isNonEmptyString(u.last_name);
+  const hasEmail = isNonEmptyString(u.email);
+  const hasGender = isNonEmptyString(gender);
   const hasBirthDate = Boolean(birthDate);
-  const hasCity = typeof city === "string" && city.trim().length > 0;
+  const hasCity = isNonEmptyString(city);
 
   return (
     hasUsername &&
@@ -72,6 +89,9 @@ function isProfileCompleted(user, profile = {}) {
 module.exports = {
   USERNAME_PATTERN,
   MIN_BIRTH_DATE_ISO,
+  getMinBirthDateIso,
+  normalizeString,
+  isNonEmptyString,
   isValidEmail,
   parseBirthDate,
   isAtLeast18YearsOld,

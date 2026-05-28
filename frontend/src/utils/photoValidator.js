@@ -11,7 +11,6 @@ export const MAX_PHOTOS_COUNT = 5;
 export const MAX_TOTAL_PHOTOS_SIZE_BYTES =
   MAX_PHOTO_SIZE_BYTES * MAX_PHOTOS_COUNT; // 2500KB total for 5 photos
 
-
 /* ========== Validate MIME type from a File object ========== */
 export function validatePhotoFile(file) {
   // Check file type
@@ -27,7 +26,7 @@ export function validatePhotoFile(file) {
     const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
     return {
       valid: false,
-      error: `File too large: ${sizeMB}MB. Maximum 500KB per photo.`,
+      error: `Photo is too large: ${sizeMB}MB. Maximum 500KB per photo.`,
     };
   }
 

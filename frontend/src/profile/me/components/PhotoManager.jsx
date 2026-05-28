@@ -29,10 +29,11 @@ export default function PhotoManager({
 
         {/* UPLOAD BUTTON */}
         <div>
-          <label className={"text-primary-dark font-semibold border border-primary rounded-full px-2 py-1 text-xs cursor-pointer hover:scale-105"}>
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-primary px-3 py-2 text-xs font-semibold text-primary-dark transition hover:scale-105 active:scale-95 sm:px-4 sm:py-2.5">
             <span className="inline-flex items-center gap-1.5">
               <FileUp size={13} aria-hidden="true" />
-              Upload image
+              <span className="hidden sm:inline">Upload image</span>
+              <span className="sm:hidden">Upload</span>
               <input
                 type="file"
                 accept="image/*"

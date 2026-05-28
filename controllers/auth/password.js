@@ -11,22 +11,24 @@ const {
   generateResetToken,
   getCommonPasswords,
   validatePasswordStrength,
+  normalizeString,
 } = require("./helpers");
 
-const normalizeString = (value) =>
-  typeof value === "string" ? value.trim() : "";
-
+/* Forgot password: generate a reset token and send email */
 async function forgotPassword(req, res, next) {
   try {
     const { email } = req.body;
-    const normalizedEmail = normalizeString(email);
+    const normalizedEmail = normalizeString(email).toLowerCase();
 
+    // Validate email
     if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
-      return res.status(400).json({ error: "Valid email is required" });
+      return res.status(400).json({
+        error: "Valid email is required",
+      });
     }
 
+    // Attempt to find the user by email
     const user = await authService.findUserByEmail(normalizedEmail);
-
     if (!user) {
       return res.json({
         message:
@@ -34,11 +36,13 @@ async function forgotPassword(req, res, next) {
       });
     }
 
+    // Generate a password reset token and save it to the database
     const resetToken = generateResetToken();
     const resetExpiry = new Date(Date.now() + 60 * 60 * 1000);
 
     await authService.setPasswordResetToken(user.id, resetToken, resetExpiry);
 
+    // Send the password reset email
     const frontendBaseUrl = getFrontendBaseUrl();
     let emailDelivery = buildFailedEmailDelivery("unknown");
 
@@ -71,42 +75,46 @@ async function forgotPassword(req, res, next) {
   }
 }
 
+/* Reset password: validate token and update password */
 async function resetPassword(req, res, next) {
   try {
     const { token, new_password } = req.body;
     const normalizedToken = normalizeString(token);
-    const password =
-      typeof new_password === "string" ? new_password : "";
+    const password = typeof new_password === "string" ? new_password : "";
 
     if (!normalizedToken || !password) {
-      return res
-        .status(400)
-        .json({ error: "token and new_password are required" });
+      return res.status(400).json({
+        error: "Token and new_password are required",
+      });
     }
 
     if (/\s/.test(password)) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "new_password must not contain spaces or other whitespace characters",
-        });
+      return res.status(400).json({
+        error: "Password must not contain spaces, tabs, or other whitespace characters",
+      });
     }
 
+    // Validate password with common password and strength
     const commonPasswords = getCommonPasswords();
     const passwordValidation = validatePasswordStrength(
       password,
       commonPasswords,
     );
     if (!passwordValidation.valid) {
-      return res.status(400).json({ error: passwordValidation.error });
+      return res.status(400).json({
+        error: passwordValidation.error,
+      });
     }
 
+    // Find the user associated with the reset token
     const user = await authService.findUserByResetToken(normalizedToken);
     if (!user) {
-      return res.status(400).json({ error: "Invalid or expired reset token" });
+      return res.status(400).json({
+        error: "Invalid or expired reset token",
+      });
     }
 
+    // Hash the new password and update it in the database
     const passwordHash = await bcrypt.hash(password, 10);
     await authService.updatePassword(user.id, passwordHash);
 

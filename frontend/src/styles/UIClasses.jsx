@@ -13,7 +13,7 @@ export const tertiaryButtonClass =
   "inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 border border-slate-600 shadow-md hover:scale-105 hover:shadow-lg transition-all duration-200";
 
 export const deleteButtonClass = 
-  "inline-flex items-center justify-center rounded-full border border-red-700 bg-slate-10 px-4 py-2.5 text-sm font-semibold text-red-700 shadow-md hover:scale-105 hover:shadow-lg transition-all duration-200"
+  "inline-flex items-center justify-center rounded-full border border-red-700 bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-red-700 hover:scale-105 hover:shadow-lg transition-all duration-200";
 
 export const actionButtonClass =
   "rounded-xl border border-primary-medium bg-primary-light px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"

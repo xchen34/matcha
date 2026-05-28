@@ -11,11 +11,11 @@ export default function ResendVerificationPage() {
   const initialEmailFromState =
     typeof location.state
       ?.prefillEmail === "string"
-      ? location.state.prefillEmail.trim()
+      ? location.state.prefillEmail.trim().toLowerCase()
       : "";
   const initialEmailFromQuery = (
     searchParams.get("email") || ""
-  ).trim();
+  ).trim().toLowerCase();
 
   /*========== Form state ========== */
   const [email, setEmail] = useState(
@@ -52,7 +52,7 @@ export default function ResendVerificationPage() {
           headers: { 
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email: email.trim() }),
+          body: JSON.stringify({ email: email.trim().toLowerCase() }),
         }
       );
 
