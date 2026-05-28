@@ -63,6 +63,12 @@ function ensureSocket() {
   socket.on("connect_error", (err) => {
     if (isUnloading) return;
     console.error("Real-time connection error:", err);
+    const message = String(err?.message || "");
+
+    // Unauthorized is handled by token refresh / relogin flow in hooks.
+    if (message.includes("Unauthorized")) {
+      return;
+    }
 
     // Ignore transient errors during initial page load (15s grace period)
     const now = Date.now();

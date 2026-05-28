@@ -1,28 +1,45 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import {
   connectRealtime,
   disconnectRealtime,
   getRealtimeSocket,
 } from "@/realtime/socket.js";
-import { buildApiHeaders } from "@/utils/utils.js";
-import { writeStoredUser } from "@/utils/userStorage.js";
+import { buildApiHeaders, shouldRefreshToken } from "@/utils/utils.js";
+import { clearStoredUser, writeStoredUser } from "@/utils/userStorage.js";
 
 export function useRealtimeConnection(currentUser, setCurrentUser) {
+  const forceRelogin = useCallback(() => {
+    disconnectRealtime();
+    clearStoredUser();
+    setCurrentUser(null);
+    if (window.location.pathname !== "/login") {
+      window.location.replace("/login");
+    }
+  }, [setCurrentUser]);
+
   /* ========== Ensure realtime token is available and refreshed ========== */
   useEffect(() => {
     let cancelled = false;
 
-    async function ensureRealtimeToken() {
-      if (!currentUser?.id || currentUser?.realtime_token) {
-        return;
-      }
+    async function ensureRealtimeToken(forceRefresh = false) {
+      if (!currentUser?.id) return;
 
       try {
+        const needsRefresh =
+          forceRefresh ||
+          !currentUser?.realtime_token ||
+          shouldRefreshToken(currentUser.realtime_token, 120);
+        if (!needsRefresh) return;
+
         const response = await fetch("/api/auth/realtime-token", 
           {
             headers: buildApiHeaders(currentUser),
           }
         );
+        if ([401, 403].includes(response.status)) {
+          forceRelogin();
+          return;
+        }
 
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload?.realtime_token || cancelled) {
@@ -43,12 +60,16 @@ export function useRealtimeConnection(currentUser, setCurrentUser) {
       }
     }
 
-    ensureRealtimeToken();
+    void ensureRealtimeToken();
+    const intervalId = window.setInterval(() => {
+      void ensureRealtimeToken(true);
+    }, 5 * 60 * 1000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
     };
-  }, [currentUser, setCurrentUser]);
+  }, [currentUser, forceRelogin, setCurrentUser]);
 
   /* ========== Manage realtime connection lifecycle ========== */
   useEffect(() => {
@@ -82,6 +103,10 @@ export function useRealtimeConnection(currentUser, setCurrentUser) {
             headers: buildApiHeaders({ id: currentUser.id }),
           }
         );
+        if ([401, 403].includes(response.status)) {
+          forceRelogin();
+          return;
+        }
 
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload?.realtime_token || cancelled) {
@@ -121,5 +146,5 @@ export function useRealtimeConnection(currentUser, setCurrentUser) {
       cancelled = true;
       socket.off("connect_error", onConnectError);
     };
-  }, [currentUser?.id, setCurrentUser]);
+  }, [currentUser?.id, forceRelogin, setCurrentUser]);
 }

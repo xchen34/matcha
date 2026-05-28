@@ -1,67 +1,83 @@
-const { Server } = require("socket.io"); //socket.io库提供了Server类，用于创建WebSocket服务器实例
-const { REALTIME_EVENTS } = require("./events"); //导入定义的实时事件常量，方便在代码中使用统一的事件名称，避免硬编码字符串
+const { Server } = require("socket.io"); // 引入 Socket.IO 服务端构造器，用于创建实时通信服务器。
+const { REALTIME_EVENTS } = require("./events"); // 引入统一事件常量，供外部模块复用。
 const {
   parseTokenFromHandshake,
   registerRealtimeSocketHandlers,
-} = require("./handlers"); //导入处理函数，parseTokenFromHandshake用于从socket连接的握手数据中提取认证token，registerRealtimeSocketHandlers用于注册具体的事件处理逻辑
-const { verifyRealtimeToken } = require("./authToken"); //导入验证函数，verifyRealtimeToken用于验证从握手数据中提取的token是否合法，并返回相关的用户信息（如userId）以供后续使用
+} = require("./handlers"); // 引入握手 token 提取与连接事件注册逻辑。
+const { verifyRealtimeToken } = require("./authToken"); // 引入实时 token 校验函数。
 
-let ioInstance = null;  //ioInstance变量用于存储Socket.IO服务器实例，确保全局只有一个实例被创建和使用，避免重复初始化和资源浪费
+let ioInstance = null; // 保存全局唯一的 Socket.IO 实例，避免重复初始化。
 
-function initRealtime(server) {  //initRealtime函数用于初始化Socket.IO服务器，接受一个HTTP服务器实例作为参数，绑定Socket.IO到该服务器上，并设置相关的中间件和事件处理逻辑
-  if (ioInstance) return ioInstance;  //如果ioInstance已经存在，说明Socket.IO服务器已经初始化过了，直接返回现有的实例，避免重复创建
+/**
+ * 函数功能：初始化实时服务并返回 Socket.IO 实例。
+ * 核心职责：
+ * 1) 创建 io 实例并绑定到 HTTP server；
+ * 2) 注册连接鉴权中间件；
+ * 3) 在连接建立后挂载业务事件处理器。
+ */
+function initRealtime(server) {
+  if (ioInstance) return ioInstance; // 若已初始化过，直接返回已有实例（单例复用）。
 
-  ioInstance = new Server(server, {  //创建Socket.IO服务器实例，绑定到传入的HTTP服务器上，并配置CORS选项，允许来自http://localhost:5173的请求，并支持GET、POST方法和携带凭证（如cookie）
+  ioInstance = new Server(server, { // 创建 Socket.IO 服务端并绑定到底层 HTTP 服务器。
     cors: {
-      origin: "http://localhost:5173",
-      methods: ["GET", "POST"],
-      credentials: true,
+      origin: "http://localhost:5173", // 允许前端开发地址跨域连接。
+      methods: ["GET", "POST"], // 允许握手/轮询相关 HTTP 方法。
+      credentials: true, // 允许携带凭证（如 cookie）。
     },
   });
 
-  ioInstance.use((socket, next) => {  //使用ioInstance.use方法注册一个中间件函数，在每次有新的socket连接时执行，负责验证连接的合法性, socket参数代表当前连接的socket对象，next参数是一个回调函数，用于在验证完成后继续处理连接或返回错误
-    const token = parseTokenFromHandshake(socket); //调用parseTokenFromHandshake函数从socket连接的握手数据中提取认证token，通常是从cookie或查询参数中获取，如果没有找到token，说明连接不合法，调用next并传入错误对象，拒绝连接
-    const claims = verifyRealtimeToken(token); //调用verifyRealtimeToken函数验证提取的token是否合法，如果验证失败或token无效，说明连接不合法，调用next并传入错误对象，拒绝连接
-    if (!claims?.userId) { //如果验证成功但没有返回有效的userId，说明连接不合法，调用next并传入错误对象，拒绝连接。claims如果不是null或undefined且具有userId属性，则继续执行后续逻辑，否则返回错误
+  ioInstance.use((socket, next) => { // 为每个新连接注册鉴权中间件。
+    const token = parseTokenFromHandshake(socket); // 从握手 auth/header 中提取 token。
+    const claims = verifyRealtimeToken(token); // 校验 token 签名、过期时间与载荷。
+    if (!claims?.userId) { // 若无有效用户身份，拒绝该连接。
       return next(new Error("Unauthorized socket"));
     }
 
-    socket.data.userId = claims.userId; //如果验证成功且返回了有效的userId，将其存储在socket.data.userId中，方便后续事件处理函数使用，标识当前连接的用户身份
-    return next();
+    socket.data.userId = claims.userId; // 将认证后的 userId 挂到 socket.data 供后续处理使用。
+    return next(); // 鉴权通过，继续建立连接。
   });
 
-  ioInstance.on("connection", (socket) => { //监听ioInstance的connection事件，每当有新的socket连接成功通过验证时触发，socket参数代表当前连接的socket对象
-    registerRealtimeSocketHandlers(ioInstance, socket); //调用registerRealtimeSocketHandlers函数，传入ioInstance和当前连接的socket对象，注册具体的事件处理逻辑，定义当客户端发送特定事件时服务器应该如何响应
+  ioInstance.on("connection", (socket) => { // 监听连接成功事件。
+    registerRealtimeSocketHandlers(ioInstance, socket); // 为当前连接注册 presence/chat 等业务事件。
   });
 
-  return ioInstance; //返回创建的Socket.IO服务器实例，供外部调用和使用
+  return ioInstance; // 返回初始化后的 io 实例。
 }
-
-function getIO() { //getIO函数用于获取当前的Socket.IO服务器实例，如果尚未初始化则返回null，供其他模块调用以获取ioInstance进行事件广播等操作
-  return ioInstance;
-}
-
-module.exports = {  //导出initRealtime函数用于初始化Socket.IO服务器，getIO函数用于获取当前的Socket.IO服务器实例，以及REALTIME_EVENTS常量供外部使用
-  initRealtime,
-  getIO,
-  REALTIME_EVENTS,
-};
-
 
 /**
- * parseTokenFromHandshake 返回什么
-在 realtime/handlers.js 里它返回：string：提取到的 token（优先 socket.handshake.auth.token，其次 Authorization: Bearer xxx）
-null：都没拿到时返回 null
+ * 函数功能：获取当前 Socket.IO 实例。
+ * 返回值：若已初始化返回实例，否则返回 null。
+ */
+function getIO() {
+  return ioInstance; // 供业务模块（通知、聊天、资料更新等）发实时事件使用。
+}
 
-verifyRealtimeToken 返回什么
-在 realtime/authToken.js 里它返回：{ userId, exp }：token 签名正确、没过期、sub 合法时
-null：token 缺失/格式错/签名不对/JSON 解析失败/过期/sub 非法时
- * 
- * socket.on("事件名", handler)：监听某个事件（接收消息并处理）
-socket.emit("事件名", 数据)：向对端发一个事件（发送消息）
-另外还有 io.emit(...)（群发给所有连接）和 io.to("room").emit(...)（发给某个房间/某类用户）
- * socket.emit(...)：从“当前这个 socket 连接”发事件。常见两种语境：
-前端：当前客户端发给服务端
-后端：服务端只发给这个特定连接
-io.emit(...)：从服务端发给“所有已连接客户端”（全体广播
+module.exports = {
+  initRealtime, // 导出初始化函数。
+  getIO, // 导出实例获取函数。
+  REALTIME_EVENTS, // 导出事件常量，方便统一引用。
+}; // 导出 realtime 模块公共接口。
+
+/**
+ * 学习笔记（保留）：Realtime 鉴权与事件机制速记
+ *
+ * 一、parseTokenFromHandshake 返回什么
+ * - 位置：realtime/handlers.js
+ * - 返回 string：提取到 token（优先 socket.handshake.auth.token，其次 Authorization: Bearer xxx）
+ * - 返回 null：两处都未拿到可用 token
+ *
+ * 二、verifyRealtimeToken 返回什么
+ * - 位置：realtime/authToken.js
+ * - 返回 { userId, exp }：签名正确、未过期、sub 合法
+ * - 返回 null：token 缺失/格式错误/签名不对/JSON 解析失败/过期/sub 非法
+ *
+ * 三、socket.on / socket.emit / io.emit / io.to(...).emit 区别
+ * - socket.on("事件名", handler)：监听事件（接收并处理）
+ * - socket.emit("事件名", 数据)：通过“当前连接”发事件
+ * - io.emit("事件名", 数据)：服务端向所有已连接客户端广播
+ * - io.to("room").emit("事件名", 数据)：服务端向指定房间广播
+ *
+ * 四、socket.emit(...) 常见语境
+ * - 前端里：当前客户端发给服务端
+ * - 后端里：服务端仅发给这个特定 socket 连接
  */

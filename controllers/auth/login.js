@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const authService = require("../../services/authService");
 const { createRealtimeToken } = require("./shared");
 const { isProfileCompleted } = require("./helpers");
+const { REALTIME_TOKEN_TTL_SECONDS } = require("../../realtime/authToken");
 
 async function login(req, res, next) {
   try {
@@ -40,6 +41,7 @@ async function login(req, res, next) {
 
     return res.json({
       message: "Login successful",
+      realtime_token_expires_in: REALTIME_TOKEN_TTL_SECONDS,
       user: {
         id: user.id,
         email: user.email,

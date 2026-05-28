@@ -1,5 +1,6 @@
 const authService = require("../../services/authService");
 const { createRealtimeToken } = require("./shared");
+const { REALTIME_TOKEN_TTL_SECONDS } = require("../../realtime/authToken");
 
 async function getRealtimeToken(req, res, next) {
   try {
@@ -14,7 +15,10 @@ async function getRealtimeToken(req, res, next) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    return res.json({ realtime_token: createRealtimeToken(userId) });
+    return res.json({
+      realtime_token: createRealtimeToken(userId),
+      realtime_token_expires_in: REALTIME_TOKEN_TTL_SECONDS,
+    });
   } catch (error) {
     return next(error);
   }

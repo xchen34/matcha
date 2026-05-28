@@ -33,8 +33,20 @@ app.disable("x-powered-by");
 
 app.use(
   helmet({
-    // API-only backend: disable CSP header here to avoid blocking non-HTML API clients.
-    contentSecurityPolicy: false,
+    // Baseline CSP to harden browser clients that may hit API routes directly.
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", "https:", "data:"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
     // Keep dev/proxy setup simple; COEP is not needed for this API server.
     crossOriginEmbedderPolicy: false,
     // Only force HTTPS in production.

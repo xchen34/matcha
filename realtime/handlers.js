@@ -1,94 +1,79 @@
-const { REALTIME_EVENTS } = require("./events");
-const { onSocketConnect, onSocketDisconnect } = require("../services/presenceService");
+const { REALTIME_EVENTS } = require("./events"); // 引入实时事件名常量，避免在代码中散落硬编码字符串。
+const { onSocketConnect, onSocketDisconnect } = require("../services/presenceService"); // 引入在线状态服务，用于处理连接与断开时的 presence 逻辑。
 
-/* ========== Parses an auth token from the socket handshake, checking both the auth payload and Authorization header. ========== */
-function parseTokenFromHandshake(socket) {
-  const fromAuth = socket.handshake?.auth?.token;
-  if (typeof fromAuth === "string" && fromAuth.trim().length > 0) {
-    return fromAuth.trim();
-  }
-
-  const authHeader = socket.handshake?.headers?.authorization;
-  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
-    return authHeader.slice("Bearer ".length).trim();
-  }
-
-  return null;
-}
 /**
- * 
- * 先看 socket.handshake.auth.token
-只有第1个没有有效值时，才看 Authorization: Bearer ... header
-两个都没有就返回 null
-差别是“放 token 的位置不同”：
+ * 握手与 Bearer 知识补充：
+ * 1) Socket.IO 首次建连握手基于 HTTP，因此除了 socket.handshake.auth 外，也能从 HTTP Header 里取 token。
+ * 2) Authorization: Bearer <token> 是通用的令牌认证格式。
+ *    Bearer 表示“持有该 token 的请求方可被视为该身份”，服务端会进一步校验签名、过期时间和载荷合法性。
+ * 3) 认证信息来源通常有两路：
+ *    - socket.handshake.auth.token：Socket.IO 场景最常见写法。
+ *    - Authorization Header：用于兼容网关/代理或通用鉴权链路。
+ */
+/**
+ * 函数功能：从 Socket 握手信息中提取认证 token。
+ * 提取顺序：优先 socket.handshake.auth.token，其次 Authorization: Bearer xxx。
+ * 返回值：成功时返回 token 字符串，失败时返回 null。
+ */
+function parseTokenFromHandshake(socket) {
+  const fromAuth = socket.handshake?.auth?.token; // 读取 Socket.IO 标准 auth 字段里的 token。
+  if (typeof fromAuth === "string" && fromAuth.trim().length > 0) { // 校验 token 必须是非空字符串。
+    return fromAuth.trim(); // 去掉首尾空白后返回 token。
+  }
 
-handshake.auth.token
-这是 Socket.IO 客户端专门的认证字段。你前端就是这样传的：s.auth = { token }（见你的 frontend/src/realtime/socket.js）。这是 Socket.IO 场景里最常见、最直接的方式。
+  const authHeader = socket.handshake?.headers?.authorization; // 兜底读取 HTTP Authorization 请求头。
+  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) { // 校验是否为 Bearer 令牌格式。
+    return authHeader.slice("Bearer ".length).trim(); // 去掉 Bearer 前缀并返回纯 token。
+  }
 
-Authorization: Bearer xxx
-这是 HTTP 世界通用的认证头格式。Socket.IO 握手本质经过 HTTP，所以也可以从 header 带过来。通常用于兼容已有网关/代理/通用鉴权方案。
+  return null; // 两种来源都没有可用 token 时返回 null。
+}
 
-所以你这段代码本质是“双通道兼容”：优先吃 Socket.IO 的 auth.token，兜底再吃标准 Bearer header。} io 
- * Bearer 是 Authorization 请求头里的“令牌类型标记”。
-常见格式是：
-Authorization: Bearer <token>
-含义是：
-“谁持有这个 token，谁就被当作已认证身份”
-所以叫 bearer（持有者）。服务端会验证这个 token 是否有效、是否过期、是否被篡改。 
-不是“第一次登录自动带”，而是：
+/**
+ * 函数功能：为当前连接注册实时事件处理器（在线状态 + 会话房间管理）。
+ * 主要职责：
+ * 1) 让当前连接加入用户房间；
+ * 2) 初始化并维护 presence 状态；
+ * 3) 处理聊天会话房间的加入/离开；
+ * 4) 在显式断开或底层断连时同步离线状态。
+ */
+function registerRealtimeSocketHandlers(io, socket) {
+  const userId = socket.data.userId; // 从鉴权中间件写入的 socket.data 里读取当前用户 ID。
 
-先登录
-登录成功后后端发你 token（或你再请求一个 realtime token）
-前端把 token 存起来
-之后每次发受保护请求/建立 socket 连接时主动带上
-*/
+  socket.join(`user:${userId}`); // 把当前连接加入用户专属房间，便于服务端按用户定向推送消息。
 
-// 里面的代码只针对当前这个连接的用户
-/* ========== Register common socket event handlers for presence and conversation room management ========== */
-function registerRealtimeSocketHandlers(io, socket) {  //io参数是Socket.IO服务器实例，socket参数是当前连接的socket对象，这个函数用于注册一些通用的事件处理器，管理用户的在线状态和聊天室的加入/离开等逻辑
-  const userId = socket.data.userId;
+  onSocketConnect(io, userId, socket.id).catch(() => {}); // 首次连接时登记在线状态；即使失败也不阻塞后续实时能力。
 
-  // Join a per-user room so we can emit user-targeted events. 每个用户加入一个以 userId 命名的房间，这样服务器就可以向特定用户发送消息（io.to(`user:${userId}`).emit(...)），而不需要维护单独的用户连接映射表，Socket.IO 会帮我们管理这个房间和成员关系。注意这里的房间名是 `user:${userId}`，加了前缀以避免和其他类型的房间（如 conversation:123）冲突。
-  socket.join(`user:${userId}`); //创建一个叫 user:123 的房间，把当前用户拉进去。
-
-  // Mark/connect presence on initial registration. 当用户通过验证并成功连接后，调用 onSocketConnect 函数标记用户在线状态，通常会在数据库或内存中记录这个 userId 和 socket.id 的映射关系，以便后续知道这个用户有哪些活跃连接。这里的 catch(() => {}) 是为了防止 onSocketConnect 内部发生错误时影响到整个连接流程，确保即使标记在线失败了，用户仍然可以正常使用其他功能。
-  onSocketConnect(io, userId, socket.id).catch(() => {});
-
-  // Join conversation room (validates conversation id)
-  socket.on(REALTIME_EVENTS.CHAT_CONVERSATION_JOIN, (payload) => {
-    const conversationId = Number(payload?.conversation_id);
-    if (!Number.isInteger(conversationId) || conversationId <= 0) return;
-    socket.join(`conversation:${conversationId}`);
+  socket.on(REALTIME_EVENTS.CHAT_CONVERSATION_JOIN, (payload) => { // 监听“加入会话房间”事件。
+    const conversationId = Number(payload?.conversation_id); // 从载荷中解析会话 ID 并转为数字。
+    if (!Number.isInteger(conversationId) || conversationId <= 0) return; // 非法会话 ID 直接忽略，避免加入错误房间。
+    socket.join(`conversation:${conversationId}`); // 将连接加入指定会话房间，用于接收该会话的实时消息。
   });
 
-  // Leave conversation room
-  socket.on(REALTIME_EVENTS.CHAT_CONVERSATION_LEAVE, (payload) => {
-    const conversationId = Number(payload?.conversation_id);
-    if (!Number.isInteger(conversationId) || conversationId <= 0) return;
-    socket.leave(`conversation:${conversationId}`);
+  socket.on(REALTIME_EVENTS.CHAT_CONVERSATION_LEAVE, (payload) => { // 监听“离开会话房间”事件。
+    const conversationId = Number(payload?.conversation_id); // 从载荷中解析会话 ID 并转为数字。
+    if (!Number.isInteger(conversationId) || conversationId <= 0) return; // 非法会话 ID 直接忽略。
+    socket.leave(`conversation:${conversationId}`); // 将连接从指定会话房间移除。
   });
 
-  // Presence ping (refresh connection state)
-  socket.on(REALTIME_EVENTS.PRESENCE_PING, () => {
-    onSocketConnect(io, userId, socket.id).catch(() => {});
+  socket.on(REALTIME_EVENTS.PRESENCE_PING, () => { // 监听心跳事件，用于刷新在线状态。
+    onSocketConnect(io, userId, socket.id).catch(() => {}); // 复用连接逻辑刷新 presence，不让异常影响主流程。
   });
 
-  // Explicit presence disconnect from the client
-  socket.on(REALTIME_EVENTS.PRESENCE_DISCONNECT, () => {
-    console.log(`[presence:disconnect] userId=${userId}, socketId=${socket.id}`);
-    onSocketDisconnect(io, userId, socket.id).catch((err) => {
-      console.error(`[presence:disconnect error] userId=${userId}:`, err);
+  socket.on(REALTIME_EVENTS.PRESENCE_DISCONNECT, () => { // 监听客户端主动上报的离线事件。
+    console.log(`[presence:disconnect] userId=${userId}, socketId=${socket.id}`); // 记录主动离线日志便于排查。
+    onSocketDisconnect(io, userId, socket.id).catch((err) => { // 执行离线登记与广播。
+      console.error(`[presence:disconnect error] userId=${userId}:`, err); // 记录离线处理异常。
     });
   });
 
-  // Socket closed (network/cleanup) -> treat like presence disconnect
-  socket.on("disconnect", () => {
-    console.log(`[socket.disconnect] userId=${userId}, socketId=${socket.id}`);
-    onSocketDisconnect(io, userId, socket.id).catch(() => {});
+  socket.on("disconnect", () => { // 监听底层连接断开事件（网络中断、刷新页面等）。
+    console.log(`[socket.disconnect] userId=${userId}, socketId=${socket.id}`); // 记录断连日志便于排查。
+    onSocketDisconnect(io, userId, socket.id).catch(() => {}); // 将断连按离线处理，确保 presence 状态一致。
   });
 }
 
 module.exports = {
-  parseTokenFromHandshake,
-  registerRealtimeSocketHandlers,
-};
+  parseTokenFromHandshake, // 导出 token 提取函数。
+  registerRealtimeSocketHandlers, // 导出实时事件注册函数。
+}; // 导出 handlers 模块公共接口。

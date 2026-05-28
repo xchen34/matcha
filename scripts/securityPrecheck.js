@@ -11,6 +11,8 @@ const BACKEND_SAFE_SCAN_PREFIXES = [
   `utils${path.sep}`,
   `middleware${path.sep}`,
   `realtime${path.sep}`,
+  `services${path.sep}`,
+  `controllers${path.sep}`,
 ];
 
 function isFrontendSource(filePath) {
@@ -30,8 +32,18 @@ function hasUnsafeTemplateInterpolationInQuery(content, filePath) {
   while (match) {
     const templateContent = match[1] || "";
     if (templateContent.includes("${")) {
-      if (rel === path.join("routes", "likes.js")) {
+      if (
+        rel === path.join("routes", "likes.js") ||
+        rel === path.join("services", "likeService.js")
+      ) {
         const stripped = templateContent.replace(/\$\{orderBySql\}/g, "");
+        if (stripped.includes("${")) {
+          return true;
+        }
+      } else if (rel === path.join("services", "profileService.js")) {
+        const stripped = templateContent
+          .replace(/\$\{insertTagsQuery\}/g, "")
+          .replace(/\$\{userProfileTagsQuery\}/g, "");
         if (stripped.includes("${")) {
           return true;
         }

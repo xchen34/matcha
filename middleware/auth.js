@@ -10,8 +10,8 @@ function requireAuth(req, res, next) {
   const claims = verifyRealtimeToken(token);
 
   console.log("[requireAuth DEBUG] URL:", req.originalUrl);
-  console.log("[requireAuth DEBUG] authHeader:", authHeader);
-  console.log("[requireAuth DEBUG] claims:", claims);
+  console.log("[requireAuth DEBUG] tokenPresent:", Boolean(token));
+  console.log("[requireAuth DEBUG] authenticatedUserId:", claims?.userId || null);
 
   if (!claims || !claims.userId) {
     console.log("[requireAuth DEBUG] Rejecting request 401");

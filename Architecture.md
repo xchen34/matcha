@@ -14,7 +14,7 @@ Matcha is a full-stack web application with three runtime layers:
 
 - Node.js + Express for HTTP APIs
 - Socket.IO for realtime events (presence, chat, notifications)
-- Main authentication pattern is `x-user-id` header plus realtime signed token for websockets
+- Main authentication pattern is `Authorization: Bearer <token>` for both HTTP APIs and websocket handshake
 
 ### Data Layer
 
@@ -64,7 +64,7 @@ flowchart LR
     direction TB
     rtIndex["realtime/index.js<br/>socket lifecycle + rooms"]
     rtAuth["realtime/authToken.js<br/>socket auth token"]
-    rtPresence["realtime/presence.js<br/>online/offline tracking"]
+    rtPresence["services/presenceService.js<br/>online/offline tracking"]
     rtEvents["realtime/events.js<br/>event names"]
   end
 
@@ -331,8 +331,8 @@ Implemented controls include:
 | ----------------------- | ------------------------------------------------------------ |
 | `realtime/index.js`     | Socket.IO server lifecycle, auth middleware, room management |
 | `realtime/events.js`    | Shared realtime event constant names                         |
-| `realtime/authToken.js` | HMAC token creation and validation for websocket auth        |
-| `realtime/presence.js`  | Online/offline socket tracking and presence broadcasts       |
+| `realtime/authToken.js` | HMAC token creation and validation for HTTP + websocket auth |
+| `services/presenceService.js` | Online/offline socket tracking and presence broadcasts |
 
 ### 8.4 Backend Route and Service Entry Points
 
@@ -475,8 +475,8 @@ Implemented controls include:
 
 ### Current Auth Approach
 
-API uses `x-user-id` heavily for user context in many routes.  
-This is practical for development and school evaluation, but should be replaced with robust session/JWT authorization before production.
+API user context is resolved by Bearer token middleware (`req.userId` comes from token claims).  
+Realtime handshake also validates token (from `socket.handshake.auth.token` or Bearer header), then writes `socket.data.userId`.
 
 ### Realtime Consistency Pattern
 
@@ -521,8 +521,8 @@ Matcha 是一个**全栈 Web 应用**，由三个运行层组成：
 - Node.js + Express 提供 HTTP API
 - Socket.IO 提供实时通信（在线状态、聊天、通知）
 - 主要认证方式：
-  - HTTP：`x-user-id`
-  - WebSocket：签名 token
+  - HTTP：`Authorization: Bearer <token>`（中间件解出 `req.userId`）
+  - WebSocket：握手时校验 token（支持 `socket.handshake.auth.token` 或 Bearer header）
 
 ### 数据层
 
@@ -824,9 +824,9 @@ Matcha 是一个**全栈 Web 应用**，由三个运行层组成：
 
 ### 当前认证方式
 
-- 使用 `x-user-id`
-- 仅适用于开发/评审
-- 生产应使用 JWT/session
+- 使用 `Authorization: Bearer <token>` 作为统一用户身份上下文
+- 后端在中间件/握手阶段解 token，并注入 `req.userId` 与 `socket.data.userId`
+- HTTP 与实时层共享同一套 token 校验思路（签名 + 过期校验）
 
 ---
 
