@@ -4,7 +4,7 @@ import {
   primaryButtonClass, 
   secondaryButtonClass 
 } from "@/styles/UIClasses.jsx";
-import PasswordInput from "@/auth/components/PasswordInput";
+import { FormInput, PasswordInput, EmailPreviewLinks } from "@/utils/components";
 
 export default function EmailChangeForm({
   email,
@@ -38,14 +38,15 @@ export default function EmailChangeForm({
 
       {/* Current email + modify button */}
       <div className="flex gap-2">
-        <input
+        <FormInput
+          wrapperClassName="flex-1"
           name="email"
           type="email"
           placeholder="Email address"
           value={email}
           readOnly
-          className={`${inputClass} bg-slate-50 text-slate-600`}
-          />
+          className="bg-slate-50 text-slate-600"
+        />
         <button
           type="button"
           onClick={() => setEmailChangeOpen((prev) => !prev)}
@@ -64,20 +65,16 @@ export default function EmailChangeForm({
           </p>
 
           {/* NEW EMAIL INPUT */}
-          <div className="space-y-1">
-            <span className="text-xs tracking-[0.12em] text-slate-500 font-semibold">
-              Enter the new email address 
-            </span>
-            <input
-              name="new_email"
-              type="email"
-              placeholder="New email"
-              value={emailChangeForm.new_email}
-              onChange={handleEmailChangeInput}
-              className={inputClass}
-              onKeyDown={handleKeyDown}
-            />
-          </div>
+          <FormInput
+            label="Enter the new email address"
+            wrapperClassName="space-y-1"
+            name="new_email"
+            type="email"
+            placeholder="New email"
+            value={emailChangeForm.new_email}
+            onChange={handleEmailChangeInput}
+            onKeyDown={handleKeyDown}
+          />
 
           {/* PASSWORD INPUT */}
           <div className="space-y-1">
@@ -132,36 +129,10 @@ export default function EmailChangeForm({
       )}
 
       {/* LINK FOR RESET EMAIL */}
-      {(emailChangePreviewUrl || emailChangeDevVerifyUrl) && (
-        <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-          {emailChangePreviewUrl && (
-            <p>
-              Email preview:{" "}
-              <a
-                href={emailChangePreviewUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-primary-dark underline"
-              >
-                Open verification email
-              </a>
-            </p>
-          )}
-          {emailChangeDevVerifyUrl && (
-            <p>
-              Fallback verify link:{" "}
-              <a
-                href={emailChangeDevVerifyUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-primary-dark underline"
-              >
-                Verify directly in app
-              </a>
-            </p>
-          )}
-        </div>
-      )}
+      <EmailPreviewLinks
+        previewUrl={emailChangePreviewUrl}
+        devVerifyUrl={emailChangeDevVerifyUrl}
+      />
     </div>
   );
 }

@@ -84,6 +84,7 @@ export default function VerifyEmailPage() {
             setTimeout(() => {
               navigate('/login');
             }, 3000);
+
             return;
           }
           setStatus('error');
@@ -92,6 +93,7 @@ export default function VerifyEmailPage() {
       } catch (error) {
         setStatus('error');
         setMessage('An error occurred while verifying your email');
+        
         console.error('Verification error:', error);
       }
     };
@@ -160,14 +162,14 @@ export default function VerifyEmailPage() {
                 to="/resend-verification" 
                 className={secondaryButtonClass}
               >
-                Resend Verification Email
+                Resend verification email
               </Link>
             </div>
 
             <p className="text-gray-600 mt-6">
               Already verified?{' '}
               <Link to="/login" className={tertiaryButtonClass }>
-                Go to Login
+                Go to login
               </Link>
             </p>
           </div>

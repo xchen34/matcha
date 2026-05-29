@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import PasswordInput from "./components/PasswordInput";
 import { tertiaryButtonClass } from "@/styles/UIClasses.jsx";
+import PasswordFields from "./components/PasswordFields.jsx";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -37,18 +37,15 @@ export default function ResetPasswordPage() {
     setMessage("");
 
     if (!token) {
-      setMessage("Error: Missing reset token.");
-      return;
+      return setMessage("Error: Missing reset token.");
     }
 
     if (!form.new_password || !form.confirm_password) {
-      setMessage("Error: Please fill all fields.");
-      return;
+      return setMessage("Error: Please fill all fields.");
     }
 
     if (form.new_password !== form.confirm_password) {
-      setMessage("Passwords do not match");
-      return;
+      return setMessage("Passwords do not match");
     }
 
     setIsLoading(true);
@@ -67,8 +64,7 @@ export default function ResetPasswordPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage(data.error || "Reset failed");
-        return;
+        return setMessage(data.error || "Reset failed");
       }
 
       setTimeout(() => navigate("/login"), 1000);
@@ -93,43 +89,18 @@ export default function ResetPasswordPage() {
 
         {/* ========== FORM ========== */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* NEW PASSWORD */}
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              New password
-            </label>
-
-            <PasswordInput
-              name="new_password"
-              value={form.new_password}
-              onChange={handleChange}
-              placeholder="New password"
-              className="w-full rounded-lg border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary px-3 py-2"
-            />
-          </div>
-
-          {/* CONFIRM PASSWORD */}
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-              Reenter password
-            </label>
-
-            <PasswordInput
-              name="confirm_password"
-              value={form.confirm_password}
-              onChange={handleChange}
-              placeholder="Reenter password"
-              className="w-full rounded-lg border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary px-3 py-2"
-            />
-          </div>
-
-          {/* INLINE VALIDATION */}
-          {form.confirm_password &&
-            form.new_password !== form.confirm_password && (
-              <p className="text-xs text-red-500">
-                Passwords do not match
-              </p>
-            )}
+          <PasswordFields
+            firstLabel="New password"
+            firstName="new_password"
+            firstValue={form.new_password}
+            firstPlaceholder="New password"
+            secondLabel="Reenter password"
+            secondName="confirm_password"
+            secondValue={form.confirm_password}
+            secondPlaceholder="Reenter password"
+            onChange={handleChange}
+            className="w-full rounded-lg border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary px-3 py-2"
+          />
 
           {/* SUBMIT BUTTON */}
           <button

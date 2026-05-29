@@ -1,5 +1,6 @@
 import { Tags, LayersPlus } from "lucide-react";
-import { secondaryButtonClass, selectClass } from "@/styles/UIClasses.jsx";
+import { secondaryButtonClass } from "@/styles/UIClasses.jsx";
+import { SelectField } from "@/utils/components";
 import { formatTag } from "@/utils/utils.js";
 
 export default function TagsSelector({
@@ -13,28 +14,28 @@ export default function TagsSelector({
   return (
     <div className="space-y-2">
       {/* LABEL */}
-      <label className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
+      <label className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
         <Tags size={14} aria-hidden="true" />
         <span>Interests tags</span>
       </label>
 
       {/* SELECT + BUTTON */}
       <div className="flex gap-2">
-        <select
+        <SelectField
+          wrapperClassName="flex-1"
           value={selectedTag}
           onChange={(event) => setSelectedTag(event.target.value)}
-          className={selectClass}
-        >
-          <option value="">Select an interest tag</option>
-          {/* Sort tags alphabetically and render options */}
-          {tagOptions
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((item) => (
-              <option key={item.name} value={item.name}>
-                {formatTag(item.name)}
-              </option>
-          ))}
-        </select>
+          options={[
+            { value: "", label: "Select an interest tag" },
+            ...tagOptions
+              .slice()
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((item) => ({
+                value: item.name,
+                label: formatTag(item.name),
+              })),
+          ]}
+        />
 
         {/* Add tag button */}
         <button

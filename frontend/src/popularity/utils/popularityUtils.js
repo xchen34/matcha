@@ -14,7 +14,7 @@ export const MODE_CONFIG = {
     helperText: "Liked your profile",
   },
   matches: {
-    title: "My matches",
+    title: "Who matched me",
     subtitle: "People who liked you back.",
     endpoint: "/api/profile/matches",
     emptyText: "No matches yet.",

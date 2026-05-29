@@ -1,6 +1,6 @@
-import { RangeSlider } from "./RangeSlider";
-import { SelectField } from "./SelectField";
-import { TagSelector } from "./TagSelector";
+import { RangeSlider } from "@/utils/components/RangeSlider";
+import { FormInput, SelectField } from "@/utils/components";
+import TagSelector from "./TagSelector.jsx";
 import { primaryButtonClass, secondaryButtonClass } from "@/styles/UIClasses.jsx";
 import { 
   Search, MapPin, 
@@ -27,60 +27,54 @@ export default function MatchFilters({
     <>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {/* ======== USERNAME ======== */}
-      <div className="relative flex flex-col gap-1 col-span-2">
-        <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-          <Search size={16} />
-          <span>Search username</span>
-        </label>
-
-        <input
-          type="text"
-          name="username"
-          value={draftFilters.username}
-          onChange={handleFilterChange}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary-dark"
-          placeholder="Search by username"
-        />
-      </div>
+      <FormInput
+        wrapperClassName="col-span-2"
+        label={
+          <span className="inline-flex items-center gap-1.5 text-slate-500">
+            <Search size={16} />
+            <span>Search username</span>
+          </span>
+        }
+        name="username"
+        value={draftFilters.username}
+        onChange={handleFilterChange}
+        placeholder="Search by username"
+      />
 
       {/* ======== CITY ======== */}
-      <div className="flex flex-col gap-1 col-span-2">
-        <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-          <MapPin size={16} />
-          <span>City</span>
-        </label>
+      <div className="relative col-span-2">
+        <FormInput
+          label={
+            <span className="inline-flex items-center gap-1.5 text-slate-500">
+              <MapPin size={16} />
+              <span>City</span>
+            </span>
+          }
+          name="city"
+          value={draftFilters.city}
+          onChange={handleFilterChange}
+          placeholder="Type and choose a city"
+          className={cityConfirmed ? "border-green-500" : ""}
+        />
 
-        <div className="relative">
-          <input
-            type="text"
-            name="city"
-            value={draftFilters.city}
-            onChange={handleFilterChange}
-            className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary-dark ${
-              cityConfirmed ? "border-green-500" : "border-slate-200"
-            }`}
-            placeholder="Type and choose a city"
-          />
-
-          {/* City suggestions dropdown */}
-          {!cityConfirmed && citySuggestions.length > 0 && (
-            <div className="absolute top-full z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border bg-white p-1 shadow-lg">
-              {citySuggestions.map((item) => (
-                <button
-                  key={`${item.city}-${item.label}`}
-                  type="button"
-                  onClick={() => applyCitySuggestion(item.city)}
-                  className="block w-full px-2 py-1.5 text-left text-xs hover:bg-slate-100"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* City suggestions dropdown */}
+        {!cityConfirmed && citySuggestions.length > 0 && (
+          <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border bg-white p-1 shadow-lg">
+            {citySuggestions.map((item) => (
+              <button
+                key={`${item.city}-${item.label}`}
+                type="button"
+                onClick={() => applyCitySuggestion(item.city)}
+                className="block w-full px-2 py-1.5 text-left text-xs hover:bg-slate-100"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {cityConfirmed && draftFilters.city.trim() && (
-          <p className="text-[11px] text-green-700">City validated.</p>
+          <p className="mt-1 text-[11px] text-green-700">City validated.</p>
         )}
       </div>
 
@@ -89,7 +83,7 @@ export default function MatchFilters({
         <label className="flex items-center justify-between text-xs font-medium text-slate-500">
           <div className="flex items-center gap-2">
             <UserRound size={16} />
-            <span>Age</span>
+            <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">Age</span>
           </div>
           <span>{draftFilters.min_age} – {draftFilters.max_age}</span>
         </label>
@@ -110,7 +104,7 @@ export default function MatchFilters({
         <label className="flex items-center justify-between text-xs font-medium text-slate-500">
           <div className="flex items-center gap-2">
             <Star size={16} />
-            <span>Popularity</span>
+            <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">Popularity</span>
           </div>
           <span>{draftFilters.min_fame} – {draftFilters.max_fame}</span>
         </label>
@@ -127,49 +121,47 @@ export default function MatchFilters({
       </div>
 
       {/* ======== SORT ======== */}
-      <div className="flex flex-col gap-2 col-span-2">
-        <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-          <ArrowDownUp size={16} />
-          <span>Sort by</span>
-        </label>
-
-        {/* Sort by dropdown */}
-        <SelectField
-          name="sort_by"
-          value={draftFilters.sort_by}
-          onChange={handleFilterChange}
-          options={[
-            { value: "", label: "Suggested smart ranking" },
-            { value: "age", label: "Age" },
-            { value: "location", label: "Location" },
-            { value: "fame_rating", label: "Fame rating" },
-            { value: "tags", label: "Tags" },
-          ]}
-        />
-      </div>
+      <SelectField
+        wrapperClassName="col-span-2"
+        label={
+          <span className="inline-flex items-center gap-2 text-slate-500">
+            <ArrowDownUp size={16} />
+            <span>Sort by</span>
+          </span>
+        }
+        name="sort_by"
+        value={draftFilters.sort_by}
+        onChange={handleFilterChange}
+        options={[
+          { value: "", label: "Suggested smart ranking" },
+          { value: "age", label: "Age" },
+          { value: "location", label: "Location" },
+          { value: "fame_rating", label: "Fame rating" },
+          { value: "tags", label: "Tags" },
+        ]}
+      />
 
       {/* ======== ORDER ======== */}
-      <div className="flex flex-col gap-2 col-span-2">
-        <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-          <ArrowDownWideNarrow size={16} />
-          <span>Order</span>
-        </label>
-
-        {/* Order dropdown */}
-        <SelectField
-          name="sort_dir"
-          value={draftFilters.sort_dir}
-          onChange={handleFilterChange}
-          options={[
-            { value: "desc", label: "Descending" },
-            { value: "asc", label: "Ascending" },
-          ]}
-        />
-      </div>
+      <SelectField
+        wrapperClassName="col-span-2"
+        label={
+          <span className="inline-flex items-center gap-2 text-slate-500">
+            <ArrowDownWideNarrow size={16} />
+            <span>Order</span>
+          </span>
+        }
+        name="sort_dir"
+        value={draftFilters.sort_dir}
+        onChange={handleFilterChange}
+        options={[
+          { value: "desc", label: "Descending" },
+          { value: "asc", label: "Ascending" },
+        ]}
+      />
 
       {/* TAGS */}
       <div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-4">
-        <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+        <label className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
           <Tags size={16} />
           <span>Interest tags</span>
         </label>

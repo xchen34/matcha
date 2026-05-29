@@ -5,7 +5,7 @@ import { formatDateTime } from "@/utils/date.js";
 
 function UserList({ users, mode, unreadUserSet, startingChatFor, startChatWith, navigate, config }) {
   return (
-    <div className="space-y-2 mt-3">
+    <div className="mt-3 w-full space-y-2">
       {/* EMPTY STATE */}
       {users.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-primary bg-slate-50 px-4 py-5 text-center text-slate-600">

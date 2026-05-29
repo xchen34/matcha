@@ -2,7 +2,7 @@ import { Zap, Eye, Heart } from "lucide-react";
 
 function PopularityListHeader({ config, mode, counts }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       {/* TITLE & SUBTITLE */}
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold text-neutral-dark flex items-center gap-2">

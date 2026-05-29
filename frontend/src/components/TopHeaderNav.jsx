@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import PasswordInput from "@/auth/components/PasswordInput.jsx";
+import { PasswordInput } from "@/utils/components";
 import NotificationsBell from "../notifications/NotificationsBell.jsx";
 import { useNotifications } from "../notifications/hooks/useNotifications.js";
 import ChatIndicator from "../chat/components/ChatIndicator.jsx";

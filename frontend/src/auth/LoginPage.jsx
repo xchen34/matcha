@@ -1,7 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useLogin } from "./hooks/useLogin";
-import FormInput from "./components/FormInput";
-import PasswordInput from "./components/PasswordInput";
+import { FormInput, PasswordInput } from "@/utils/components";
 import { 
   cardClass, 
   inputClass, 

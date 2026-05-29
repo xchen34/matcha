@@ -32,7 +32,6 @@ export default function ProfileActions({
         : liked
           ? "Unlike"
           : "Like";
-  const theyLikedYou = profile.likedYou;
   
   return (
     <div className="relative flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end sm:justify-start">

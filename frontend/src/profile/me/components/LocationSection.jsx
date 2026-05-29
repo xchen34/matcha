@@ -1,5 +1,6 @@
 import { LoaderCircle, MapPin, Navigation, PencilLine } from "lucide-react";
-import { secondaryButtonClass, inputClass, selectClass } from "@/styles/UIClasses.jsx";
+import { secondaryButtonClass } from "@/styles/UIClasses.jsx";
+import { FormInput, SelectField } from "@/utils/components";
 
 export default function LocationSection({
   form,
@@ -76,18 +77,19 @@ export default function LocationSection({
         <div className="space-y-1">
           <div className="relative flex gap-2">
             {/* City input */}
-            <input
+            <FormInput
               name="city"
               placeholder="City"
               value={form.city}
               onChange={handleCityInputChange}
+              wrapperClassName="flex-1"
+              className={`flex-1 ${
+                isNeighborhoodSelected || form.gps_consent ? "opacity-60" : ""
+              }`}
               onFocus={() => !isNeighborhoodSelected && setIsCitySuggestionsOpen(true)}
               onBlur={() => {
                 setTimeout(() => setIsCitySuggestionsOpen(false), 120);
               }}
-              className={`${inputClass} flex-1 ${
-                isNeighborhoodSelected || form.gps_consent ? "opacity-60" : ""
-              }`}
               autoComplete="new-password"
               disabled={isNeighborhoodSelected || form.gps_consent}
               required
@@ -160,11 +162,11 @@ export default function LocationSection({
         <div className="space-y-1">
           {/* Dropdown select for neighborhood, disabled if no city selected */}
           <div className="relative">
-            <select
+            <SelectField
               name="neighborhood"
               value={form.neighborhood}
               onChange={handleChange}
-              className={`${selectClass} ${
+              className={`${
                 isCitySelected ? "" : "opacity-60 cursor-not-allowed"
               } ${form.gps_consent ? "opacity-60" : ""}`}
               disabled={
@@ -173,20 +175,19 @@ export default function LocationSection({
                 neighborhoodByCityOptions.length === 0 ||
                 form.gps_consent
               }
-            >
-              <option value="">
-                {isCitySelected
-                  ? "Select neighborhood (optional)"
-                  : "Select a valid city first"}
-              </option>
-
-              {/* Map neighborhood options */}
-              {neighborhoodByCityOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              options={[
+                {
+                  value: "",
+                  label: isCitySelected
+                    ? "Select neighborhood (optional)"
+                    : "Select a valid city first",
+                },
+                ...neighborhoodByCityOptions.map((option) => ({
+                  value: option.value,
+                  label: option.label,
+                })),
+              ]}
+            />
           </div>
 
           {/* Helper texts based on neighborhood selection status */}

@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-//PasswordInput is a reusable component for password inputs
-//it is used in the login, register, forgot-password, and reset-password pages
-//why use it this way because we can reduce the code duplication and make the code more maintainable
-//it can also be used in the profile page for editing the user profile
 export default function PasswordInput({ className = "", ...props }) {
   const [show, setShow] = useState(false);
 

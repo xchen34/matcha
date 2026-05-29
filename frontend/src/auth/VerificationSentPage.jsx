@@ -1,9 +1,13 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { primaryButtonClass, tertiaryButtonClass } from "@/styles/UIClasses.jsx"
+import { EmailPreviewLinks } from "@/utils/components";
+import { Send } from "lucide-react";
+
 
 export default function VerificationSentPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  
   const prefillEmail =
     typeof location.state?.prefillEmail === "string"
       ? location.state.prefillEmail.trim()
@@ -23,7 +27,7 @@ export default function VerificationSentPage() {
     <div className="flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full space-y-4">
         {/* ==========HEADER ========== */}
-        <h1 className="text-3xl font-bold text-gray-800">Verification Email Sent</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Verification email sent</h1>
         <p className="text-gray-600">
           Your account is created. Please verify your email before login.
         </p>
@@ -34,38 +38,7 @@ export default function VerificationSentPage() {
           </p>
         )}
 
-        {/* ========== EMAIL PREVIEW LINKS ========== */}
-        {(previewUrl || devVerifyUrl) && (
-          <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-            {previewUrl && (
-              <p>
-                Ethereal preview:{" "}
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-semibold text-primary-dark underline"
-                >
-                  Open verification email
-                </a>
-              </p>
-            )}
-
-            {devVerifyUrl && (
-              <p>
-                Fallback verify link:{" "}
-                <a
-                  href={devVerifyUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-semibold text-primary-dark underline"
-                >
-                  Verify directly in app
-                </a>
-              </p>
-            )}
-          </div>
-        )}
+        <EmailPreviewLinks previewUrl={previewUrl} devVerifyUrl={devVerifyUrl} />
 
         {/* ========== RESEND / BACK TO LOGIN LINKS ========== */}
         <div className="flex flex-wrap gap-2">
@@ -83,6 +56,7 @@ export default function VerificationSentPage() {
             }
             className={primaryButtonClass}
           >
+            <Send size={13} aria-hidden="true" className="mr-1" />
             Resend verification
           </button>
 

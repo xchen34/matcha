@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useRegister } from "./hooks/useRegister";
-import FormInput from "./components/FormInput";
-import PasswordInput from "./components/PasswordInput";
+import { FormInput, EmailPreviewLinks } from "@/utils/components";
+import PasswordFields from "./components/PasswordFields.jsx";
 import { MIN_BIRTH_DATE_ISO } from "@/utils/date.js";
 import { 
   cardClass, 
@@ -97,41 +97,18 @@ export default function RegisterPage() {
         />
 
         {/* PASSWORDS */}
-        <div className="space-y-1">
-          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            Password
-          </label>
-
-          <PasswordInput
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            className={inputClass}
-            placeholder="Create a strong password"
-            required
-          />
-
-          <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-            Reenter Password
-          </label>
-
-          <PasswordInput
-            name="confirmPassword"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            className={inputClass}
-            placeholder="Reenter password"
-            required
-          />
-
-          {/* INLINE VALIDATION  */}
-          {form.confirmPassword &&
-            form.password !== form.confirmPassword && (
-              <p className="text-xs text-red-500">
-                Passwords do not match
-              </p>
-            )}
-        </div>
+        <PasswordFields
+          firstLabel="Password"
+          firstName="password"
+          firstValue={form.password}
+          firstPlaceholder="Create a strong password"
+          secondLabel="Reenter Password"
+          secondName="confirmPassword"
+          secondValue={form.confirmPassword}
+          secondPlaceholder="Reenter password"
+          onChange={handleChange}
+          className={inputClass}
+        />
 
         {/* SUBMIT */}
         <div className="flex flex-wrap gap-3">
@@ -152,34 +129,7 @@ export default function RegisterPage() {
       {/*  ========== MESSAGE ========== */}
       {message && <p className="text-sm text-slate-600">{message}</p>}
 
-      {/*  ========== VERIFICATION LINKS ========== */}
-      {previewUrl && (
-        <p className="text-sm text-slate-700">
-          Email preview:{" "}
-          <a
-            href={previewUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary-dark underline"
-          >
-            Open verification email
-          </a>
-        </p>
-      )}
-
-      {devVerifyUrl && (
-        <p className="text-sm text-slate-700">
-          Fallback verify link:{" "}
-          <a
-            href={devVerifyUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary-dark underline"
-          >
-            Verify directly on local app
-          </a>
-        </p>
-      )}
+      <EmailPreviewLinks previewUrl={previewUrl} devVerifyUrl={devVerifyUrl} />
 
       {/*  ========== EMAIL SENT PAGE LINK  ========== */}
       {(previewUrl || devVerifyUrl) && (

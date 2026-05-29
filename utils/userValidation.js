@@ -4,6 +4,12 @@ const MIN_BIRTH_DATE_ISO = "1900-01-01";
 const normalizeString = (value) =>
   typeof value === "string" ? value.trim() : "";
 
+function normalizeTag(value) {
+  if (typeof value !== "string") return "";
+
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -91,6 +97,7 @@ module.exports = {
   MIN_BIRTH_DATE_ISO,
   getMinBirthDateIso,
   normalizeString,
+  normalizeTag,
   isNonEmptyString,
   isValidEmail,
   parseBirthDate,

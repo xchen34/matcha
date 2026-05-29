@@ -119,14 +119,7 @@ function FindMatchPage({ currentUser }) {
   if (!currentUser?.id) {
     return <Navigate to="/login" replace />;
   }
-  if (loading) {
-    return (
-      <p className="inline-flex items-center gap-2 text-sm text-slate-600">
-        <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
-        Loading matches...
-      </p>
-    );
-  }
+  
 
   return (
     <section className={cardClass}>
@@ -150,17 +143,26 @@ function FindMatchPage({ currentUser }) {
       />
 
       {/* ======== USERS ======== */}
-      <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {(!Array.isArray(users) || users.length === 0) && <p>No users found.</p>}
-        {Array.isArray(users) &&
-          users.map((user) => (
-            <UserCard
-              key={user.id}
-              user={user}
-              currentUser={currentUser}
-              canLikeProfiles={canLikeProfiles}
-            />
-          ))}
+      <div className="mt-12">
+        {loading ? (
+          <p className="inline-flex items-center gap-2 text-sm text-slate-600">
+            <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
+            Loading matches...
+          </p>
+        ) : !Array.isArray(users) || users.length === 0 ? (
+          <p>No users found.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {users.map((user) => (
+              <UserCard
+                key={user.id}
+                user={user}
+                currentUser={currentUser}
+                canLikeProfiles={canLikeProfiles}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ======== LOAD MORE ======== */}
