@@ -9,15 +9,23 @@ export function formatPreview(lastMessage) {
 
 /* User display name formatting */
 export function toDisplayHandle(user) {
+  if (user?.is_deleted) {
+    return "Deleted account";
+  }
+
   const username = String(user?.username || "").trim().replace(/^@+/, "");
   if (username) {
     return `@${sanitizeText(username)}`;
   }
-  return sanitizeText(`User ${user?.id ?? ""}`);
+  return sanitizeText("Deleted account");
 }
 
 /* Avatar name formatting */
 export function toAvatarName(user) {
+  if (user?.is_deleted) {
+    return sanitizeText("Deleted account");
+  }
+
   const username = String(user?.username || "").trim().replace(/^@+/, "");
   if (username) {
     return sanitizeText(username);
@@ -26,5 +34,5 @@ export function toAvatarName(user) {
   if (firstName) {
     return sanitizeText(firstName);
   }
-  return sanitizeText(`User ${user?.id ?? ""}`);
+  return sanitizeText("Deleted account");
 }

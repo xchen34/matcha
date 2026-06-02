@@ -3,9 +3,10 @@ const pool = require("../db");
 class ProfileService {
   /*  ========== Helpers  ========== */
   async getUserById(userId) {
-    const result = await pool.query(`SELECT * FROM users WHERE id = $1`, [
-      userId,
-    ]);
+    const result = await pool.query(
+      `SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`,
+      [userId],
+    );
 
     return result.rows[0];
   }
@@ -39,6 +40,7 @@ class ProfileService {
         FROM users AS u
         LEFT JOIN profiles AS p ON p.user_id = u.id
         WHERE u.id = $1
+          AND u.deleted_at IS NULL
         LIMIT 1
         `,
         [userId],
@@ -91,6 +93,7 @@ class ProfileService {
         FROM users AS u
         LEFT JOIN profiles AS p ON p.user_id = u.id
         WHERE u.id = $1
+          AND u.deleted_at IS NULL
         LIMIT 1
         `,
         [requestedId],

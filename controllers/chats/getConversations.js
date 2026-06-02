@@ -14,15 +14,16 @@ async function getConversations(req, res, next) {
       conversation_id: row.conversation_id,
       other_user: {
         id: row.other_user_id,
-        username: row.other_username,
-        first_name: row.first_name || "",
-        last_name: row.last_name || "",
-        is_online: isUserOnline(row.other_user_id),
-        primary_photo_url: row.other_primary_photo_url || "",
+        username: row.other_user_deleted ? "Deleted account" : row.other_username,
+        first_name: row.other_user_deleted ? "" : row.first_name || "",
+        last_name: row.other_user_deleted ? "" : row.last_name || "",
+        is_online: row.other_user_deleted ? false : isUserOnline(row.other_user_id),
+        primary_photo_url: row.other_user_deleted ? "" : row.other_primary_photo_url || "",
+        is_deleted: Boolean(row.other_user_deleted),
       },
       last_message: row.last_message_content
         ? {
-            sender_user_id: row.last_message_sender_id,
+          sender_user_id: row.last_message_sender_id,
             content: row.last_message_content,
             created_at: row.last_message_created_at,
           }

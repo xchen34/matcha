@@ -18,7 +18,7 @@ const SHORTCUT_LIMIT = 6;
  */
 export default function ChatIndicator({ currentUser }) {
   const navigate = useNavigate();
-  const location = useLocation();
+  const location = useLocation(); // 获取当前路由位置
   const [unreadCount, setUnreadCount] = useState(0);
   const [conversations, setConversations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);

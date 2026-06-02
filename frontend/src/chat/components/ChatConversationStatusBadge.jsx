@@ -12,7 +12,9 @@ export default function ChatConversationStatusBadge({
   wasMatchedBefore,
   unmatchedAt,
 }) {
-  const otherUsername = conversation?.other_user?.username;
+  const otherUser = conversation?.other_user;
+  const otherUsername = otherUser?.is_deleted ? "Deleted account" : otherUser?.username;
+  const isDeleted = Boolean(otherUser?.is_deleted);
 
   const matchCreatedAt = conversation?.match_created_at
     ? new Date(conversation.match_created_at)
@@ -36,6 +38,16 @@ export default function ChatConversationStatusBadge({
   // 兼容历史数据：如果曾经匹配过，或消息里出现“已取消匹配”文案，也视为有取消匹配状态。
   const hasUnmatchMessage =
     wasMatchedBefore || messages.some((msg) => msg.content?.includes("You are no longer matched"));
+
+  if (isDeleted) {
+    return (
+      <li className="py-3 text-center">
+        <span className="inline-flex rounded-full border border-slate-300 bg-slate-100 px-4 py-2 text-xs font-medium text-slate-700">
+          Conversation with deleted account
+        </span>
+      </li>
+    );
+  }
 
   // 你拉黑了对方。
   if (conversation?.blocked_by_you) {

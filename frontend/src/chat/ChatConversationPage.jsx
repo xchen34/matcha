@@ -71,7 +71,8 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
   const canSend =
     Boolean(conversation?.is_match) &&
     !conversation?.blocked_by_you &&
-    !conversation?.blocked_you;
+    !conversation?.blocked_you &&
+    !conversation?.other_user?.is_deleted;
 
   // 页面首次/会话切换后拉取一次完整会话数据。
   useEffect(() => {

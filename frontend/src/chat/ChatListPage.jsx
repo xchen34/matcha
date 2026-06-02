@@ -113,8 +113,13 @@ export default function ChatListPage({ currentUser, embedded = false }) {
             const lastMessageTime = formatTimestamp(conv.last_message?.created_at);
             const displayName = toDisplayHandle(conv.other_user);
             const avatarName = toAvatarName(conv.other_user);
+            const isDeleted = Boolean(conv.other_user?.is_deleted);
 
-            const statusBadge = conv.blocked_by_you ? (
+            const statusBadge = isDeleted ? (
+              <span className="ml-1 rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                Deleted
+              </span>
+            ) : conv.blocked_by_you ? (
               <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-800">
                 Blocked
               </span>
@@ -149,8 +154,8 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                   <div className="shrink-0 transition-transform duration-200 group-hover:scale-[1.03]">
                     <ChatAvatar
                       name={avatarName}
-                      photoUrl={conv.other_user.primary_photo_url || ""}
-                      isOnline={Boolean(conv.other_user.is_online)}
+                      photoUrl={conv.other_user?.primary_photo_url || ""}
+                      isOnline={Boolean(conv.other_user?.is_online)}
                     />
                   </div>
 

@@ -13,6 +13,11 @@ async function createConversation(req, res, next) {
       return res.status(400).json({ error: "Cannot open chat with yourself" });
     }
 
+    const otherUserExists = await chatService.checkUserExists(otherUserId);
+    if (!otherUserExists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
     const status = await chatService.fetchConnectionStatus(currentUserId, otherUserId);
     ensureConnectionAllowed(status);
 

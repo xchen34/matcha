@@ -25,7 +25,8 @@ class AuthService {
       `
       SELECT id, email, email_verified, password_hash 
       FROM users 
-      WHERE id = $1 
+      WHERE id = $1
+        AND deleted_at IS NULL
       LIMIT 1
       `,
       [userId],
@@ -41,7 +42,8 @@ class AuthService {
       `
       SELECT id, email, email_verified 
       FROM users 
-      WHERE LOWER(email) = LOWER($1) 
+      WHERE LOWER(email) = LOWER($1)
+        AND deleted_at IS NULL
       LIMIT 1
       `,
       [email],
@@ -59,9 +61,11 @@ class AuthService {
       LEFT JOIN profiles p 
         ON p.user_id = u.id
       WHERE 
-        LOWER(u.username) = LOWER($1) 
-        OR 
-        LOWER(u.email) = LOWER($1)
+        u.deleted_at IS NULL
+        AND (
+          LOWER(u.username) = LOWER($1)
+          OR LOWER(u.email) = LOWER($1)
+        )
       LIMIT 1
       `,
       [identifier],
@@ -76,9 +80,11 @@ class AuthService {
       SELECT id, password_hash, email
       FROM users
       WHERE 
-        ($1::bigint IS NOT NULL AND id = $1)
-        OR 
-        ($2 <> '' AND LOWER(email) = LOWER($2))
+        deleted_at IS NULL
+        AND (
+          ($1::bigint IS NOT NULL AND id = $1)
+          OR ($2 <> '' AND LOWER(email) = LOWER($2))
+        )
       ORDER BY 
         CASE 
           WHEN $1::bigint IS NOT NULL AND id = $1 
@@ -99,7 +105,8 @@ class AuthService {
       `
       SELECT 1
       FROM users 
-      WHERE id = $1 
+      WHERE id = $1
+        AND deleted_at IS NULL
       LIMIT 1
       `,
       [userId],
@@ -120,13 +127,41 @@ class AuthService {
   }
 
   async deleteUser(userId) {
-    await pool.query(
-      `
-      DELETE FROM users 
-      WHERE id = $1
-      `,
-      [userId],
-    );
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const deletedEmail = `deleted+${userId}@deleted.local`;
+      const deletedUsername = `deleted_user_${userId}`;
+
+      await client.query(
+        `
+        UPDATE users
+        SET
+          deleted_at = COALESCE(deleted_at, NOW()),
+          email = $1,
+          username = $2,
+          first_name = 'Deleted',
+          last_name = 'User',
+          pending_email = NULL,
+          email_verification_token = NULL,
+          email_verification_token_expiry = NULL,
+          password_reset_token = NULL,
+          password_reset_token_expiry = NULL,
+          email_verified = FALSE
+        WHERE id = $3
+          AND deleted_at IS NULL
+        `,
+        [deletedEmail, deletedUsername, userId],
+      );
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   /*  ========== Password Reset  ========== */
@@ -138,6 +173,7 @@ class AuthService {
         password_reset_token = $1, 
         password_reset_token_expiry = $2 
       WHERE id = $3
+        AND deleted_at IS NULL
       `,
       [token, expiry, userId],
     );
@@ -150,6 +186,8 @@ class AuthService {
       WHERE 
         password_reset_token = $1
         AND 
+        deleted_at IS NULL
+        AND
         password_reset_token_expiry > NOW() 
       LIMIT 1
       `,
@@ -168,6 +206,7 @@ class AuthService {
         password_reset_token = NULL, 
         password_reset_token_expiry = NULL 
       WHERE id = $2
+        AND deleted_at IS NULL
       `,
       [passwordHash, userId],
     );

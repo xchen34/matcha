@@ -12,5 +12,6 @@ CREATE TABLE IF NOT EXISTS users ( -- 创建数据表
   email_verification_token_expiry TIMESTAMPTZ, -- 字段定义或取值行
   password_reset_token VARCHAR(255), -- 字段定义或取值行
   password_reset_token_expiry TIMESTAMPTZ, -- 字段定义或取值行
+  deleted_at TIMESTAMPTZ, -- 字段定义或取值行
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW () -- 字段定义或取值行
 ); -- 当前定义结束

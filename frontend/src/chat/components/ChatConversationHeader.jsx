@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import ChatAvatar from "./ChatAvatar.jsx";
 import { MoveLeft, Trash2 } from "lucide-react";
 import { tertiaryButtonClass, deleteButtonClass } from "@/styles/UIClasses.jsx";
+import { toDisplayHandle, toAvatarName } from "../utils/chatIndicatorUtils.js";
 
 /**
  * 聊天详情页顶部：显示对方信息 + 关系状态 + 操作按钮。
@@ -19,10 +20,10 @@ export default function ChatConversationHeader({
   onDelete,
 }) {
   const navigate = useNavigate();
+  const otherUser = conversation?.other_user;
+  const isDeleted = Boolean(otherUser?.is_deleted);
 
-  const conversationTitle = conversation?.other_user?.username
-    ? `@${conversation.other_user.username}`
-    : "?";
+  const conversationTitle = toDisplayHandle(otherUser);
 
   return (
     <header className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-3">
@@ -30,25 +31,40 @@ export default function ChatConversationHeader({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => navigate(`/users/${conversation?.other_user?.id}`)}
-          className="transition-opacity hover:opacity-75"
+          onClick={() => {
+            if (!isDeleted && otherUser?.id) {
+              navigate(`/users/${otherUser.id}`);
+            }
+          }}
+          disabled={isDeleted || !otherUser?.id}
+          className={`transition-opacity hover:opacity-75 ${isDeleted ? "cursor-default opacity-70 hover:opacity-70" : ""}`}
         >
           <ChatAvatar
-            name={conversation?.other_user?.username || "?"}
-            photoUrl={conversation?.other_user?.primary_photo_url}
-            isOnline={Boolean(conversation?.other_user?.is_online)}
+            name={toAvatarName(otherUser)}
+            photoUrl={otherUser?.primary_photo_url}
+            isOnline={Boolean(otherUser?.is_online)}
           />
         </button>
 
         <div>
           <h2
-            className="cursor-pointer text-xl font-bold text-neutral-dark transition-colors hover:text-slate-700"
-            onClick={() => navigate(`/users/${conversation?.other_user?.id}`)}
+            className={`text-xl font-bold text-neutral-dark transition-colors ${
+              isDeleted ? "cursor-default" : "cursor-pointer hover:text-slate-700"
+            }`}
+            onClick={() => {
+              if (!isDeleted && otherUser?.id) {
+                navigate(`/users/${otherUser.id}`);
+              }
+            }}
           >
             {conversationTitle}
           </h2>
 
-          {conversation?.blocked_by_you ? (
+          {isDeleted ? (
+            <span className="ml-1 rounded-full border border-slate-300 bg-slate-100 px-2 py-[1px] text-[11px] font-medium text-slate-700">
+              Account deleted
+            </span>
+          ) : conversation?.blocked_by_you ? (
             <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-[1px] text-[11px] font-medium text-red-700">
               Blocked
             </span>

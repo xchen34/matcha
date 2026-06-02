@@ -7,7 +7,7 @@ class ChatService {
   // 检查用户是否存在（用于入参校验、防止无效 userId）。
   async checkUserExists(userId) {
     const result = await pool.query(
-      `SELECT 1 FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT 1 FROM users WHERE id = $1 AND deleted_at IS NULL LIMIT 1`,
       [userId],
     );
 
@@ -111,6 +111,8 @@ class ChatService {
   // - 仅对当前用户生效，不会真正删掉会话和消息实体。
   // - 同时把该会话下每条消息标记为“该用户已删除”。
   // - 使用事务确保两张删除标记表一致。
+  //EXCLUDED 是 PostgreSQL 的 UPSERT 语法，表示“如果冲突了就用这个值更新”，这里的意思是“如果之前已经有删除标记了，就更新 deleted_at 字段为最新的时间”。
+  // m 是 chat_messages 表的别名，cdm 是 chat_deleted_messages 表的别名，这个子查询的意思是“对于 chat_messages 表中的每条消息，检查 chat_deleted_messages 表中是否存在该用户已经删除了这条消息的记录，如果存在则不返回这条消息”，从而实现了“当前用户已删除的消息不显示”的效果。
   async markConversationDeleted(userId, conversationId) {
     await pool.query("BEGIN");
     try {
@@ -144,6 +146,7 @@ class ChatService {
   /*  ========== Messages  ========== */
   // 插入消息并刷新会话 last_message_at。
   // 若会话不存在则自动创建（同一用户对只会保留一条会话）。
+  //onconflitt 是 PostgreSQL 的 UPSERT 语法，表示“如果冲突了就用这个值更新”，这里的意思是“如果之前已经有这条会话了，就更新 last_message_at 字段为最新的时间”，从而实现了“每发一条消息就把会话的 last_message_at 刷新”的效果。
   async insertMessageAndUpdateLastMessageAt(senderId, recipientId, content) {
     const userA = Math.min(senderId, recipientId);
     const userB = Math.max(senderId, recipientId);
@@ -187,7 +190,7 @@ class ChatService {
   }
 
   // 分页读取会话消息（倒序），并过滤“当前用户已删除”的消息。
-  // 调用方常用 limit+1 判断是否还有下一页。
+  // 调用方常用 limit+1 判断是否还有下一页。具体就是“请求 limit+1 条，如果返回的消息数量超过 limit，就说明还有下一页；如果返回的消息数量不超过 limit，就说明没有下一页了”。
   async getMessages(userId, conversationId, limit, offset) {
     const historyResult = await pool.query(
       `
@@ -207,7 +210,7 @@ class ChatService {
       [conversationId, limit + 1, offset, userId],
     );
 
-    return historyResult.rows;
+    return historyResult.rows; 
   }
 
   // 删除单条消息（软删除，仅对当前用户隐藏）。
@@ -279,6 +282,7 @@ class ChatService {
         ) AS primary_photo_url
         FROM users
         WHERE id = $1
+          AND deleted_at IS NULL
         LIMIT 1
         `,
         [otherUserId],
@@ -316,6 +320,7 @@ class ChatService {
       SELECT
         uc.conversation_id,
         uc.other_user_id,
+        u.id IS NULL AS other_user_deleted,
         u.username AS other_username,
         u.first_name,
         u.last_name,
@@ -347,7 +352,7 @@ class ChatService {
         ) AS blocked_you
       FROM user_conversations uc
       JOIN chat_conversations c ON c.id = uc.conversation_id
-      JOIN users u ON u.id = uc.other_user_id
+      LEFT JOIN users u ON u.id = uc.other_user_id AND u.deleted_at IS NULL
       LEFT JOIN LATERAL (
         -- 对每个会话取“当前用户可见”的最后一条消息。
         SELECT cm.sender_user_id, cm.content, cm.created_at
