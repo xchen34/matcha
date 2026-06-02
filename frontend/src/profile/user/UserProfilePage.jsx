@@ -1,21 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { cardClass } from "@/styles/UIClasses.jsx";
+import { Flame } from "lucide-react";
 import { sanitizeText } from "@/utils/xssEscape.js";
 import { buildApiHeaders } from "@/utils/utils.js";
-
-import { useUserProfile } from "./hooks/useUserProfile";
-import { useUserRelations } from "./hooks/useUserRelations";
-import { useUserModeration } from "./hooks/useUserModeration";
-import { useUserRealtime } from "./hooks/useUserRealtime";
-import { useReportUser } from "./hooks/useReportUser";
-
-import ProfileActions from "./components/ProfileActions.jsx";
-import ProfileInfoGrid from "./components/ProfileInfoGrid.jsx";
-import ProfileBio from "./components/ProfileBio.jsx";
-import ProfileTags from "./components/ProfileTags.jsx";
 import { ProfilePhotosGrid } from "@/components/ProfilePhotosGrid.jsx";
-import { Flame, ImageIcon, LoaderCircle } from "lucide-react";
+
+import {
+  useUserProfile,
+  useUserRelations,
+  useUserModeration,
+  useUserRealtime,
+  useReportUser,
+} from "./hooks";
+
+import {
+  ProfileActions,
+  ProfileInfoGrid,
+  ProfileBio,
+  ProfileTags,
+  ProfileReportForm,
+  ProfileAlerts,
+} from "./components";
+
 
 function UserProfilePage({ currentUser }) {
   const { id } = useParams();
@@ -118,20 +125,13 @@ function UserProfilePage({ currentUser }) {
       {/* ========== HEADER ==========*/}
       <div className="space-y-1">
         { /* Alert for missing profile photo */ }
-        {!canLikeProfiles && (
-          <div className="flex items-center rounded-xl text-primary-dark text-center border border-primary/30 bg-primary-light px-2 py-1 shadow-sm gap-2">
-            <ImageIcon size={16} />
-            <p className="text-sm">
-              You must add a primary profile photo to enable likes.
-            </p>
-          </div>
-        )}
-        {!hasProfilePhoto && (
-          <div className="flex items-center rounded-xl text-primary-dark text-center border border-primary/30 bg-primary-light px-2 py-1 shadow-sm gap-2">
-            <ImageIcon size={16} />
-            This user has no profile photo — you cannot like them.
-          </div>
-        )}
+        <ProfileAlerts
+          canLikeProfiles={canLikeProfiles}
+          hasProfilePhoto={hasProfilePhoto}
+          moderationMessage={moderationMessage}
+          reportedFake={reportedFake}
+          blockedUser={blockedUser}
+        />
 
         {/* SECTION LABEL */ }
         <p className="text-xs uppercase tracking-[0.14em] text-primary-dark font-semibold">
@@ -175,71 +175,7 @@ function UserProfilePage({ currentUser }) {
 
       {/* REPORT FORM */}
       {report.showReportForm && !isOwnProfile && (
-        <form
-          onSubmit={report.submitReport}
-          className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
-        >
-          <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
-            Reason for reporting
-          </label>
-
-          {/* REASON TEXTAREA */ }
-          <textarea
-            value={report.reportReason}
-            onChange={(e) => report.setReportReason(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-primary-dark focus:outline-none focus:ring-2 focus:ring-brand"
-            rows={4}
-            maxLength={200}
-            placeholder="Explain why this profile looks fake"
-          />
-
-          {report.error && (
-            <p className="text-sm text-red-600">{report.error}</p>
-          )}
-
-          {/* SUBMIT BUTTON */ }
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              disabled={report.reporting}
-              className="rounded-full bg-primary-dark px-4 py-2 text-xs font-semibold text-white"
-            >
-              {report.reporting ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
-                  Submitting...
-                </span>
-              ) : (
-                "Submit report"
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={report.closeReportForm}
-              className="rounded-full border px-4 py-2 text-xs"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* MESSAGES */}
-      {moderationMessage && (
-        <p className="text-sm text-red-600">{moderationMessage}</p>
-      )}
-
-      {reportedFake && (
-        <p className="text-sm text-primary-dark">
-          You already reported this user as fake account.
-        </p>
-      )}
-
-      {blockedUser && (
-        <p className="text-sm text-primary-dark">
-          You already blocked this user.
-        </p>
+        <ProfileReportForm report={report} />
       )}
 
       {/* PHOTOS */}

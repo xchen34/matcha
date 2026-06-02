@@ -3,7 +3,7 @@ import { secondaryButtonClass } from "@/styles/UIClasses";
 
 export default function NotFoundPage({ currentUser }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+    <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full mx-auto">
       <div className="text-center space-y-6">
         <h1 className="text-6xl font-bold text-primary">404</h1>
         <h2 className="text-2xl font-semibold text-slate-800">Page not found</h2>
@@ -14,7 +14,9 @@ export default function NotFoundPage({ currentUser }) {
           </p>
         ) : (
           <p className="text-slate-600 max-w-md">
-            The page you're looking for doesn't exist. Let's get you back on track.
+            The page you're looking for doesn't exist.
+            <br />
+            Let's get you back on track.
           </p>
         )}
         

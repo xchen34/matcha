@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import FormInput from "./components/FormInput";
+import { FormInput, EmailPreviewLinks } from "@/utils/components";
 import { tertiaryButtonClass } from "@/styles/UIClasses";
+import { Send, LoaderCircle } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -92,44 +93,26 @@ export default function ForgotPasswordPage() {
               disabled:bg-gray-400 disabled:text-white 
               disabled:border-none disabled:cursor-not-allowed"
           >
-            {isLoading 
-              ? "Sending..." 
-              : "Send reset link"}
+            {isLoading ? (
+              <span className="inline-flex items-center gap-2">
+                <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
+                Sending...
+              </span>
+            ) : (
+              <>
+              <span className="inline-flex items-center gap-2">
+                <Send size={13} aria-hidden="true" className="mr-1" />
+                Send reset link
+              </span>
+              </>
+            )}
           </button>
         </form>
 
         {/* ========== MESSAGE  ========== */}
         {message &&<p className="mt-4 text-sm text-slate-700">{message}</p>}
 
-        {/*  ========== PREVIEW URL  ========== */}
-        {previewUrl && (
-          <p className="mt-2 text-sm text-slate-700">
-            Email preview:{" "}
-            <a
-              href={previewUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="font-semibold text-primary underline"
-            >
-              Open reset email
-            </a>
-          </p>
-        )}
-
-        {/*  ========== DEV RESET LINK  ========== */}
-        {devResetUrl && (
-          <p className="mt-2 text-sm text-slate-700">
-            Fallback reset link:{" "}
-            <a
-              href={devResetUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="font-semibold text-primary underline"
-            >
-              Reset password directly
-            </a>
-          </p>
-        )}
+        <EmailPreviewLinks previewUrl={previewUrl} devVerifyUrl={devResetUrl} className="mt-2" />
 
         {/* ========== BACK TO LOGIN  ========== */}
         <div className="mt-6 text-center text-sm text-gray-600">

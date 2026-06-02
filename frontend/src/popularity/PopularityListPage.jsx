@@ -137,33 +137,34 @@ function PopularityListPage({ currentUser, mode = "views" }) {
   if (!currentUser?.id) {
     return <Navigate to="/login" replace />;
   }  
-  if (loading) return (
-    <p className="text-sm text-slate-600">
-      <span className="inline-flex items-center gap-1.5">
-        <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
-        Loading...
-      </span>
-    </p>
-  );
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
-
   return (
-  <section className={cardClass}>
-    {/* Header with counts */}
-    <PopularityListHeader config={config} mode={mode} counts={lists} />
+    <section className={`${cardClass} w-full`}>
+      {/* Header with counts */}
+      <PopularityListHeader config={config} mode={mode} counts={lists} />
 
-    {/* User list */}
-    <UserList
-        users={lists[mode]}
-        mode={mode}
-        unreadUserSet={unreadUserSet}
-        startingChatFor={startingChatFor}
-        startChatWith={startChatWith}
-        navigate={navigate}
-        config={config}
-      />
-  </section>
-);
+      {/* Loading / error / user list */}
+      <div className="min-h-[120px]">
+        {loading ? (
+          <p className="inline-flex items-center gap-2 text-sm text-slate-600">
+            <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
+            Loading...
+          </p>
+        ) : error ? (
+          <p className="text-sm text-red-600">{error}</p>
+        ) : (
+          <UserList
+            users={lists[mode]}
+            mode={mode}
+            unreadUserSet={unreadUserSet}
+            startingChatFor={startingChatFor}
+            startChatWith={startChatWith}
+            navigate={navigate}
+            config={config}
+          />
+        )}
+      </div>
+    </section>
+  );
 }
 
 export default PopularityListPage;

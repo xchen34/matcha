@@ -1,9 +1,9 @@
 import { User, Compass } from "lucide-react";
+import { SelectField } from "@/utils/components";
 
 export default function GenderSelector({
   form,
   handleChange,
-  selectClass,
 }) {
   return (
     <>
@@ -20,18 +20,18 @@ export default function GenderSelector({
         </label>
 
         {/* Select input */}
-        <select
+        <SelectField
           name="gender"
           value={form.gender}
           onChange={handleChange}
-          className={selectClass}
-        >
-          <option value="">Select gender</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="non_binary">Non-binary</option>
-          <option value="other">Other</option>
-        </select>
+          options={[
+            { value: "", label: "Select gender" },
+            { value: "male", label: "Male" },
+            { value: "female", label: "Female" },
+            { value: "non_binary", label: "Non-binary" },
+            { value: "other", label: "Other" },
+          ]}
+        />
       </div>
 
       {/* SEXUAL PREFERENCE */}
@@ -45,18 +45,18 @@ export default function GenderSelector({
         </label>
 
         {/* Select input */}
-        <select
+        <SelectField
           name="sexual_preference"
           value={form.sexual_preference}
           onChange={handleChange}
-          className={selectClass}
-        >
-          <option value="">Select sexual preference</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="both">Both</option>
-          <option value="other">Other</option>
-        </select>
+          options={[
+            { value: "", label: "Select sexual preference" },
+            { value: "male", label: "Male" },
+            { value: "female", label: "Female" },
+            { value: "both", label: "Both" },
+            { value: "other", label: "Other" },
+          ]}
+        />
       </div>
     </>
   );

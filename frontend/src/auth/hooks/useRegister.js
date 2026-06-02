@@ -43,15 +43,13 @@ export function useRegister() {
         maxAdultBirthDateIso,
       )
     ) {
-      setMessage(
+      return setMessage(
         `Invalid birth date must be between ${MIN_BIRTH_DATE_ISO} and ${maxAdultBirthDateIso}`,
       );
-      return;
     }
 
     if (form.password !== form.confirmPassword) {
-      setMessage("Passwords do not match");
-      return;
+      return setMessage("Passwords do not match");
     }
 
     try {
@@ -69,8 +67,7 @@ export function useRegister() {
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage(`Error: ${data.error || "Register failed"}`);
-        return;
+        return setMessage(`Error: ${data.error || "Register failed"}`);
       }
 
       const delivery = data?.email_delivery;

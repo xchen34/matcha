@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import FormInput from "./components/FormInput";
+import { FormInput, EmailPreviewLinks } from "@/utils/components";
 import { secondaryButtonClass } from "@/styles/UIClasses.jsx";
 
 export default function ResendVerificationPage() {
@@ -86,7 +86,7 @@ export default function ResendVerificationPage() {
     <div className="flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
         {/*  ========== HEADER ========== */}
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Resend Verification Email</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Resend verification email</h1>
         <p className="text-gray-600 mb-6">
           Enter your email address and we'll send you a new verification link.
         </p>
@@ -129,42 +129,11 @@ export default function ResendVerificationPage() {
               disabled:bg-gray-400 disabled:text-white 
               disabled:border-none disabled:cursor-not-allowed"
           >
-            {isLoading ? "Sending..." : "Resend Verification Email"}
+            {isLoading ? "Sending..." : "Resend verification email"}
           </button>
         </form>
         
-        {/* ========== EMAIL PREVIEW LINKS ========== */}
-        {(previewUrl || devVerifyUrl) && (
-          <div className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-            {previewUrl && (
-              <p>
-                Ethereal preview:{" "}
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-semibold text-primary underline"
-                >
-                  Open verification email
-                </a>
-              </p>
-            )}
-
-            {devVerifyUrl && (
-              <p>
-                Fallback verify link:{" "}
-                <a
-                  href={devVerifyUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-semibold text-primary underline"
-                >
-                  Verify directly in app
-                </a>
-              </p>
-            )}
-          </div>
-        )}
+        <EmailPreviewLinks previewUrl={previewUrl} devVerifyUrl={devVerifyUrl} className="mt-4" />
 
         {/*  ========== BACK TO LOGIN / REGISTER LINKS ========== */}
         <div className="mt-6 text-center space-y-3 text-sm text-gray-600">

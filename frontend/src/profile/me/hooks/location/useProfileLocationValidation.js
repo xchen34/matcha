@@ -32,7 +32,7 @@ export default function useProfileLocationValidation({
   // Determine if location is accepted or exists
   const isLocationAccepted =
     Boolean(locationValidation?.city_exists) || isCityConfirmed;
-    
+
   const isCitySelected =
     (form.city || "").trim().length > 0 &&
     (isCityConfirmed ||
@@ -120,14 +120,12 @@ export default function useProfileLocationValidation({
 
     async function fetchCitySuggestions() {
       if (!userId) {
-        setCitySearchSuggestions([]);
-        return;
+        return setCitySearchSuggestions([]);
       }
 
       const city = (form.city || "").trim();
       if (city.length < 2) {
-        setCitySearchSuggestions([]);
-        return;
+        return setCitySearchSuggestions([]);
       }
 
       try {
@@ -137,7 +135,11 @@ export default function useProfileLocationValidation({
 
         const response = await fetch(
           `/api/profile/city-suggestions?${params.toString()}`,
-          { headers: buildApiHeaders({ id: userId }) },
+          {
+            headers: buildApiHeaders({
+              id: userId,
+            }),
+          },
         );
 
         const data = await response.json();
@@ -188,6 +190,7 @@ export default function useProfileLocationValidation({
     if (!city && !neighborhood) {
       setLocationValidation(null);
       setLocationSuggestions([]);
+
       return undefined;
     }
 
@@ -242,6 +245,7 @@ export default function useProfileLocationValidation({
       latitude: "",
       longitude: "",
     }));
+    
     setIsCityConfirmed(false);
     setCityNeighborhoodOptions([]);
     setLocationValidation(null);

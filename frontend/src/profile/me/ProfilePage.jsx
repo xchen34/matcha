@@ -1,25 +1,30 @@
 import { useState } from "react";
-import { User, LoaderCircle } from "lucide-react";
+import { User } from "lucide-react";
 import { MIN_BIRTH_DATE_ISO } from "@/utils/date.js";
 import { cardClass, inputClass, selectClass, textareaClass } from "@/styles/UIClasses.jsx";
 
-import useLocation from "./hooks/useLocation";
-import usePhoto from "./hooks/usePhoto";
-import useTags from "./hooks/useTags";
-import useEmailChange from "./hooks/useEmailChange";
-import useProfileFormState from "./hooks/useProfileFormState";
-import useProfileData from "./hooks/useProfileData";
-import useProfileLocationValidation from "./hooks/useProfileLocationValidation";
-import useProfileSubmit from "./hooks/useProfileSubmit";
+import {
+  useLocation,
+  usePhoto,
+  useTags,
+  useEmailChange,
+  useProfileFormState,
+  useProfileData,
+  useProfileLocationValidation,
+  useProfileSubmit,
+} from "./hooks";
 
-import ProfileBasics from "./components/ProfileBasics.jsx";
-import EmailChangeForm from "./components/EmailChangeForm.jsx";
-import GenderSelector from "./components/GenderSelector.jsx";
-import PhotoManager from "./components/PhotoManager.jsx";
-import LocationSection from "./components/LocationSection.jsx";
-import TagsSelector from "./components/TagsSelector.jsx";
-import BiographyInput from "./components/BiographyInput.jsx";
-import ProfileActions from "./components/ProfileActions.jsx";
+import {
+  ProfileBasics,
+  EmailChangeForm,
+  GenderSelector,
+  PhotoManager,
+  LocationSection,
+  TagsSelector,
+  BiographyInput,
+  ProfileActions,
+  ProfileLoading,
+} from "./components";
 
 const MAX_BIO_LENGTH = 500;
 
@@ -122,6 +127,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
     !loading && !validatingLocation && isLocationAccepted && hasRequiredFields && !gpsConsentNeedsCoords;
   const canAttemptSaveProfile = !loading && !validatingLocation;
 
+  /* ========== Handle change submit ========== */
   function handleChange(event) {
     const { name, value, type, checked } = event.target;
 
@@ -151,6 +157,14 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
     }
   }
 
+  if (loading) {
+    return (
+      <section className={cardClass}>
+        <ProfileLoading />
+      </section>
+    );
+  }
+
   return (
     <section className={cardClass}>
       {/* ========== Header with user info ========== */}
@@ -169,101 +183,93 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
       )}
 
       {/* ========== Main profile form ========== */}
-      {loading ? (
-        <p className="text-sm text-slate-500">
-          <span className="inline-flex items-center gap-1.5">
-            <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
-            Loading...
-          </span>
-        </p>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
-          {/* ========= BASIC INFO (USERNAME, EMAIL, BIRTHDATE) ========== */}
-          <ProfileBasics
-            form={form}
-            handleChange={handleChange}
-            inputClass={inputClass}
-            MIN_BIRTH_DATE_ISO={MIN_BIRTH_DATE_ISO}
-            maxAdultBirthDateIso={maxAdultBirthDateIso}
-          />
+      <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
+        {/* ========= BASIC INFO (USERNAME, EMAIL, BIRTHDATE) ========== */}
+        <ProfileBasics
+          form={form}
+          handleChange={handleChange}
+          inputClass={inputClass}
+          MIN_BIRTH_DATE_ISO={MIN_BIRTH_DATE_ISO}
+          maxAdultBirthDateIso={maxAdultBirthDateIso}
+        />
 
-          {/* ========= EMAIL CHANGE FORM ========== */}
-          <EmailChangeForm
-            email={form.email}
-            emailChangeOpen={emailChangeOpen}
-            setEmailChangeOpen={setEmailChangeOpen}
-            emailChangeForm={emailChangeForm}
-            emailChangeLoading={emailChangeLoading}
-            handleEmailChangeInput={handleEmailChangeInput}
-            handleEmailChangeSubmit={handleEmailChangeSubmit}
-            setEmailChangeForm={setEmailChangeForm}
-            emailChangePreviewUrl={emailChangePreviewUrl}
-            emailChangeDevVerifyUrl={emailChangeDevVerifyUrl}
-            emailChangeError={emailChangeError}
-          />
+        {/* ========= EMAIL CHANGE FORM ========== */}
+        <EmailChangeForm
+          email={form.email}
+          emailChangeOpen={emailChangeOpen}
+          setEmailChangeOpen={setEmailChangeOpen}
+          emailChangeForm={emailChangeForm}
+          emailChangeLoading={emailChangeLoading}
+          handleEmailChangeInput={handleEmailChangeInput}
+          handleEmailChangeSubmit={handleEmailChangeSubmit}
+          setEmailChangeForm={setEmailChangeForm}
+          emailChangePreviewUrl={emailChangePreviewUrl}
+          emailChangeDevVerifyUrl={emailChangeDevVerifyUrl}
+          emailChangeError={emailChangeError}
+        />
 
-          {/* ========= GENDER SELECTOR ========== */}
-          <GenderSelector form={form} handleChange={handleChange} selectClass={selectClass} />
+        {/* ========= GENDER SELECTOR ========== */}
+        <GenderSelector form={form} handleChange={handleChange} selectClass={selectClass} />
 
-          {/* ========= BIOGRAPHY INPUT ========== */}
-          <BiographyInput
-            form={form}
-            handleChange={handleChange}
-            textareaClass={textareaClass}
-            MAX_BIO_LENGTH={MAX_BIO_LENGTH}
-          />
+        {/* ========= BIOGRAPHY INPUT ========== */}
+        <BiographyInput
+          form={form}
+          handleChange={handleChange}
+          textareaClass={textareaClass}
+          MAX_BIO_LENGTH={MAX_BIO_LENGTH}
+        />
 
-          {/* ========= PHOTO MANAGER ========== */}
-          <PhotoManager
-            photos={form.photos}
-            handlePhotoUpload={handlePhotoUpload}
-            setPrimaryPhoto={setPrimaryPhoto}
-            removePhoto={removePhoto}
-            movePhoto={movePhoto}
-            photoMessage={photoMessage}
-          />
+        {/* ========= PHOTO MANAGER ========== */}
+        <PhotoManager
+          photos={form.photos}
+          handlePhotoUpload={handlePhotoUpload}
+          setPrimaryPhoto={setPrimaryPhoto}
+          removePhoto={removePhoto}
+          movePhoto={movePhoto}
+          photoMessage={photoMessage}
+        />
 
-          {/* ========= LOCATION SECTION ========== */}
-          <LocationSection
-            form={form}
-            handleChange={handleChange}
-            handleCityInputChange={(event) => handleCityInputChange(event, handleChange)}
-            cityAutocompleteOptions={cityAutocompleteOptions}
-            applyCitySuggestion={applyCitySuggestion}
-            isCitySuggestionsOpen={isCitySuggestionsOpen}
-            setIsCitySuggestionsOpen={setIsCitySuggestionsOpen}
-            isCitySelected={isCitySelected}
-            isNeighborhoodSelected={isNeighborhoodSelected}
-            neighborhoodByCityOptions={neighborhoodByCityOptions}
-            loadingNeighborhoods={loadingNeighborhoods}
-            locationValidation={locationValidation}
-            validatingLocation={validatingLocation}
-            handleEditLocation={handleEditLocation}
-            useCurrentLocation={useCurrentLocation}
-            loadingGeo={loadingGeo}
-            hasCityInput={hasCityInput}
-          />
+        {/* ========= LOCATION SECTION ========== */}
+        <LocationSection
+          form={form}
+          handleChange={handleChange}
+          handleCityInputChange={(event) => handleCityInputChange(event, handleChange)}
+          cityAutocompleteOptions={cityAutocompleteOptions}
+          applyCitySuggestion={applyCitySuggestion}
+          isCitySuggestionsOpen={isCitySuggestionsOpen}
+          setIsCitySuggestionsOpen={setIsCitySuggestionsOpen}
+          isCitySelected={isCitySelected}
+          isNeighborhoodSelected={isNeighborhoodSelected}
+          neighborhoodByCityOptions={neighborhoodByCityOptions}
+          loadingNeighborhoods={loadingNeighborhoods}
+          locationValidation={locationValidation}
+          validatingLocation={validatingLocation}
+          handleEditLocation={handleEditLocation}
+          useCurrentLocation={useCurrentLocation}
+          loadingGeo={loadingGeo}
+          hasCityInput={hasCityInput}
+        />
 
-          {/* ========= TAGS SELECTOR ========== */}
-          <TagsSelector
-            tagOptions={tagOptions}
-            selectedTag={selectedTag}
-            setSelectedTag={setSelectedTag}
-            addTag={addTag}
-            removeTag={removeTag}
-            tags={form.tags}
-          />
+        {/* ========= TAGS SELECTOR ========== */}
+        <TagsSelector
+          tagOptions={tagOptions}
+          selectedTag={selectedTag}
+          setSelectedTag={setSelectedTag}
+          addTag={addTag}
+          removeTag={removeTag}
+          tags={form.tags}
+        />
 
-          {/* ========= ACTIONS (SAVE BUTTON, ETC) ========== */}
-          <ProfileActions
-            canAttemptSaveProfile={canAttemptSaveProfile}
-            canSaveProfile={canSaveProfile}
-            missingRequiredFields={missingRequiredFields}
-            onReload={() => loadProfile({ force: true })}
-          />
-        </form>
-      )}
+        {/* ========= ACTIONS (SAVE BUTTON, ETC) ========== */}
+        <ProfileActions
+          canAttemptSaveProfile={canAttemptSaveProfile}
+          canSaveProfile={canSaveProfile}
+          missingRequiredFields={missingRequiredFields}
+          onReload={() => loadProfile({ force: true })}
+        />
+      </form>
 
+      {/* ========== MESSAGE ========== */}
       {message && <p className="text-sm text-slate-600">{message}</p>}
     </section>
   );
