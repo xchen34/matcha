@@ -8,21 +8,23 @@ import ChatConversationHeader from "./components/ChatConversationHeader.jsx";
 import ChatMessagesList from "./components/ChatMessagesList.jsx";
 import ChatInputForm from "./components/ChatInputForm.jsx";
 
-export default function ChatConversationPage({
-  currentUser,
-  embedded = false,
-}) {
+/**
+ * 聊天详情页容器组件（编排层）：
+ * - 组装数据 hooks（会话数据、实时更新、滚动分页、消息操作）
+ * - 把状态和回调分发给子组件（Header/List/Input）
+ */
+export default function ChatConversationPage({ currentUser, embedded = false }) {
   const { conversationId } = useParams();
   const navigate = useNavigate();
 
-  /* =============== LOCAL STATE =============== */
+  // 基础本地 UI 状态。
   const currentUserId = Number(currentUser?.id) || null;
   const [error, setError] = useState("");
   const [expandedMessageId, setExpandedMessageId] = useState(null);
   const [body, setBody] = useState("");
   const [quotedMessage, setQuotedMessage] = useState(null);
 
-  /* =============== CONVERSATION DATA =============== */
+  // 会话主体数据（会话信息、消息列表、分页加载等）。
   const conversationData = useConversationData(currentUser, conversationId);
   const {
     loading,
@@ -36,7 +38,7 @@ export default function ChatConversationPage({
     loadOlder,
   } = conversationData;
 
-  /* ====================== MESSAGE ACTIONS ====================== */
+  // 消息动作（发送、删消息、删会话）统一收敛在一个 hook 里。
   const messageActions = useMessageActions(
     currentUser,
     conversation,
@@ -54,12 +56,8 @@ export default function ChatConversationPage({
     handleDeleteMessage,
   } = messageActions;
 
-  /* ====================== SCROLL & INFINITE LOAD ====================== */
-  const {
-    listRef,
-    handleScroll,
-    saveScrollPositionBeforePrepend,
-  } = useChatScroll({
+  // 消息列表滚动与上拉加载旧消息。
+  const { listRef, handleScroll, saveScrollPositionBeforePrepend } = useChatScroll({
     messages,
     loadingMore,
     hasMore,
@@ -67,19 +65,23 @@ export default function ChatConversationPage({
     currentUserId,
   });
 
-  /* ====================== DERIVED STATE ====================== */
   const activeConversationId = Number(conversation?.id) || null;
 
+  // 只有“仍匹配且互相未拉黑”才允许发送消息。
   const canSend =
     Boolean(conversation?.is_match) &&
     !conversation?.blocked_by_you &&
     !conversation?.blocked_you;
 
-  /* ====================== EFFECTS ====================== */
+  // 页面首次/会话切换后拉取一次完整会话数据。
   useEffect(() => {
     loadConversation();
   }, [loadConversation]);
 
+  // 挂载聊天详情页 realtime 行为：
+  // - join 当前会话房间
+  // - 收到新消息后合并到列表
+  // - 关系变化时刷新（如 unmatched）
   useChatConversationRealtime({
     conversationId,
     activeConversationId,
@@ -94,7 +96,6 @@ export default function ChatConversationPage({
     setUnmatchedAt: conversationData.setUnmatchedAt,
   });
 
-  /* ====================== HANDLERS ====================== */
   const handleSendMessage = async (bodyText, quoted, clearBody, clearQuote) => {
     await handleSend(bodyText, quoted, clearBody, clearQuote);
   };
@@ -103,14 +104,12 @@ export default function ChatConversationPage({
     await handleDeleteMessage(message, setQuotedMessage);
   };
 
-  /* ============= Redirect if not logged in ============= */
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return (
-    <section className="h-full flex flex-col overflow-hidden">
-      {/* HEADER */}
+    <section className="flex h-full flex-col overflow-hidden">
       <ChatConversationHeader
         conversation={conversation}
         embedded={embedded}
@@ -118,10 +117,8 @@ export default function ChatConversationPage({
         onDelete={handleDeleteConversation}
       />
 
-      {/* ERROR */}
       {error && <p className="text-sm text-primary-dark">{error}</p>}
 
-      {/* MESSAGES */}
       <ChatMessagesList
         messages={messages}
         loading={loading}
@@ -140,7 +137,6 @@ export default function ChatConversationPage({
         unmatchedAt={unmatchedAt}
       />
 
-      {/* INPUT */}
       <ChatInputForm
         canSend={canSend}
         sending={sending}

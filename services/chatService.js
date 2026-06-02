@@ -1,7 +1,10 @@
 const pool = require("../db");
 
+// ChatService = 聊天模块的数据访问层（DAO）。
+// 职责：只和数据库打交道，不处理 HTTP request/response。
 class ChatService {
   /*  ========== Helpers  ========== */
+  // 检查用户是否存在（用于入参校验、防止无效 userId）。
   async checkUserExists(userId) {
     const result = await pool.query(
       `SELECT 1 FROM users WHERE id = $1 LIMIT 1`,
@@ -11,6 +14,7 @@ class ChatService {
     return result.rowCount > 0;
   }
 
+  // 检查某条消息是否存在，并且确实属于指定会话。
   async checkMessageExistsAndValid(messageId, conversationId) {
     const messageResult = await pool.query(
       `
@@ -26,6 +30,9 @@ class ChatService {
     return messageResult.rowCount > 0;
   }
 
+  // 校验会话是否对当前用户可见：
+  // 1) 用户确实是会话参与者；
+  // 2) 该会话没有被该用户“软删除”。
   async checkConversationValidAndUndeleted(userId, conversationId) {
     const conversationResult = await pool.query(
       `
@@ -52,6 +59,7 @@ class ChatService {
   }
 
   /*  ========== Conversations  ========== */
+  // 获取会话双方参与者 ID（A/B）。
   async getConversationParticipants(conversationId) {
     const result = await pool.query(
       `SELECT user_a_id, user_b_id FROM chat_conversations WHERE id = $1 LIMIT 1`,
@@ -61,6 +69,8 @@ class ChatService {
     return result.rowCount > 0 ? result.rows[0] : null;
   }
 
+  // 按用户对“查找或创建”会话。
+  // 关键点：先把 userId 归一化成 (较小ID, 较大ID)，避免 (1,2)/(2,1) 两条会话。
   async findOrCreateConversation(userA, userB) {
     const normalizedA = Math.min(userA, userB);
     const normalizedB = Math.max(userA, userB);
@@ -84,7 +94,7 @@ class ChatService {
       return null;
     }
 
-    // Reopening a conversation should make it visible again for both participants.
+    // 重新发起对话时，把双方的“会话已删除标记”清掉，让会话重新可见。
     await pool.query(
       `
       DELETE FROM chat_deleted_conversations
@@ -97,6 +107,10 @@ class ChatService {
     return conversationId;
   }
 
+  // 删除会话（软删除）：
+  // - 仅对当前用户生效，不会真正删掉会话和消息实体。
+  // - 同时把该会话下每条消息标记为“该用户已删除”。
+  // - 使用事务确保两张删除标记表一致。
   async markConversationDeleted(userId, conversationId) {
     await pool.query("BEGIN");
     try {
@@ -128,6 +142,8 @@ class ChatService {
   }
 
   /*  ========== Messages  ========== */
+  // 插入消息并刷新会话 last_message_at。
+  // 若会话不存在则自动创建（同一用户对只会保留一条会话）。
   async insertMessageAndUpdateLastMessageAt(senderId, recipientId, content) {
     const userA = Math.min(senderId, recipientId);
     const userB = Math.max(senderId, recipientId);
@@ -145,6 +161,7 @@ class ChatService {
 
     const conversationId = conversationResult.rows[0].id;
 
+    // 发新消息后，清理双方的“会话已删除标记”，确保会话重新出现在列表里。
     await pool.query(
       `
       DELETE FROM chat_deleted_conversations
@@ -169,6 +186,8 @@ class ChatService {
     };
   }
 
+  // 分页读取会话消息（倒序），并过滤“当前用户已删除”的消息。
+  // 调用方常用 limit+1 判断是否还有下一页。
   async getMessages(userId, conversationId, limit, offset) {
     const historyResult = await pool.query(
       `
@@ -191,6 +210,7 @@ class ChatService {
     return historyResult.rows;
   }
 
+  // 删除单条消息（软删除，仅对当前用户隐藏）。
   async deleteMessage(userId, messageId, conversationId) {
     await pool.query(
       `
@@ -203,6 +223,7 @@ class ChatService {
     );
   }
 
+  // 把“发给当前用户”的未读消息批量改为已读（仅限当前会话）。
   async markMessagesAsRead(userId, conversationId) {
     const updateResult = await pool.query(
       `
@@ -224,6 +245,7 @@ class ChatService {
     return updateResult.rowCount || 0;
   }
 
+  // 仅将一条消息置为已读并返回该消息（用于精细化读状态更新）。
   async markSingleMessageAsReadAndReturn(messageId) {
     const readResult = await pool.query(
       `
@@ -239,6 +261,7 @@ class ChatService {
   }
 
   /*  ========== Other User Details for Conversations List  ========== */
+  // 获取会话另一方的展示信息（用户名、姓名、主图），用于会话列表卡片。
   async getOtherUserDetails(otherUserId) {
     const otherUserResult = await pool.query(
       `
@@ -264,6 +287,11 @@ class ChatService {
     }
     
   /*  ========== Conversations List  ========== */
+  // 获取“当前用户会话列表”聚合视图：
+  // - 另一方用户信息
+  // - 最后一条消息
+  // - 未读数
+  // - 匹配/拉黑状态
   async getConversationsList(userId) {
     const sql = `
       WITH user_conversations AS (
@@ -321,6 +349,7 @@ class ChatService {
       JOIN chat_conversations c ON c.id = uc.conversation_id
       JOIN users u ON u.id = uc.other_user_id
       LEFT JOIN LATERAL (
+        -- 对每个会话取“当前用户可见”的最后一条消息。
         SELECT cm.sender_user_id, cm.content, cm.created_at
         FROM chat_messages cm
         WHERE cm.conversation_id = uc.conversation_id
@@ -334,6 +363,7 @@ class ChatService {
         LIMIT 1
       ) lm ON TRUE
       LEFT JOIN (
+        -- 统计每个会话里“发给我且未读且未被我删除”的消息数量。
         SELECT conversation_id, COUNT(*) AS unread_count
         FROM chat_messages
         WHERE recipient_user_id = $1 AND NOT is_read
@@ -353,6 +383,8 @@ class ChatService {
   }
 
   /*  ========== Connection Status  ========== */
+  // 查询两用户关系状态（互赞=match、是否互相拉黑、匹配时间）。
+  // 返回给上层用于决定：能否发消息、前端显示何种状态徽章。
   async fetchConnectionStatus(userA, userB) {
     const result = await pool.query(
       `

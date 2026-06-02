@@ -10,20 +10,23 @@ import { LoaderCircle } from "lucide-react";
 
 const POLL_INTERVAL_MS = 15000;
 
+/**
+ * 聊天会话列表页（/messages）：
+ * - 拉取所有会话
+ * - 渲染每条会话卡片（头像、状态、最后消息、未读数）
+ * - 结合轮询 + realtime 进行更新
+ */
 export default function ChatListPage({ currentUser, embedded = false }) {
-  /* ============= State ============= */
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const location = useLocation();
-  
-  /* ============= Conversation ID tracking for realtime updates ============= */
+
+  // 从路由 state 读取跨页面动作参数（例如标记已读、移除已删会话）。
   const markId = Number(location.state?.markAsReadConversationId) || null;
-  const removedConversationId =
-    Number(location.state?.removedConversationId) || null;
+  const removedConversationId = Number(location.state?.removedConversationId) || null;
   const shouldScrollList = conversations.length >= 8;
 
-  /* ============= Data loading ============= */
   const loadConversations = useCallback(async () => {
     if (!currentUser?.id) {
       setConversations([]);
@@ -35,9 +38,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
 
     try {
       const data = await fetchChatConversations(currentUser);
-      setConversations(
-        Array.isArray(data.conversations) ? data.conversations : [],
-      );
+      setConversations(Array.isArray(data.conversations) ? data.conversations : []);
     } catch (err) {
       setError(err?.message || "Failed to load conversations");
     } finally {
@@ -45,11 +46,12 @@ export default function ChatListPage({ currentUser, embedded = false }) {
     }
   }, [currentUser]);
 
-  /* ============= Initial load & polling ============= */
+  // 首次加载。
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
 
+  // 兜底轮询。
   useEffect(() => {
     const intervalId = window.setInterval(loadConversations, POLL_INTERVAL_MS);
     return () => {
@@ -57,7 +59,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
     };
   }, [loadConversations]);
 
-  /* ============= Realtime updates ============= */
+  // 实时更新逻辑（新消息、会话变更等）。
   useChatListRealtime({
     currentUserId: currentUser?.id,
     conversations,
@@ -67,7 +69,6 @@ export default function ChatListPage({ currentUser, embedded = false }) {
     removedConversationId,
   });
 
-  /* ============= Redirect if not logged in ============= */
   if (!currentUser?.id) {
     return <Navigate to="/login" replace />;
   }
@@ -76,7 +77,6 @@ export default function ChatListPage({ currentUser, embedded = false }) {
 
   return (
     <section className={embedded ? "space-y-4" : "space-y-6"}>
-      { /* Header */}
       {!embedded && (
         <header>
           <h2 className="text-3xl font-bold text-neutral-dark">Direct Messages</h2>
@@ -86,22 +86,15 @@ export default function ChatListPage({ currentUser, embedded = false }) {
         </header>
       )}
 
-      { /* Error message */}
-      {error && (
-        <p className="text-sm text-primary-dark">
-          {error}
-        </p>
-      )}
+      {error && <p className="text-sm text-primary-dark">{error}</p>}
 
-      {/* Loading state */}
       {loading && (
-        <div className="text-sm text-slate-500 inline-flex items-center gap-1.5">
+        <div className="inline-flex items-center gap-1.5 text-sm text-slate-500">
           <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
           Loading messages...
         </div>
       )}
 
-      {/* Conversation list */}
       <div
         className={
           shouldScrollList
@@ -120,8 +113,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
             const lastMessageTime = formatTimestamp(conv.last_message?.created_at);
             const displayName = toDisplayHandle(conv.other_user);
             const avatarName = toAvatarName(conv.other_user);
-            
-            /* Status badge */
+
             const statusBadge = conv.blocked_by_you ? (
               <span className="ml-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-800">
                 Blocked
@@ -150,12 +142,10 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                     bg-white/80 backdrop-blur-md
                     shadow-sm
                     transition-all duration-200
-                    hover:shadow-md hover:-translate-y-[1px]
-                    hover:border-primary-medium
+                    hover:-translate-y-[1px] hover:border-primary-medium hover:shadow-md
                     ${embedded ? "p-3" : "p-4"}
                   `}
                 >
-                  {/* AVATAR */}
                   <div className="shrink-0 transition-transform duration-200 group-hover:scale-[1.03]">
                     <ChatAvatar
                       name={avatarName}
@@ -164,23 +154,13 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                     />
                   </div>
 
-                  {/* MAIN CONTENT */}
                   <div className="min-w-0 flex-1">
-                    {/* Left */}
                     <div className="flex items-center justify-between gap-2">
-                      {/* Usename + badge */}
-                      <div className="flex items-center gap-2 min-w-0">
-                        <p className="truncate text-base font-semibold text-neutral-dark">
-                          {displayName}
-                        </p>
-
-                        {statusBadge && (
-                          <span className="shrink-0">
-                            {statusBadge}
-                          </span>
-                        )}
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate text-base font-semibold text-neutral-dark">{displayName}</p>
+                        {statusBadge && <span className="shrink-0">{statusBadge}</span>}
                       </div>
-                      {/* Message time */}
+
                       {lastMessageTime && (
                         <span className="shrink-0 text-[10px] uppercase tracking-widest text-slate-400">
                           {lastMessageTime}
@@ -188,27 +168,15 @@ export default function ChatListPage({ currentUser, embedded = false }) {
                       )}
                     </div>
 
-                    {/* Right */}
                     <div className="mt-1 flex items-center justify-between gap-2">
-                      {/* Message preview */}
-                      <p className="truncate text-sm text-slate-500">
-                        {messagePreview}
-                      </p>
+                      <p className="truncate text-sm text-slate-500">{messagePreview}</p>
 
-                      {/* Unread count */}
                       {conv.unread_count > 0 && (
-                        <span
-                          className="
-                            flex h-5 min-w-5 items-center justify-center
-                            rounded-full bg-red-600
-                            px-1 text-[10px] font-bold text-white
-                          "
-                        >
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
                           {conv.unread_count > 99 ? "99+" : conv.unread_count}
                         </span>
                       )}
                     </div>
-
                   </div>
                 </Link>
               </li>
@@ -217,7 +185,6 @@ export default function ChatListPage({ currentUser, embedded = false }) {
         </ul>
       </div>
 
-      {/* Empty state */}
       {emptyState && (
         <p className="text-sm text-slate-500">
           No conversations yet. Once you match with someone, your chat history will appear here.
