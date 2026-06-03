@@ -24,7 +24,7 @@ export default function usePhoto({ form, setForm }) {
 
     const slice = files.slice(0, remaining);
 
-    /* Approximate total size of existing photos */
+    /* ========== Size check approximation ========== */
     const currentApproxTotal = form.photos.reduce(
       (sum, photo) => sum + String(photo.data_url || "").length,
       0,
@@ -40,7 +40,7 @@ export default function usePhoto({ form, setForm }) {
       return;
     }
 
-    /* Validate individual files */
+    /* ========== Validate individual files ========== */
     for (const file of slice) {
       const result = validatePhotoFile(file);
       if (!result.valid) {
@@ -50,7 +50,7 @@ export default function usePhoto({ form, setForm }) {
       }
     }
 
-    /* Convert files to data URLs and add to form */
+    /* ========== Convert files to data URLs and add to form ========== */
     const readers = slice.map(
       (file) =>
         new Promise((resolve) => {
@@ -65,7 +65,7 @@ export default function usePhoto({ form, setForm }) {
         }),
     );
 
-    /* Add new photos to the form */
+    /* ========== Add new photos to the form ========== */
     Promise.all(readers).then((newPhotos) => {
       setForm((prev) => {
         const merged = [...prev.photos, ...newPhotos];

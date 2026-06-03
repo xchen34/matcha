@@ -2,7 +2,9 @@ import { inputClass } from "@/styles/UIClasses.jsx";
 
 export default function FormInput({
   label,
+  icon: Icon,
   name,
+  required = false,
   type = "text",
   value,
   onChange,
@@ -16,8 +18,15 @@ export default function FormInput({
   return (
     <div className={`space-y-1 ${wrapperClassName}`}>
       {label && (
-        <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-          {label}
+        <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold inline-flex items-center gap-1.5">
+          
+          {Icon && <Icon size={16} aria-hidden="true" />}
+          
+          <span>{label}</span>
+
+          {required && (
+            <span className="text-primary-dark">*</span>
+          )}
         </label>
       )}
 

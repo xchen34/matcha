@@ -19,6 +19,7 @@ export default function EmailChangeForm({
   setEmailChangeForm,
   emailChangeError,
 }) {
+  // Save user input on enter key press
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -31,8 +32,9 @@ export default function EmailChangeForm({
       {/* Label */}
       <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
         <span className="inline-flex items-center gap-1.5">
-          <Mail size={13} aria-hidden="true" />
-          <span>Email address<span className="text-primary-dark">*</span></span>
+          <Mail size={16} aria-hidden="true" />
+          <span>Email address</span>
+          <span className="text-primary-dark">*</span>
         </span>
       </label>
 
@@ -52,7 +54,7 @@ export default function EmailChangeForm({
           onClick={() => setEmailChangeOpen((prev) => !prev)}
           className={secondaryButtonClass}
         >
-          <PencilLine size={13} aria-hidden="true" className="mr-1" />
+          <PencilLine size={16} aria-hidden="true" className="mr-1" />
           Modify
         </button>
       </div>
@@ -74,20 +76,24 @@ export default function EmailChangeForm({
             value={emailChangeForm.new_email}
             onChange={handleEmailChangeInput}
             onKeyDown={handleKeyDown}
+            required
           />
 
           {/* PASSWORD INPUT */}
           <div className="space-y-1">
-            <span className="text-xs tracking-[0.12em] text-slate-500 font-semibold">
-              Confirm your current password to authorize the change
+            <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
+              Confirm your current password to authorize the change 
+              <span className="text-primary-dark">*</span>
             </span>
             <PasswordInput
+              label="Confirm your current password to authorize the change"
               name="password"
               placeholder="Current password"
               value={emailChangeForm.password}
               onChange={handleEmailChangeInput}
               className={inputClass}
               onKeyDown={handleKeyDown}
+              required
             />
           </div>
 

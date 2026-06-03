@@ -32,6 +32,7 @@ export default function useCityNeighborhoodOptions({
         return;
       }
 
+      /* API request to fetch neighborhoods for the selected city */
       try {
         setLoadingNeighborhoods(true);
         const params = new URLSearchParams();
@@ -40,11 +41,13 @@ export default function useCityNeighborhoodOptions({
 
         const response = await fetch(
           `/api/profile/city-neighborhoods?${params.toString()}`,
-          { 
-            headers: buildApiHeaders({ id: userId }) 
+          {
+            headers: buildApiHeaders({
+              id: userId,
+            }),
           },
         );
-        
+
         const data = await response.json();
         if (!response.ok || cancelled) {
           return;
@@ -58,6 +61,7 @@ export default function useCityNeighborhoodOptions({
             }))
           : [];
 
+        /* Update state and cache with the fetched options */
         if (!cancelled) {
           cityNeighborhoodCacheRef.current.set(cityCacheKey, options);
           setCityNeighborhoodOptions(options);

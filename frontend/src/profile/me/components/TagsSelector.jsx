@@ -44,7 +44,7 @@ export default function TagsSelector({
           className={secondaryButtonClass}
           disabled={!selectedTag || tags.length >= 10}
         >
-          <LayersPlus size={13} aria-hidden="true" className="mr-1" />
+          <LayersPlus size={16} aria-hidden="true" className="mr-1" />
           Add
         </button>
       </div>

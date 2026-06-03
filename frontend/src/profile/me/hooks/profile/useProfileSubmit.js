@@ -23,23 +23,21 @@ export default function useProfileSubmit({
     async (event) => {
       event.preventDefault();
 
+      /* ========= Validate form fields before submission ========== */
       if (!hasRequiredFields) {
-        setMessage(
+        return setMessage(
           `Error: required fields missing (${missingRequiredFields.join(", ")}).`,
         );
-        return;
       }
 
       if (!hasGender) {
-        setMessage("Error: please select your gender.");
-        return;
+        return setMessage("Error: please select your gender.");
       }
 
       if (!isLocationAccepted) {
-        setMessage(
+        return setMessage(
           "Error: location is not verified. Please choose a valid city/neighborhood.",
         );
-        return;
       }
 
       if (
@@ -49,20 +47,17 @@ export default function useProfileSubmit({
           maxAdultBirthDateIso,
         )
       ) {
-        setMessage(
+        return setMessage(
           `Error: birth date must be a valid date between ${MIN_BIRTH_DATE_ISO} and ${maxAdultBirthDateIso}.`,
         );
-        return;
       }
 
       setMessage("Submitting...");
 
-      // Build headers and payload for profile update API request
+      /* ========== Build headers and payload for profile update API request ========== */
       const headers = buildApiHeaders(
         { id: userId },
-        {
-          "Content-Type": "application/json",
-        },
+        { "Content-Type": "application/json" },
       );
 
       const payload = {
@@ -82,11 +77,12 @@ export default function useProfileSubmit({
         tags: form.tags,
       };
 
-      // Only include photos in payload if they are valid base64 data URLs
+      /* ========== Only include photos in payload if they are valid base64 data URLs ========== */
       const photosAreBase64DataUrls =
         Array.isArray(form.photos) &&
         form.photos.every((photo) => {
           const dataUrl = String(photo?.data_url || "").trim();
+
           return /^data:image\/[a-z0-9.+-]+;base64,/i.test(dataUrl);
         });
 
@@ -94,7 +90,7 @@ export default function useProfileSubmit({
         payload.photos = form.photos;
       }
 
-      // Call profile update API and handle response
+      /* ========== Call profile update API and handle response ========== */
       try {
         const response = await fetch("/api/profile/me", {
           method: "PUT",
@@ -110,11 +106,10 @@ export default function useProfileSubmit({
           if (response.status === 401) {
             setMessage("Not authorized. Please login again if needed.");
           }
-
           return;
         }
 
-        // Update form state with response data to reflect any changes from the backend
+        // Update form state 
         setForm((prev) => ({
           ...prev,
           username: data.user?.username || prev.username,
@@ -131,14 +126,18 @@ export default function useProfileSubmit({
           neighborhood: data.profile.neighborhood || "",
           gps_consent: Boolean(data.profile.gps_consent),
           latitude:
-            data.profile.latitude !== null && data.profile.latitude !== undefined
+            data.profile.latitude !== null &&
+            data.profile.latitude !== undefined
               ? String(data.profile.latitude)
               : "",
           longitude:
-            data.profile.longitude !== null && data.profile.longitude !== undefined
+            data.profile.longitude !== null &&
+            data.profile.longitude !== undefined
               ? String(data.profile.longitude)
               : "",
-          tags: Array.isArray(data.profile.tags) ? data.profile.tags : prev.tags,
+          tags: Array.isArray(data.profile.tags)
+            ? data.profile.tags
+            : prev.tags,
           photos: Array.isArray(data.profile.photos)
             ? data.profile.photos
             : prev.photos,
@@ -157,6 +156,8 @@ export default function useProfileSubmit({
         }
 
         setMessage("Success: profile updated");
+
+        // Redirect to match page if profile is completed
         if (data?.user?.profile_completed) {
           setTimeout(() => {
             navigate("/find-match");

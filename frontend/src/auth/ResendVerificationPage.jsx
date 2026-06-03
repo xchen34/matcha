@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { FormInput, EmailPreviewLinks } from "@/utils/components";
-import { secondaryButtonClass } from "@/styles/UIClasses.jsx";
 
 export default function ResendVerificationPage() {
   const location = useLocation();

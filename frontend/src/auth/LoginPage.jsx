@@ -38,6 +38,7 @@ export default function LoginPage({ onLogin }) {
           <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
             Password
           </label>
+          <span className="text-primary-dark ml-1">*</span>
 
           <PasswordInput
             name="password"

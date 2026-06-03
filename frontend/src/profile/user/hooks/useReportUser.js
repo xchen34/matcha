@@ -23,15 +23,13 @@ export function useReportUser({ id, currentUser, reportFake, setModerationMessag
 
     // Validation 
     if (reason.length < 5) {
-      setError("Please provide a valid report reason (minimum 5 characters).");
-      return;
+      return setError("Please provide a valid report reason (minimum 5 characters).");
     }
 
     if (reason.length > MAX_FAKE_REPORT_REASON_LENGTH) {
-      setError(
+      return setError(
         `Report reason cannot exceed ${MAX_FAKE_REPORT_REASON_LENGTH} characters.`,
       );
-      return;
     }
 
     setReporting(true);
@@ -53,8 +51,7 @@ export function useReportUser({ id, currentUser, reportFake, setModerationMessag
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setError(payload.error || "Failed to submit report.");
-        return;
+        return setError(payload.error || "Failed to submit report.");
       }
 
       reportFake?.(reason);
@@ -72,7 +69,7 @@ export function useReportUser({ id, currentUser, reportFake, setModerationMessag
     }
   }
 
-  /* ====== Handlers to open and close the report form ====== */
+  /* ====== Handlers to open/close the report form ====== */
   function openReportForm() {
     setShowReportForm(true);
     setError("");
@@ -89,13 +86,13 @@ export function useReportUser({ id, currentUser, reportFake, setModerationMessag
     reportReason,
     reporting,
     error,
-
-    // setters
-    setReportReason,
-
+    
     // actions
     submitReport,
     openReportForm,
     closeReportForm,
+
+    // setters
+    setReportReason,
   };
 }
