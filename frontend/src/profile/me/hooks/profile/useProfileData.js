@@ -11,16 +11,21 @@ export default function useProfileData({
   setIsCityConfirmed,
   setLoading,
 }) {
+  /* ========== State ========== */
   const [tagOptions, setTagOptions] = useState([]);
+  
+  /* ========== Extract current user data ========== */
   const currentUserId = currentUser?.id ?? null;
   const currentUsername = currentUser?.username ?? "";
   const currentEmail = currentUser?.email ?? "";
   const currentProfileCompleted = Boolean(currentUser?.profile_completed);
   const currentRealtimeToken = currentUser?.realtime_token ?? "";
+
+  /* ========== References of last loaded userId and loading state to prevent duplicate loads ========== */
   const lastLoadedUserIdRef = useRef(null);
   const loadingRef = useRef(false);
 
-  /* ========= Load profile data from API and populate form ========== */
+  /* ========= Load profile data ========== */
   const loadProfile = useCallback(async (options = {}) => {
     const { force = false } = options;
     if (!userId) {
@@ -29,7 +34,7 @@ export default function useProfileData({
       return;
     }
 
-    /* Prevent duplicate loads if already loading */
+    // Prevent duplicate loads if already loading
     if (!force && loadingRef.current) return;
     if (!force && lastLoadedUserIdRef.current === userId) return;
 
@@ -82,6 +87,7 @@ export default function useProfileData({
         photos: Array.isArray(data.profile.photos) ? data.profile.photos : [],
       });
 
+      /* Set city confirmation state based on loaded city value */
       setIsCityConfirmed(Boolean((data.profile.city || "").trim()));
 
       /* If current user data is available, update it */

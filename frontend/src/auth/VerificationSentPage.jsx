@@ -3,7 +3,6 @@ import { primaryButtonClass, tertiaryButtonClass } from "@/styles/UIClasses.jsx"
 import { EmailPreviewLinks } from "@/utils/components";
 import { Send } from "lucide-react";
 
-
 export default function VerificationSentPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -56,7 +55,7 @@ export default function VerificationSentPage() {
             }
             className={primaryButtonClass}
           >
-            <Send size={13} aria-hidden="true" className="mr-1" />
+            <Send size={16} aria-hidden="true" className="mr-1" />
             Resend verification
           </button>
 

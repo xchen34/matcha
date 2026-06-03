@@ -9,18 +9,11 @@ export default function GenderSelector({
     <>
       {/* GENDER */}
       <div className="space-y-1">
-        {/* Label */}
-        <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-          <span className="inline-flex items-center gap-1.5">
-            <User size={13} aria-hidden="true" />
-            <span>
-              Gender<span className="text-primary-dark">*</span>
-            </span>
-          </span>
-        </label>
-
         {/* Select input */}
         <SelectField
+          label="Gender"
+          icon={User}
+          required
           name="gender"
           value={form.gender}
           onChange={handleChange}
@@ -36,16 +29,10 @@ export default function GenderSelector({
 
       {/* SEXUAL PREFERENCE */}
       <div className="space-y-1">
-        {/* Label */}
-        <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
-          <span className="inline-flex items-center gap-1.5">
-            <Compass size={13} aria-hidden="true" />
-            <span>Sexual preference</span>
-          </span>
-        </label>
-
         {/* Select input */}
         <SelectField
+          label="Sexual preference"
+          icon={Compass}
           name="sexual_preference"
           value={form.sexual_preference}
           onChange={handleChange}

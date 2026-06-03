@@ -11,7 +11,7 @@ export default function BiographyInput({
       {/* Label */}
       <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
         <span className="inline-flex items-center gap-1.5">
-          <Info size={13} aria-hidden="true" />
+          <Info size={16} aria-hidden="true" />
           <span>Biography</span>
         </span>
       </label>

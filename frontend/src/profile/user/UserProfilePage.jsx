@@ -5,6 +5,7 @@ import { Flame } from "lucide-react";
 import { sanitizeText } from "@/utils/xssEscape.js";
 import { buildApiHeaders } from "@/utils/utils.js";
 import { ProfilePhotosGrid } from "@/components/ProfilePhotosGrid.jsx";
+import UserNotFoundPage from "./components/UserNotFoundPage.jsx";
 
 import {
   useUserProfile,
@@ -97,6 +98,9 @@ function UserProfilePage({ currentUser }) {
   // AUTH GUARD & LOADING/ERROR STATES
   if (!currentUser) return <Navigate to="/login" replace />;
   if (loading) return <p className="text-sm text-slate-600">Loading profile...</p>;
+  if (error === "User not found") {
+    return <UserNotFoundPage currentUser={currentUser} />;
+  }
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (!data) return null;
 

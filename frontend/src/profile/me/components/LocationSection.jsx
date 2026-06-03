@@ -27,9 +27,8 @@ export default function LocationSection({
       <div className="space-y-1">
         <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <MapPin size={13} aria-hidden="true" />
-          <span>
-            Location<span className="text-primary-dark">*</span>
-          </span>
+          <span>Location</span>
+          <span className="text-primary-dark">*</span>
         </p>
       </div>
 

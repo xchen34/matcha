@@ -101,7 +101,7 @@ export default function ForgotPasswordPage() {
             ) : (
               <>
               <span className="inline-flex items-center gap-2">
-                <Send size={13} aria-hidden="true" className="mr-1" />
+                <Send size={16} aria-hidden="true" className="mr-1" />
                 Send reset link
               </span>
               </>

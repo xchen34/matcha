@@ -20,7 +20,7 @@ export default function PhotoManager({
         {/* Label */}
         <label className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">
           <span className="inline-flex items-center gap-1.5">
-            <Image size={13} aria-hidden="true" />
+            <Image size={16} aria-hidden="true" />
             <span>
               Photos (max {MAX_PHOTOS_COUNT}, {bytesToKB(MAX_PHOTO_SIZE_BYTES)}KB each)
             </span>
@@ -31,7 +31,7 @@ export default function PhotoManager({
         <div>
           <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-primary px-3 py-2 text-xs font-semibold text-primary-dark transition hover:scale-105 active:scale-95 sm:px-4 sm:py-2.5">
             <span className="inline-flex items-center gap-1.5">
-              <FileUp size={13} aria-hidden="true" />
+              <FileUp size={16} aria-hidden="true" />
               <span className="hidden sm:inline">Upload image</span>
               <span className="sm:hidden">Upload</span>
               <input

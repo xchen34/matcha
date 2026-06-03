@@ -68,10 +68,10 @@ export function useUserProfile(id, currentUser) {
     };
   }, [id, currentUser]);
 
-  return { 
-    data, 
-    loading, 
-    error, 
-    setData 
+  return {
+    data,
+    loading,
+    error,
+    setData,
   };
 }

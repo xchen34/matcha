@@ -12,29 +12,18 @@ export default function ProfileBasics({
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {/* USERNAME */}
       <FormInput
-        label={
-          <span className="inline-flex items-center gap-1.5">
-            <User size={13} />
-            <span>
-              Username<span className="text-primary-dark">*</span>
-            </span>
-          </span>
-        }
+        label="Username"
+        icon={User}
         name="username"
         value={form.username}
         onChange={handleChange}
+        required
       />
 
       {/* BIRTH DATE */}
       <FormInput
-        label={
-          <span className="inline-flex items-center gap-1.5">
-            <Calendar size={13} />
-            <span>
-              Birth date<span className="text-primary-dark">*</span>
-            </span>
-          </span>
-        }
+        label="Birth date"
+        icon={Calendar}
         name="birth_date"
         type="date"
         value={form.birth_date}
@@ -46,32 +35,22 @@ export default function ProfileBasics({
 
       {/* FIRST NAME */}
       <FormInput
-        label={
-          <span className="inline-flex items-center gap-1.5">
-            <User size={13} />
-            <span>
-              First name<span className="text-primary-dark">*</span>
-            </span>
-          </span>
-        }
+        label="First name"
+        icon={User}
         name="first_name"
         value={form.first_name}
         onChange={handleChange}
+        required
       />
 
       {/* LAST NAME */}
       <FormInput
-        label={
-          <span className="inline-flex items-center gap-1.5">
-            <User size={13} />
-            <span>
-              Last name<span className="text-primary-dark">*</span>
-            </span>
-          </span>
-        }
+        label="Last name"
+        icon={User}
         name="last_name"
         value={form.last_name}
         onChange={handleChange}
+        required
       />
     </div>
   );

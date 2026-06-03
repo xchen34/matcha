@@ -18,6 +18,7 @@ export default function PasswordFields({
 	return (
 		<div className="space-y-1">
 			<label className={labelClass}>{firstLabel}</label>
+			<span className="text-primary-dark ml-1">*</span>
 
 			<PasswordInput
 				name={firstName}
@@ -29,6 +30,7 @@ export default function PasswordFields({
 			/>
 
 			<label className={labelClass}>{secondLabel}</label>
+	        <span className="text-primary-dark ml-1">*</span>
 
 			<PasswordInput
 				name={secondName}

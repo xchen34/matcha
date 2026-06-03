@@ -29,12 +29,8 @@ export default function MatchFilters({
       {/* ======== USERNAME ======== */}
       <FormInput
         wrapperClassName="col-span-2"
-        label={
-          <span className="inline-flex items-center gap-1.5 text-slate-500">
-            <Search size={16} />
-            <span>Search username</span>
-          </span>
-        }
+        label="Search username"
+        icon={Search}
         name="username"
         value={draftFilters.username}
         onChange={handleFilterChange}
@@ -44,12 +40,8 @@ export default function MatchFilters({
       {/* ======== CITY ======== */}
       <div className="relative col-span-2">
         <FormInput
-          label={
-            <span className="inline-flex items-center gap-1.5 text-slate-500">
-              <MapPin size={16} />
-              <span>City</span>
-            </span>
-          }
+          label="City"
+          icon={MapPin}
           name="city"
           value={draftFilters.city}
           onChange={handleFilterChange}
@@ -123,12 +115,8 @@ export default function MatchFilters({
       {/* ======== SORT ======== */}
       <SelectField
         wrapperClassName="col-span-2"
-        label={
-          <span className="inline-flex items-center gap-2 text-slate-500">
-            <ArrowDownUp size={16} />
-            <span>Sort by</span>
-          </span>
-        }
+        label="Sort by"
+        icon={ArrowDownUp}
         name="sort_by"
         value={draftFilters.sort_by}
         onChange={handleFilterChange}
@@ -144,12 +132,8 @@ export default function MatchFilters({
       {/* ======== ORDER ======== */}
       <SelectField
         wrapperClassName="col-span-2"
-        label={
-          <span className="inline-flex items-center gap-2 text-slate-500">
-            <ArrowDownWideNarrow size={16} />
-            <span>Order</span>
-          </span>
-        }
+        label="Order"
+        icon={ArrowDownWideNarrow}
         name="sort_dir"
         value={draftFilters.sort_dir}
         onChange={handleFilterChange}

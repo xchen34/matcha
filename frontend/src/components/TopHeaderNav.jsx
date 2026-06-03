@@ -315,8 +315,11 @@ export function TopHeaderNav({
                 disabled={deletingAccount}
                 onClick={onDeleteAccountConfirm}
               >
-                <Trash2 size={14} className="mr-1" />
-                {deletingAccount ? "Deleting..." : "Delete account"}
+                <Trash2 size={15} /> 
+                {/* Mobile */}
+                <span className="ml-1 sm:hidden">Delete</span>
+                {/* Desktop */}
+                <span className="ml-1 hidden sm:inline">Delete account</span>
               </button>
             </div>
           </div>

@@ -10,16 +10,16 @@ export default function useProfileLocationValidation({
   setForm,
   setMessage,
 }) {
+  /* ========== State ========== */
   const [citySearchSuggestions, setCitySearchSuggestions] = useState([]);
   const [isCitySuggestionsOpen, setIsCitySuggestionsOpen] = useState(false);
   const [isNeighborhoodSelected, setIsNeighborhoodSelected] = useState(false);
   const [isCityConfirmed, setIsCityConfirmed] = useState(false);
 
-  // Determine presence of city and neighborhood input for validation logic
+  /* ========== Determine if city input exists for conditional logic ========== */
   const hasCityInput = (form.city || "").trim().length > 0;
-  const hasNeighborhoodInput = (form.neighborhood || "").trim().length > 0;
 
-  // Hook for validating location input and managing validation state
+  /* ========== Hook for validating location input and managing related state ========== */
   const {
     locationSuggestions,
     setLocationSuggestions,
@@ -29,7 +29,6 @@ export default function useProfileLocationValidation({
     validateLocationInput,
   } = useLocationValidationRequest({ userId, form, setMessage });
 
-  // Determine if location is accepted or exists
   const isLocationAccepted =
     Boolean(locationValidation?.city_exists) || isCityConfirmed;
 
@@ -38,7 +37,7 @@ export default function useProfileLocationValidation({
     (isCityConfirmed ||
       (!validatingLocation && Boolean(locationValidation?.city_exists)));
 
-  // Hook for loading neighborhood options based on selected city
+  /* ========== Hook for fetching neighborhood options based on selected city ========== */
   const {
     cityNeighborhoodOptions,
     loadingNeighborhoods,
@@ -50,7 +49,7 @@ export default function useProfileLocationValidation({
     isCitySelected,
   });
 
-  // Process location suggestions into options for city autocomplete
+  /* ========== Memoized city suggestion options ========== */
   const citySuggestionOptions = useMemo(() => {
     const sourceSuggestions =
       citySearchSuggestions.length > 0
@@ -67,7 +66,21 @@ export default function useProfileLocationValidation({
       }));
   }, [citySearchSuggestions, locationSuggestions]);
 
-  // Process neighborhood suggestions for the selected city
+  const cityAutocompleteOptions = useMemo(() => {
+    const prefix = normalizeLocationPrefix(form.city);
+    if (!prefix) return [];
+
+    return citySuggestionOptions
+      .filter((item) => {
+        const normalizedCity = normalizeLocationPrefix(item.city);
+        return (
+          normalizedCity.startsWith(prefix) || normalizedCity.includes(prefix)
+        );
+      })
+      .slice(0, 12);
+  }, [citySuggestionOptions, form.city]);
+
+  /* ========== Memoized neighborhood suggestions for the selected city ========== */
   const neighborhoodByCitySuggestions = useMemo(() => {
     const selectedCity = normalizeLocationPrefix(form.city);
     if (!selectedCity) return [];
@@ -99,20 +112,6 @@ export default function useProfileLocationValidation({
       ? cityNeighborhoodOptions
       : neighborhoodByCitySuggestions;
 
-  // Generate city autocomplete options based on current input and suggestions
-  const cityAutocompleteOptions = useMemo(() => {
-    const prefix = normalizeLocationPrefix(form.city);
-    if (!prefix) return [];
-
-    return citySuggestionOptions
-      .filter((item) => {
-        const normalizedCity = normalizeLocationPrefix(item.city);
-        return (
-          normalizedCity.startsWith(prefix) || normalizedCity.includes(prefix)
-        );
-      })
-      .slice(0, 12);
-  }, [citySuggestionOptions, form.city]);
 
   /* ============ Effect to fetch city suggestions based on city input ============ */
   useEffect(() => {
@@ -245,7 +244,7 @@ export default function useProfileLocationValidation({
       latitude: "",
       longitude: "",
     }));
-    
+
     setIsCityConfirmed(false);
     setCityNeighborhoodOptions([]);
     setLocationValidation(null);
@@ -272,24 +271,30 @@ export default function useProfileLocationValidation({
   }
 
   return {
-    locationValidation,
-    validatingLocation,
+    // States and flags
     hasCityInput,
-    hasNeighborhoodInput,
     isLocationAccepted,
     isCitySelected,
     isCitySuggestionsOpen,
-    setIsCitySuggestionsOpen,
     isNeighborhoodSelected,
-    setIsNeighborhoodSelected,
     isCityConfirmed,
-    setIsCityConfirmed,
+    validatingLocation,
+    loadingNeighborhoods,
+    locationValidation,
+
+    // Options
     cityAutocompleteOptions,
     neighborhoodByCityOptions,
-    loadingNeighborhoods,
+
+    // Handlers
     handleCityInputChange,
     applyCitySuggestion,
     handleEditLocation,
+
+    // Setters / state updaters
+    setIsCitySuggestionsOpen,
+    setIsNeighborhoodSelected,
+    setIsCityConfirmed,
     setLocationValidation,
     setLocationSuggestions,
     setCitySearchSuggestions,

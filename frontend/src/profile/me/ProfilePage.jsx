@@ -42,6 +42,24 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
     missingRequiredFields,
     maxAdultBirthDateIso,
   } = useProfileFormState();
+  
+  const {
+    emailChangeOpen,
+    setEmailChangeOpen,
+    emailChangeLoading,
+    emailChangeForm,
+    setEmailChangeForm,
+    emailChangePreviewUrl,
+    emailChangeDevVerifyUrl,
+    handleEmailChangeInput,
+    handleEmailChangeSubmit,
+    emailChangeError,
+  } = useEmailChange({ currentUser, setMessage });
+  
+  const { handlePhotoUpload, setPrimaryPhoto, removePhoto, movePhoto, photoMessage } = usePhoto({
+    form,
+    setForm,
+  });
 
   const {
     locationValidation,
@@ -71,6 +89,8 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
     setMessage,
   });
 
+  const { loadingGeo, useCurrentLocation } = useLocation(userId, setForm, setMessage);
+  
   const { tagOptions, loadProfile } = useProfileData({
     userId,
     currentUser,
@@ -80,13 +100,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
     setIsCityConfirmed,
     setLoading,
   });
-
-  const { loadingGeo, useCurrentLocation } = useLocation(userId, setForm, setMessage);
-
-  const { handlePhotoUpload, setPrimaryPhoto, removePhoto, movePhoto, photoMessage } = usePhoto({
-    form,
-    setForm,
-  });
+  
 
   const { selectedTag, setSelectedTag, addTag, removeTag } = useTags({
     form,
@@ -94,19 +108,6 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
     setMessage,
     tagOptions,
   });
-
-  const {
-    emailChangeOpen,
-    setEmailChangeOpen,
-    emailChangeLoading,
-    emailChangeForm,
-    setEmailChangeForm,
-    emailChangePreviewUrl,
-    emailChangeDevVerifyUrl,
-    handleEmailChangeInput,
-    handleEmailChangeSubmit,
-    emailChangeError,
-  } = useEmailChange({ currentUser, setMessage });
 
   const { handleSubmit } = useProfileSubmit({
     userId,
@@ -122,6 +123,7 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
     setMessage,
   });
 
+  /* ========== Determine if profile can be saved ========== */
   const gpsConsentNeedsCoords = form.gps_consent && (!form.latitude || !form.longitude);
   const canSaveProfile =
     !loading && !validatingLocation && isLocationAccepted && hasRequiredFields && !gpsConsentNeedsCoords;
@@ -233,21 +235,21 @@ export default function ProfilePage({ currentUser, onProfileUpdate }) {
         <LocationSection
           form={form}
           handleChange={handleChange}
-          handleCityInputChange={(event) => handleCityInputChange(event, handleChange)}
-          cityAutocompleteOptions={cityAutocompleteOptions}
-          applyCitySuggestion={applyCitySuggestion}
-          isCitySuggestionsOpen={isCitySuggestionsOpen}
-          setIsCitySuggestionsOpen={setIsCitySuggestionsOpen}
+          hasCityInput={hasCityInput}
           isCitySelected={isCitySelected}
+          isCitySuggestionsOpen={isCitySuggestionsOpen}
           isNeighborhoodSelected={isNeighborhoodSelected}
-          neighborhoodByCityOptions={neighborhoodByCityOptions}
+          validatingLocation={validatingLocation}
           loadingNeighborhoods={loadingNeighborhoods}
           locationValidation={locationValidation}
-          validatingLocation={validatingLocation}
+          cityAutocompleteOptions={cityAutocompleteOptions}
+          neighborhoodByCityOptions={neighborhoodByCityOptions}
+          handleCityInputChange={(event) => handleCityInputChange(event, handleChange)}
+          applyCitySuggestion={applyCitySuggestion}
           handleEditLocation={handleEditLocation}
+          setIsCitySuggestionsOpen={setIsCitySuggestionsOpen}
           useCurrentLocation={useCurrentLocation}
           loadingGeo={loadingGeo}
-          hasCityInput={hasCityInput}
         />
 
         {/* ========= TAGS SELECTOR ========== */}
