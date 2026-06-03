@@ -1,5 +1,14 @@
 const likeService = require("../../services/likeService");
 
+/**
+ * Return the list of users who viewed the authenticated user's profile.
+ *
+ * Implementation details:
+ * - Pulls the current user ID from `req.userId`.
+ * - Calls `likeService.getViewsReceived()` to keep the persistence logic out
+ *   of the controller.
+ * - Projects the raw rows into the compact payload expected by the frontend.
+ */
 async function getViews(req, res, next) {
   try {
     const currentUserId = String(req.userId ?? "");

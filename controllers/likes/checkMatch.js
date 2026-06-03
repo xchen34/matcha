@@ -1,5 +1,15 @@
 const likeService = require("../../services/likeService");
 
+/**
+ * Check whether two users are mutually matched.
+ *
+ * Implementation details:
+ * - Treats the authenticated user as one side of the pair and `req.params.id`
+ *   as the other side.
+ * - Rejects invalid IDs and self-match attempts before querying.
+ * - Calls `likeService.checkMatchExists()` to hide the matching logic inside
+ *   the service layer and returns the result as `is_match`.
+ */
 async function checkMatch(req, res, next) {
   try {
     const userA = String(req.userId ?? "");

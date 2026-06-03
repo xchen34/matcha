@@ -1,5 +1,14 @@
 const likeService = require("../../services/likeService");
 
+/**
+ * Return the list of users who liked the authenticated user.
+ *
+ * Implementation details:
+ * - Reads the current user from `req.userId`.
+ * - Delegates the database lookup to `likeService.getLikesReceived()`.
+ * - Maps the raw rows into a stable response shape so the client only receives
+ *   the fields needed by the likes screen.
+ */
 async function getLikes(req, res, next) {
   try {
     const currentUserId = String(req.userId ?? "");

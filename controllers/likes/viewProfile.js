@@ -1,6 +1,18 @@
 const likeService = require("../../services/likeService");
 const { createNotification } = require("../../services/notificationService");
 
+/**
+ * Record a profile view from the authenticated user to another user.
+ *
+ * Implementation details:
+ * - Validates both IDs as positive integers and rejects self-views.
+ * - Confirms both users exist before inserting the view so we can return a
+ *   clear 401/404 depending on which side is missing.
+ * - Calls `likeService.insertProfileView()` to keep duplicate views from
+ *   creating duplicate records.
+ * - Creates a notification only when the insert is new, which prevents
+ *   duplicate alerts for repeat visits.
+ */
 async function viewProfile(req, res, next) {
   try {
     const rawViewerUserId = String(req.userId ?? "");

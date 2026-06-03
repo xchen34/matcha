@@ -2,6 +2,14 @@ const likeService = require("../../services/likeService");
 const { isUserOnline } = require("../../services/presenceService");
 const { parseTagsQueryParam } = require("./helpers");
 
+/**
+ * Parse a numeric query parameter while preserving `null` for missing/invalid
+ * input.
+ *
+ * Implementation details:
+ * - Returns `null` for empty values so downstream filters can omit the field.
+ * - Uses `Number()` and `Number.isFinite()` to reject non-numeric strings.
+ */
 function parseOptionalNumber(value) {
   if (value === undefined || value === null || value === "") return null;
 
@@ -11,6 +19,23 @@ function parseOptionalNumber(value) {
   return parsed;
 }
 
+/**
+ * Build a filtered and sorted list of user suggestions for the authenticated
+ * user.
+ *
+ * Implementation details:
+ * - Validates the authenticated user first and then reads paging/filtering
+ *   controls from `req.query`.
+ * - Sanitizes numeric filters through `parseOptionalNumber()` and clamps them
+ *   to sensible bounds to reduce bad input and avoid runaway queries.
+ * - Normalizes city, username, and tags filters before passing them to the
+ *   service layer.
+ * - Translates `sort_by` and `sort_dir` into a SQL `ORDER BY` fragment that the
+ *   service can safely apply.
+ * - Enriches the service results with relationship state (`liked`,
+ *   `is_match`) and live presence (`is_online`) so the client gets a ready-to-
+ *   render card model.
+ */
 async function getSuggestions(req, res, next) {
   try {
     const userId = String(req.userId ?? "");

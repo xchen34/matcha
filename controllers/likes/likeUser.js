@@ -2,6 +2,21 @@ const likeService = require("../../services/likeService");
 const { createNotification } = require("../../services/notificationService");
 const { insertSystemMessage } = require("../../utils/chatSystemMessage");
 
+/**
+ * Record that the authenticated user liked another user.
+ *
+ * Implementation details:
+ * - Reads the liker from `req.userId` and the target from `req.params.id`.
+ * - Rejects invalid input, self-likes, and users without a primary photo
+ *   before touching the database.
+ * - Uses `likeService.insertLike()` as the idempotent write gate so repeated
+ *   requests do not create duplicate likes or duplicate downstream effects.
+ * - Sends a notification to the liked user immediately after a new like is
+ *   created.
+ * - Checks for a reciprocal like to detect a match, then creates match
+ *   notifications, inserts system chat messages for both users, and emits a
+ *   realtime match status event if socket support is available.
+ */
 async function likeUser(req, res, next) {
   try {
     const likerId = String(req.userId ?? "");

@@ -1,6 +1,20 @@
 const notificationService = require("../../services/notificationService");
 const { parsePositiveInt } = require("./helpers");
 
+/**
+ * Return the authenticated user's notifications together with an unread count.
+ *
+ * Implementation details:
+ * - Validates the current user ID with `parsePositiveInt()` before querying.
+ * - Loads notification rows through the notification service so the controller
+ *   only handles request validation and response shaping.
+ * - Computes `unread_count` locally from the returned rows instead of issuing a
+ *   second query.
+ * - Maps each row into a compact API payload that exposes only the fields the
+ *   client needs.
+ * - Falls back to an empty response when the notifications table is not yet
+ *   available, which keeps the endpoint safe during early migrations.
+ */
 async function getNotifications(req, res, next) {
   try {
     const currentUserId = parsePositiveInt(req.userId);

@@ -1,5 +1,14 @@
 const likeService = require("../../services/likeService");
 
+/**
+ * Return the list of matched users for the authenticated user.
+ *
+ * Implementation details:
+ * - Uses the current user ID from `req.userId`.
+ * - Fetches match rows through `likeService.getMatches()` so the controller
+ *   stays thin and only handles request/response shaping.
+ * - Normalizes the response to a minimal user list including the match time.
+ */
 async function getMatches(req, res, next) {
   try {
     const currentUserId = String(req.userId ?? "");

@@ -2,6 +2,19 @@ const likeService = require("../../services/likeService");
 const { createNotification } = require("../../services/notificationService");
 const { insertSystemMessage } = require("../../utils/chatSystemMessage");
 
+/**
+ * Remove an existing like from the authenticated user toward another user.
+ *
+ * Implementation details:
+ * - Uses the authenticated user as the liker and `req.params.id` as the target.
+ * - Validates required IDs and rejects self-unlikes up front.
+ * - Calls `likeService.removeLike()` first so the endpoint behaves safely when
+ *   the like is already gone.
+ * - If the removed like was part of a match, it writes system messages and
+ *   emits realtime match-change events to both users so the UI can react.
+ * - Always sends an "unlike" notification to the affected user after a real
+ *   removal so the event trail stays consistent.
+ */
 async function unlikeUser(req, res, next) {
   try {
     const likerId = String(req.userId ?? "");
