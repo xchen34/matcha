@@ -417,3 +417,157 @@ Le vrai point sensible du projet est le suivant :
 
 Pour cette raison, la protection XSS est particulièrement importante dans ce projet.
 
+
+
+
+有，而且你项目里已经做了好几层防护。可以按“入口防护 -> 认证授权 -> 请求治理 -> 数据安全 -> 输出安全 -> 业务滥用防护”来理解。
+1. 浏览器/请求入口层硬化
+你在 app.js 里做了基础安全加固：helmet、CSP、HSTS、x-powered-by 关闭、CORS 白名单、请求体大小限制、统一错误处理。
+相关文件和调用：app.js (line 32) 关闭 x-powered-by
+app.js (line 34) helmet(...)
+app.js (line 63) cors(corsOptions)
+app.js (line 82) express.json() / express.urlencoded()
+app.js (line 92) csrfProtection
+app.js (line 93) globalApiLimiter
+
+这些主要防的是：点击劫持、部分浏览器注入风险
+非允许站点跨域调用
+大包请求滥用
+过多暴露服务器实现细节
+
+2. 认证和授权
+你项目里所有受保护 API 都通过 requireAuth 来拦，逻辑是：读 Authorization: Bearer <token>，验签，确认用户还存在，最后把 req.userId 挂上去。
+相关文件和调用：middleware/auth.js (line 19)
+routes/auth.js (line 27)
+app.js (line 140)
+
+登录成功后后端直接返回 token：controllers/auth/login.js (line 48)
+
+realtime 连接也走同一套 token 验证：realtime/index.js (line 29)
+realtime/handlers.js (line 18)
+
+这层防的是：未登录访问受保护接口
+伪造身份
+已删除账号继续用旧身份
+
+3. CSRF 防护
+你的 csrfProtection 不是用 token，而是看 Origin / Referer 是否来自允许站点，且只对会改数据的请求生效。
+相关文件和调用：middleware/csrfProtection.js (line 37)
+app.js (line 92)
+
+它的行为是：GET/HEAD/OPTIONS 直接放行
+POST/PUT/DELETE 会检查来源
+没有 Origin/Referer 的 curl/Postman 允许通过
+
+这层防的是：跨站伪造提交
+其他网站“代替用户”发写请求
+
+4. 限流和爆破防护
+你用了三档限流：全站 API 限流
+普通 auth 限流
+敏感 auth 限流
+
+相关文件和调用：middleware/rateLimit.js (line 71)
+app.js (line 93)
+routes/auth.js (line 27)
+
+具体挂载：register 用 authLimiter
+login、forgot-password、reset-password、delete-account 用 authSensitiveLimiter
+敏感 limiter 还设置了 skipSuccessfulRequests: true
+
+这层防的是：暴力破解密码
+重复刷登录/重置密码
+API 被自动脚本刷爆
+
+5. 密码和账号恢复
+密码不是明文存的，注册和重置密码都用 bcrypt 哈希。
+相关文件和调用：controllers/auth/register.js (line 90)
+controllers/auth/login.js (line 28)
+controllers/auth/password.js (line 39)
+controllers/auth/password.js (line 117)
+services/authService.js (line 168)
+
+你还做了：邮箱验证 token
+密码重置 token
+token 过期时间写进数据库
+验证/重置成功后清空 token
+
+这层防的是：明文密码泄露
+重复使用旧的验证链接
+未授权改密码
+
+6. 输入校验和业务滥用限制
+你不是只靠前端校验，后端也在严格检查参数、长度、格式、年龄、ID 合法性。
+相关文件和调用：controllers/auth/register.js (line 31)
+controllers/auth/password.js (line 85)
+controllers/likes/likeUser.js (line 22)
+controllers/chats/sendMessage.js (line 17)
+controllers/moderation/reportUser.js (line 6)
+
+典型限制包括：不能自己喜欢自己
+没有头像不能点赞
+消息不能为空、不能超长
+举报理由必须足够长
+年龄必须满 18
+用户名、邮箱格式要合法
+
+这层防的是：恶意或脏数据进入数据库
+业务规则被绕过
+一些自动化骚扰行为
+
+7. SQL 注入防护和数据库安全
+你项目几乎所有 DB 调用都用参数化查询：$1, $2...，不是字符串拼接。
+相关文件和调用：services/authService.js (line 55)
+services/likeService.js (line 45)
+services/chatService.js (line 36)
+services/profileService.js (line 77)
+
+另外你还用了：ON CONFLICT DO NOTHING / DO UPDATE
+事务 BEGIN/COMMIT/ROLLBACK
+soft delete（deleted_at）
+
+这层防的是：SQL 注入
+并发重复写入
+脏删、半成功状态
+
+8. XSS 和输出安全
+前端有显式的 HTML 转义工具，渲染通知时也用了 sanitizeText。
+相关文件和调用：frontend/src/utils/xssEscape.js (line 1)
+frontend/src/notifications/NotificationsBell.jsx (line 174)
+
+这里的思路是：用户名、通知文案这类“来自别人输入的内容”先转义再显示
+React JSX 本身也会转义大部分文本插值
+
+这层防的是：<script> 之类的注入
+恶意用户名/内容在页面里执行
+
+9. 会话恢复和 token 续命
+你不是“拿到 token 就一直信任”，而是会检查本地缓存的用户状态是否还有效；过期或失效就清掉。
+相关文件和调用：frontend/src/hooks/useCurrentUser.js (line 31)
+frontend/src/hooks/useRealtimeConnection.js (line 38)
+
+它会：用 /api/profile/me 验证缓存 session
+遇到 401/403/404 就清本地用户、断 realtime、跳登录
+token 快过期时自动去 /api/auth/realtime-token 刷新
+
+这层防的是：过期 token 继续使用
+多标签页状态不同步
+realtime 因 token 失效一直报错
+
+10. 反骚扰 / 用户互相屏蔽
+你项目里不只是“认证”，还有“关系层风控”：blocked 用户之间不发通知
+被举报用户在推荐里被排除
+chat/like 关系会检查 block / match 状态
+
+相关文件和调用：services/notificationService.js (line 10)
+services/likeService.js (line 181)
+services/chatService.js (line 393)
+controllers/moderation/reportUser.js (line 22)
+
+这层防的是：被拉黑后继续骚扰
+举报后还被推荐到对方
+未匹配直接发消息
+
+我会特别提醒你的一点
+你的 realtime_token 和 API token 现在放在 localStorage 里，方便，但 XSS 一旦发生，token 风险会比 HttpOnly cookie 更高。
+所以你现在的防护里，XSS 这一层特别重要。
