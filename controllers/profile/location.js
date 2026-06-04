@@ -2,6 +2,7 @@ const {
   isNonEmptyString,
   parseUserIdFromRequest,
   resolveCurrentUserId,
+  parseLimit,
   parseOptionalCoordinate,
   reverseGeocode,
 } = require("./helpers");
@@ -13,6 +14,8 @@ const {
   fetchNeighborhoodsForCity,
 } = require("./shared");
 
+/* ========== Reverse geocode (GPS + Address) ========== */
+// Converts GPS coordinates to city/neighborhood
 async function getReverseGeocode(req, res, next) {
   try {
     const currentUserId = await resolveCurrentUserId(req);
@@ -24,6 +27,7 @@ async function getReverseGeocode(req, res, next) {
 
     const latitude = parseOptionalCoordinate(req.query.latitude);
     const longitude = parseOptionalCoordinate(req.query.longitude);
+    
     if (latitude === null || longitude === null) {
       return res.status(400).json({
         error: "latitude and longitude query params are required",
@@ -38,9 +42,13 @@ async function getReverseGeocode(req, res, next) {
   }
 }
 
+/* ========== Validate location ========== */
+// Validate a location (city/neighborhood or GPS coordinates)
 async function validateLocation(req, res, next) {
   try {
     parseUserIdFromRequest(req);
+
+    // Parse query parameters
     const city = isNonEmptyString(req.query.city) ? req.query.city.trim() : "";
     const neighborhood = isNonEmptyString(req.query.neighborhood)
       ? req.query.neighborhood.trim()
@@ -48,11 +56,9 @@ async function validateLocation(req, res, next) {
     const latitude = parseOptionalCoordinate(req.query.latitude);
     const longitude = parseOptionalCoordinate(req.query.longitude);
 
-    const rawLimit = Number(req.query.limit);
-    const limit = Number.isInteger(rawLimit)
-      ? Math.max(1, Math.min(rawLimit, 20))
-      : 12;
+    const limit = parseLimit(req.query.limit, 12, 1, 20);
 
+    // Validate input
     if (!city && !neighborhood && (latitude === null || longitude === null)) {
       return res.status(400).json({
         error:
@@ -60,6 +66,7 @@ async function validateLocation(req, res, next) {
       });
     }
 
+    // GPS fallback: convert coordinates to address
     let gpsResolved = null;
     if (latitude !== null && longitude !== null) {
       try {
@@ -73,12 +80,14 @@ async function validateLocation(req, res, next) {
     const effectiveNeighborhood =
       neighborhood || (gpsResolved ? gpsResolved.neighborhood : "");
 
+    // Get suggestion via forward geocoding
     let suggestions = await forwardGeocode({
       city: effectiveCity,
       neighborhood: effectiveNeighborhood,
       limit,
     });
 
+    // Fallback search if no result
     if (suggestions.length === 0 && effectiveCity) {
       const fallbackResults = await searchLocationsByQuery(
         effectiveNeighborhood
@@ -100,6 +109,7 @@ async function validateLocation(req, res, next) {
         .slice(0, limit);
     }
 
+    // Check if requested city/neighborhood exist in suggestion
     const wantedCity = normalizeLocationText(city);
     const wantedNeighborhood = normalizeLocationText(neighborhood);
 
@@ -142,9 +152,11 @@ async function validateLocation(req, res, next) {
   }
 }
 
+/* ========== Get Neighborhoods ========== */
 async function getCityNeighborhoods(req, res, next) {
   try {
     parseUserIdFromRequest(req);
+
     const city = isNonEmptyString(req.query.city) ? req.query.city.trim() : "";
     if (!city) {
       return res.status(400).json({
@@ -152,10 +164,7 @@ async function getCityNeighborhoods(req, res, next) {
       });
     }
 
-    const rawLimit = Number(req.query.limit);
-    const limit = Number.isInteger(rawLimit)
-      ? Math.max(1, Math.min(rawLimit, 30))
-      : 20;
+    const limit = parseLimit(req.query.limit, 20, 1, 30);
     const neighborhoods = await fetchNeighborhoodsForCity(city, limit);
 
     return res.json({
@@ -167,9 +176,11 @@ async function getCityNeighborhoods(req, res, next) {
   }
 }
 
+/* ========== City suggestions (autocomplete) ========== */
 async function getCitySuggestions(req, res, next) {
   try {
     parseUserIdFromRequest(req);
+
     const query = isNonEmptyString(req.query.query)
       ? req.query.query.trim()
       : "";
@@ -180,13 +191,14 @@ async function getCitySuggestions(req, res, next) {
       });
     }
 
-    const rawLimit = Number(req.query.limit);
-    const limit = Number.isInteger(rawLimit)
-      ? Math.max(1, Math.min(rawLimit, 50))
-      : 20;
+    const limit = parseLimit(req.query.limit, 20, 1, 30);
     const searchLimit = Math.max(limit * 6, 60);
+
+    // Search for locations
     const primaryResults = await searchLocationsByQuery(query, searchLimit);
     let results = primaryResults;
+
+    // Fallback to forward geocoding if no result 
     if (results.length === 0) {
       const geocodeFallback = await forwardGeocode({
         city: query,
@@ -202,6 +214,7 @@ async function getCitySuggestions(req, res, next) {
       }));
     }
 
+    // Filter by country 
     let countryFilter = null;
     if (results.length > 0 && results[0].country) {
       countryFilter = results[0].country.trim();
@@ -216,6 +229,7 @@ async function getCitySuggestions(req, res, next) {
       });
     }
 
+    // Deduplicate by city, keep highest importance
     const normalizedQuery = normalizeLocationText(query);
     const byCity = new Map();
     for (const item of filteredResults) {
@@ -241,6 +255,7 @@ async function getCitySuggestions(req, res, next) {
       }
     }
 
+    // Sort suggestions: startsWith > importance > alphabetical
     const suggestions = Array.from(byCity.values())
       .sort((a, b) => {
         const aStarts = normalizeLocationText(a.city).startsWith(

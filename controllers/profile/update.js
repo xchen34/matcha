@@ -22,6 +22,7 @@ const {
 
 async function updateMyProfile(req, res, next) {
   try {
+    /* ========= Authentication ========== */
     const currentUserId = await resolveCurrentUserId(req);
     if (!currentUserId) {
       return res.status(401).json({
@@ -29,6 +30,7 @@ async function updateMyProfile(req, res, next) {
       });
     }
 
+    /* ========= Extract request body ========== */
     const {
       username,
       first_name,
@@ -47,6 +49,7 @@ async function updateMyProfile(req, res, next) {
       photos,
     } = req.body;
 
+    /* ========= Validate biography ========== */
     if (
       biography !== undefined &&
       biography !== null &&
@@ -64,6 +67,7 @@ async function updateMyProfile(req, res, next) {
       });
     }
 
+    /* ========= Validate gender ========== */
     const safeGender = isNonEmptyString(gender) ? gender.trim() : null;
     if (!safeGender) {
       return res.status(400).json({
@@ -77,6 +81,7 @@ async function updateMyProfile(req, res, next) {
       });
     }
 
+    /* ========= Validate sexual preference ========== */
     let safeSexualPreference = sexual_preference;
     if (
       !safeSexualPreference ||
@@ -85,6 +90,7 @@ async function updateMyProfile(req, res, next) {
       safeSexualPreference = "both";
     }
 
+    /* ========= Validate location ========== */
     const gpsConsent = Boolean(gps_consent);
     let safeCity = isNonEmptyString(city) ? city.trim() : "";
     let safeNeighborhood = isNonEmptyString(neighborhood)
@@ -128,6 +134,7 @@ async function updateMyProfile(req, res, next) {
       });
     }
 
+    /* ========= Validate tags ========== */
     let normalizedTags = null;
     if (tags !== undefined) {
       normalizedTags = normalizeTagsInput(tags);
@@ -143,6 +150,7 @@ async function updateMyProfile(req, res, next) {
       }
     }
 
+    /* ========= Validate photos ========== */
     let normalizedPhotos = null;
     if (photos !== undefined) {
       const photoResult = await normalizePhotosInput(photos);
@@ -154,6 +162,7 @@ async function updateMyProfile(req, res, next) {
       normalizedPhotos = photoResult ? photoResult.photos : null;
     }
 
+    /* ========= Validate name field ========== */
     const normalizedFirstName = isNonEmptyString(first_name)
       ? first_name.trim()
       : null;
@@ -163,9 +172,6 @@ async function updateMyProfile(req, res, next) {
     const normalizedUsername = isNonEmptyString(username)
       ? username.trim()
       : null;
-    let normalizedBirthDate = isNonEmptyString(birth_date)
-      ? birth_date.trim()
-      : null;
 
     if (normalizedUsername && !USERNAME_PATTERN.test(normalizedUsername)) {
       return res.status(400).json({
@@ -173,6 +179,11 @@ async function updateMyProfile(req, res, next) {
           "username is invalid (use 2-20 characters: letters, numbers, dot, underscore, hyphen)",
       });
     }
+
+    /* ========= Validate birth date ========== */
+    let normalizedBirthDate = isNonEmptyString(birth_date)
+      ? birth_date.trim()
+      : null;
 
     if (normalizedBirthDate) {
       const parsedBirthDate = parseBirthDate(normalizedBirthDate);
@@ -206,6 +217,7 @@ async function updateMyProfile(req, res, next) {
       normalizedBirthDate = parsedBirthDate.toISOString().slice(0, 10);
     }
 
+    /* ========= Update profile in database ========== */
     const result = await profileService.updateProfile(
       currentUserId,
       {
@@ -226,11 +238,13 @@ async function updateMyProfile(req, res, next) {
       normalizedPhotos,
     );
 
+    /* ========= Extract results ========== */
     const updatedProfile = result.profileRow;
     const userResult = result.userRow;
     const photosResultData = result.photosRow;
     const tagsResultRows = result.tagsRow;
 
+    /* ========= Build response payload ========== */
     const profilePayload = {
       gender: updatedProfile.gender || "",
       sexual_preference: updatedProfile.sexual_preference || "",
@@ -251,7 +265,10 @@ async function updateMyProfile(req, res, next) {
       })),
     };
 
+    /* ========= Check profile completion ========== */
     const isCompletedNow = isProfileCompleted(userResult, profilePayload);
+    
+    /* ========= Emit real-time update via Socket.IO ========== */
     const io = getIO();
     if (io) {
       const socketPayload = {
@@ -284,6 +301,7 @@ async function updateMyProfile(req, res, next) {
       profile: profilePayload,
     });
   } catch (error) {
+    /* Handle duplicate username error */
     if (error.code === "23505" && error.constraint === "users_username_key") {
       return res.status(409).json({
         error: "Username already exists",

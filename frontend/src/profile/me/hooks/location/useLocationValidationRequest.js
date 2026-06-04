@@ -7,13 +7,17 @@ export default function useLocationValidationRequest({
   form,
   setMessage,
 }) {
+  /* ========== State ========== */
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [locationValidation, setLocationValidation] = useState(null);
   const [validatingLocation, setValidatingLocation] = useState(false);
 
+  /* ========== Cache for validation results to optimize repeated checks ========== */
   const validationCacheRef = useRef(new Map());
+  /* ========== Ref to track latest validation request to prevent race conditions ========== */
   const latestValidationRequestRef = useRef(0);
 
+  /* ========== Validate location input with API call ========== */
   const validateLocationInput = useCallback(
     async (options = {}) => {
       const { silent = false } = options;
@@ -46,10 +50,10 @@ export default function useLocationValidationRequest({
         latitude,
         longitude,
       );
-      const cached = validationCacheRef.current.get(cacheKey);
-      if (cached) {
-        setLocationValidation(cached.validation || null);
-        setLocationSuggestions(cached.suggestions || []);
+      const cachedResult = validationCacheRef.current.get(cacheKey);
+      if (cachedResult) {
+        setLocationValidation(cachedResult.validation || null);
+        setLocationSuggestions(cachedResult.suggestions || []);
         return;
       }
 
@@ -60,7 +64,7 @@ export default function useLocationValidationRequest({
       const requestId = latestValidationRequestRef.current + 1;
       latestValidationRequestRef.current = requestId;
 
-      /* ========== Build query parameters for validation API ========== */
+      /* ========== Build query parameters for validation API (max 5 results)========== */
       const params = new URLSearchParams();
       if (city) params.set("city", city);
       if (neighborhood) params.set("neighborhood", neighborhood);

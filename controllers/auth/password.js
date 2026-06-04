@@ -36,7 +36,7 @@ async function forgotPassword(req, res, next) {
       });
     }
 
-    // Generate a password reset token and save it to the database
+    // Generate a password reset token and save it to the database (60-minute expiry)
     const resetToken = generateResetToken();
     const resetExpiry = new Date(Date.now() + 60 * 60 * 1000);
 
