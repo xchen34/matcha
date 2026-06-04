@@ -80,7 +80,7 @@ export default function useProfileLocationValidation({
       .slice(0, 12);
   }, [citySuggestionOptions, form.city]);
 
-  /* ========== Memoized neighborhood suggestions for the selected city ========== */
+  /* ========== Memoized neighborhood suggestions for the selected city (avoid double suggestions) ========== */
   const neighborhoodByCitySuggestions = useMemo(() => {
     const selectedCity = normalizeLocationPrefix(form.city);
     if (!selectedCity) return [];
@@ -111,7 +111,6 @@ export default function useProfileLocationValidation({
     cityNeighborhoodOptions.length > 0
       ? cityNeighborhoodOptions
       : neighborhoodByCitySuggestions;
-
 
   /* ============ Effect to fetch city suggestions based on city input ============ */
   useEffect(() => {
@@ -217,8 +216,13 @@ export default function useProfileLocationValidation({
 
   /* ============ Handlers for applying city suggestions and editing location ============ */
   function applyCitySuggestion(option) {
-    setForm((prev) => ({ ...prev, city: option.city, neighborhood: "" }));
+    setForm((prev) => ({
+      ...prev,
+      city: option.city,
+      neighborhood: "",
+    }));
     setIsCityConfirmed(true);
+    
     setLocationValidation((prev) => ({
       ...(prev || {}),
       is_valid: true,
@@ -226,6 +230,7 @@ export default function useProfileLocationValidation({
       neighborhood_exists: true,
       matched_exact_suggestion: true,
     }));
+
     setCityNeighborhoodOptions([]);
     setCitySearchSuggestions([]);
     setIsNeighborhoodSelected(false);

@@ -61,6 +61,7 @@ async function normalizePhotosInput(photos) {
   let hasPrimary = false;
 
   for (const item of photos) {
+    // Validate item structure exists
     if (!item || typeof item.data_url !== "string") {
       return {
         error: "Each photo must include a data_url string",
@@ -84,6 +85,8 @@ async function normalizePhotosInput(photos) {
         error: "Invalid photo format (base64 missing)",
       };
     }
+
+    // Convert base64 string to buffer
     let buffer;
     try {
       buffer = Buffer.from(base64Match[1], "base64");
@@ -108,6 +111,7 @@ async function normalizePhotosInput(photos) {
       };
     }
 
+    // Check total size limit for all photos combined
     totalSize += buffer.length;
     if (totalSize > MAX_TOTAL_PHOTOS_SIZE_BYTES) {
       return {
@@ -115,6 +119,7 @@ async function normalizePhotosInput(photos) {
       };
     }
 
+    // Check if this photo is marked as primary
     const isPrimary = Boolean(item.is_primary);
     if (isPrimary) hasPrimary = true;
 

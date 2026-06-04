@@ -143,7 +143,7 @@ async function requestEmailChange(req, res, next) {
       });
     }
 
-    // Generate a verification token 
+    // Generate a verification token (24-hour expiry) 
     const verificationToken = generateVerificationToken();
     const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 

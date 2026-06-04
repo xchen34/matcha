@@ -28,6 +28,7 @@ async function initDb() {
     
     const seedFakeUsersSql = loadSql("seed_fake_users.sql");
 
+    /*  ---------------- Migrate legacy users to new schema  ---------------- */
     const migrateLegacyUsersSql = `
       ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(50);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100);
@@ -80,24 +81,39 @@ async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_email_verification_token ON users(email_verification_token);
       CREATE INDEX IF NOT EXISTS idx_users_pending_email ON users(pending_email);
       CREATE INDEX IF NOT EXISTS idx_password_reset_token ON users(password_reset_token);
-
+      
       ALTER TABLE profiles ADD COLUMN IF NOT EXISTS neighborhood VARCHAR(120) NOT NULL DEFAULT '';
       ALTER TABLE profiles ADD COLUMN IF NOT EXISTS gps_consent BOOLEAN NOT NULL DEFAULT FALSE;
 
     `;
 
+    /*  ---------------- Execute SQL Scripts  ---------------- */
+    
+    // 1. Create tables and seed initial data
     await pool.query(createUsersSql);
     await pool.query(createProfilesSql);
+
+    // 2. Create additional tables and seed data
     await pool.query(createLikesSql);
     await pool.query(createViewsSql);
+
+    // 3. Create tags and profile_tags tables, and seed default tags
     await pool.query(createTagsSql);
     await pool.query(seedDefaultTagsSql);
     await pool.query(createProfileTagsSql);
+
+    // 4. Create notifications, fake reports, user blocks
     await pool.query(createNotificationsSql);
     await pool.query(createFakeReportsSql);
     await pool.query(createUserBlocksSql);
+
+    // 5. Create chat tables, migrate legacy users
     await pool.query(createChatSql);
+
+    // 6. Migrate legacy users to new schema
     await pool.query(migrateLegacyUsersSql);
+
+    // 7. Seed fake users and create user photos
     await pool.query(seedFakeUsersSql);
     await pool.query(createUserPhotosSql);
 

@@ -1,5 +1,6 @@
 const profileService = require("../../services/profileService");
 
+// Get profile tags with usage statistics (default limit: 100)
 async function getProfileTags(req, res, next) {
   try {
     const rawLimit = Number(req.query.limit);

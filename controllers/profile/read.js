@@ -6,6 +6,7 @@ const {
   getAge,
 } = require("./helpers");
 
+/* ========== Get my profile (private) ========== */
 async function getMyProfile(req, res, next) {
   try {
     const currentUserId = await resolveCurrentUserId(req);
@@ -70,6 +71,7 @@ async function getMyProfile(req, res, next) {
   }
 }
 
+/* ========== Get public profile by id (other users) ========== */
 async function getPublicProfile(req, res, next) {
   try {
     const requestedId = Number(req.params.id);

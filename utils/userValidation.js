@@ -1,6 +1,7 @@
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]{2,20}$/;
 const MIN_BIRTH_DATE_ISO = "1900-01-01";
 
+/* ========== Normalize strings ========== */
 const normalizeString = (value) =>
   typeof value === "string" ? value.trim() : "";
 
@@ -14,16 +15,18 @@ function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+/* ========== Email validation ========== */
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/* ========== Birth date validation ========== */
 function getMinBirthDateIso() {
   const date = new Date();
   date.setUTCHours(0, 0, 0, 0);
   date.setUTCFullYear(date.getUTCFullYear() - 100);
 
   return date.toISOString().slice(0, 10);
-}
-
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function parseBirthDate(value) {
@@ -66,6 +69,7 @@ function isAtLeast18YearsOld(birthDate) {
   return age >= 18;
 }
 
+/* ========== Profile completion ========== */
 function isProfileCompleted(user, profile = {}) {
   const u = user || {};
   const p = profile || {};

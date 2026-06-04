@@ -7,6 +7,8 @@ const {
   extractAddressParts,
 } = require("./helpers");
 
+/* ========== Text normalization ========== */
+// Normalize location text (lowercase, trim, remove accents, trim spaces)
 function normalizeLocationText(value) {
   if (!isNonEmptyString(value)) return "";
 
@@ -18,12 +20,14 @@ function normalizeLocationText(value) {
     .replace(/\s+/g, " ");
 }
 
+// Extract first part of display name (before comma)
 function splitDisplayName(displayName) {
   if (!isNonEmptyString(displayName)) return "";
 
   return displayName.split(",")[0].trim();
 }
 
+// Check if two location texts match (exact or partial)
 function locationTextMatches(expected, candidate) {
   const wanted = normalizeLocationText(expected);
   const got = normalizeLocationText(candidate);
@@ -34,6 +38,7 @@ function locationTextMatches(expected, candidate) {
   return wanted === got || got.startsWith(wanted) || wanted.startsWith(got);
 }
 
+// Remove duplicate suggestions, keeps the one with highest importance  
 function dedupeLocationSuggestions(suggestions) {
   const byAddress = new Map();
 
@@ -48,21 +53,26 @@ function dedupeLocationSuggestions(suggestions) {
   return Array.from(byAddress.values());
 }
 
+/* ========== Geocoding functions ========== */
+// Convert city/neighborhood to GPS coordinates and location details
 async function forwardGeocode({ city, neighborhood, limit }) {
   const cacheKey = `forward:${normalizeLocationText(city)}:${normalizeLocationText(neighborhood)}:${limit}`;
   const cached = getCachedValue(cacheKey);
   if (cached) return cached;
 
+  // Build query variants to improve geocoding success
   const parts = [];
   if (isNonEmptyString(neighborhood)) parts.push(neighborhood.trim());
   if (isNonEmptyString(city)) parts.push(city.trim());
   if (parts.length === 0) return [];
 
   const queryVariants = [parts.join(", ")];
+  // Variant: city only
   if (parts.length > 1 && isNonEmptyString(city)) {
     queryVariants.push(city.trim());
   }
 
+  // Variant: broader city (remove last token)
   if (isNonEmptyString(city)) {
     const normalizedCity = city.trim().replace(/\s+/g, " ");
     const cityTokens = normalizedCity.split(" ");
@@ -81,6 +91,7 @@ async function forwardGeocode({ city, neighborhood, limit }) {
     new Set(queryVariants.filter((item) => isNonEmptyString(item))),
   );
 
+  // Try each query variant until we get results
   let data = [];
   for (const query of uniqueQueryVariants) {
     const endpoint =
@@ -118,6 +129,7 @@ async function forwardGeocode({ city, neighborhood, limit }) {
 
   if (!Array.isArray(data) || data.length === 0) return [];
 
+  // Map API response to our format
   const mapped = data.map((entry) => {
     const partsFromApi = extractAddressParts(entry.address);
     const fallbackCity = splitDisplayName(entry.display_name || "");
@@ -141,6 +153,8 @@ async function forwardGeocode({ city, neighborhood, limit }) {
   return deduped;
 }
 
+/* ========== Search locations ========== */
+// Search locations by free text query (used for autocomplete)
 async function searchLocationsByQuery(query, limit) {
   const cacheKey = `search:${normalizeLocationText(query)}:${limit}`;
   const cached = getCachedValue(cacheKey);
@@ -194,12 +208,16 @@ async function searchLocationsByQuery(query, limit) {
   return mapped;
 }
 
+/* ========== Fetch neighborhoods for a city ========== */
+// Fetch neighborhoods for a given city, with caching
 async function fetchNeighborhoodsForCity(city, limit) {
   const cacheKey = `neighborhoods:${normalizeLocationText(city)}:${limit}`;
   const cached = getCachedValue(cacheKey);
   if (cached) return cached;
 
   const cleanCity = city.trim();
+
+  // First, geocode the city to get its country
   const cityResults = await forwardGeocode({
     city: cleanCity,
     neighborhood: "",
@@ -213,6 +231,8 @@ async function fetchNeighborhoodsForCity(city, limit) {
 
   const cityCountry = cityResults[0].country || "";
   const normalizedCityCountry = normalizeLocationText(cityCountry);
+  
+  // Search patterns to find neighborhoods
   const variants = [
     cleanCity,
     `district, ${cleanCity}`,
@@ -225,6 +245,7 @@ async function fetchNeighborhoodsForCity(city, limit) {
   const uniqueVariants = Array.from(new Set(variants));
   const neighborhoodsByKey = new Map();
 
+  // First try with country filter
   for (const query of uniqueVariants) {
     const results = await searchLocationsByQuery(query, limit);
     for (const item of results) {
@@ -253,6 +274,7 @@ async function fetchNeighborhoodsForCity(city, limit) {
     }
   }
 
+  // Second try without country filter if we got no results (fallback)
   if (neighborhoodsByKey.size === 0) {
     for (const query of uniqueVariants) {
       const results = await searchLocationsByQuery(query, limit);
@@ -273,6 +295,7 @@ async function fetchNeighborhoodsForCity(city, limit) {
     }
   }
 
+  // Sort alphabetically and limit results
   const result = Array.from(neighborhoodsByKey.values())
     .sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),

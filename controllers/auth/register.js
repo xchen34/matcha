@@ -89,7 +89,7 @@ async function register(req, res, next) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Check token for email verification and create user
+    // Check token for email verification and create user (24-hour expiry)
     const verificationToken = generateVerificationToken();
     const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 

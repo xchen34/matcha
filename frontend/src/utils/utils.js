@@ -22,6 +22,7 @@ export function buildApiHeaders(currentUser, extraHeaders = {}) {
   return headers;
 }
 
+/* ========== Token utilities ========== */
 function decodeBase64Url(value) {
   try {
     const base64 = value.replace(/-/g, "+").replace(/_/g, "/");

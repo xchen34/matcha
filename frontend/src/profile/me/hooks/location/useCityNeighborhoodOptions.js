@@ -16,14 +16,14 @@ export default function useCityNeighborhoodOptions({
     let cancelled = false;
 
     async function loadCityNeighborhoods() {
-      /* Exit if prerequisites are not met */
+      /* ========== Check prerequisites ========== */
       if (!userId || !hasCityInput || !isCitySelected) {
         setCityNeighborhoodOptions([]);
         setLoadingNeighborhoods(false);
         return;
       }
 
-      /* Check cache first */
+      /* ========== Check cache first ========== */
       const cityCacheKey = normalizeLocationPrefix(form.city);
       const cached = cityNeighborhoodCacheRef.current.get(cityCacheKey);
       if (cached) {
@@ -32,9 +32,10 @@ export default function useCityNeighborhoodOptions({
         return;
       }
 
-      /* API request to fetch neighborhoods for the selected city */
+      /* ========== API request to fetch neighborhoods for the selected city (20 results) ========== */
       try {
         setLoadingNeighborhoods(true);
+
         const params = new URLSearchParams();
         params.set("city", form.city.trim());
         params.set("limit", "20");
@@ -53,7 +54,7 @@ export default function useCityNeighborhoodOptions({
           return;
         }
 
-        /* Transform API response into options format */
+        /* ========== Transform API response into options format ========== */
         const options = Array.isArray(data.neighborhoods)
           ? data.neighborhoods.map((item) => ({
               value: item.name,
@@ -61,7 +62,7 @@ export default function useCityNeighborhoodOptions({
             }))
           : [];
 
-        /* Update state and cache with the fetched options */
+        /* ========== Update state and cache with the fetched options ========== */
         if (!cancelled) {
           cityNeighborhoodCacheRef.current.set(cityCacheKey, options);
           setCityNeighborhoodOptions(options);
@@ -79,6 +80,7 @@ export default function useCityNeighborhoodOptions({
 
     loadCityNeighborhoods();
 
+    /* ========== Cleanup function ========== */
     return () => {
       cancelled = true;
     };
