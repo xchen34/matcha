@@ -15,7 +15,7 @@ const { createNotification } = require("../../services/notificationService");
  */
 async function viewProfile(req, res, next) {
   try {
-    const rawViewerUserId = String(req.userId ?? "");
+    const rawViewerUserId = String(req.userId ?? ""); 
     const rawViewedUserId = req.params.id;
     const viewerId = Number(rawViewerUserId);
     const viewedId = Number(rawViewedUserId);

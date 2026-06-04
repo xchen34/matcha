@@ -3,6 +3,13 @@ const { ipKeyGenerator } = require("express-rate-limit");
 const isProduction = process.env.NODE_ENV === "production";
 
 /* ========== Helpers ========== */
+/**
+ * Parse a positive integer from an environment variable.
+ *
+ * Implementation details:
+ * - Uses base-10 parsing so accidental hex-like strings do not slip through.
+ * - Returns the provided fallback when the value is missing or invalid.
+ */
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -11,6 +18,15 @@ function parsePositiveInt(value, fallback) {
   return parsed;
 }
 
+/**
+ * Build a stable per-client key for rate limiting.
+ *
+ * Implementation details:
+ * - Prefers the request IP address.
+ * - Falls back to the socket remote address.
+ * - Uses `ipKeyGenerator()` so the key format matches express-rate-limit's
+ *   expectations.
+ */
 function getClientKey(req) {
   // Prefer real IP; fallback keeps limits stable in local/dev tests.
   const clientIp = req.ip || req.socket?.remoteAddress;
