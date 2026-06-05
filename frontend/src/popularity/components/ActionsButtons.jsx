@@ -18,13 +18,15 @@ export default function ActionButtons({
         {/* Mobile */}
         <span className="ml-1 sm:hidden">
           View
-          </span>
+        </span>
 
-        {/* Other */}
+        {/* Desktop */}
         <span className="ml-1 hidden sm:inline">
           View profile
         </span>
       </button>
+
+      {/* Chat button (only in matches mode) */}
       {mode === "matches" && (
         <button
           type="button"

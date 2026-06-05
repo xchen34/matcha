@@ -4,7 +4,7 @@ import { formatLastSeen } from "@/utils/date.js";
 import { Activity, Calendar, Compass, MapPin, User } from "lucide-react";
 import { capitalizeFirst } from "@/utils/utils.js";
 
-export default function ProfileInfoGrid({ user, profile, isOwnProfile }) {
+export default function ProfileInfoGrid({ user, profile }) {
   return (
     <div className="h-full space-y-3 rounded-xl bg-white/70 p-4">
       {/* GENDER*/}
@@ -25,27 +25,7 @@ export default function ProfileInfoGrid({ user, profile, isOwnProfile }) {
         <p className="mt-1 text-slate-800">{profile.age ?? "-"}</p>
       </div>
 
-      {/* BIRTH DATE - ONLY VISIBLE TO OWNER */}
-      {isOwnProfile && (
-        <div>
-          <FieldLabel icon={Calendar}>Birth date</FieldLabel>
-          <p className="mt-1 text-slate-800">
-            {profile.birth_date
-              ? (() => {
-                  const [y, m, d] = profile.birth_date.split("-");
-                  if (!y || !m || !d) return "-";
-                  const date = new Date(Number(y), Number(m) - 1, Number(d));
-                  return date.toLocaleDateString("en-GB", {
-                    year: "numeric",
-                    month: "2-digit",
-                    day: "2-digit",
-                  });
-                })()
-              : "-"}
-          </p>
-        </div>
-      )}
-
+      {/* STATUS (online/offline)*/}
       <div className="space-y-2 pt-1">
         <FieldLabel icon={Activity}>Status</FieldLabel>
 
@@ -71,6 +51,7 @@ export default function ProfileInfoGrid({ user, profile, isOwnProfile }) {
             {user.is_online ? "Online" : "Offline"}
           </span>
 
+          {/* Last seen (if offline) */ }
           <span className="text-xs text-slate-500">
             Last connection:{" "}
             <span className="text-slate-700 font-medium">

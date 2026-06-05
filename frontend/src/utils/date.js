@@ -1,4 +1,5 @@
 /* ========== Birth date constants and validation ========== */
+// Minimum birth date to be considered valid (100 years old)
 export const MIN_BIRTH_DATE_ISO = (() => {
     const now = new Date();
     const year = now.getFullYear() - 100;
@@ -8,6 +9,7 @@ export const MIN_BIRTH_DATE_ISO = (() => {
     return `${year}-${month}-${day}`;
 })();
 
+// Max birth date to be considered an adult (18 years old)
 export function getMaxAdultBirthDateIso() {
     const date = new Date();
 
@@ -17,6 +19,7 @@ export function getMaxAdultBirthDateIso() {
     return date.toISOString().slice(0, 10);
 }
 
+// Validate birth date string in ISO format and check if it's within the allowed range.
 export function isValidBirthDateIso(value, minIso, maxIso) {
     if (typeof value !== "string") return false;
 

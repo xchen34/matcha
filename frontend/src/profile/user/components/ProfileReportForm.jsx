@@ -6,6 +6,7 @@ function ProfileReportForm({ report }) {
       onSubmit={report.submitReport}
       className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3"
     >
+      {/* LABEL */}
       <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
         Reason for reporting
       </label>
@@ -19,11 +20,14 @@ function ProfileReportForm({ report }) {
         placeholder="Explain why this profile looks fake"
       />
 
+      {/* Error message */ }
       {report.error && (
         <p className="text-sm text-red-600">{report.error}</p>
       )}
 
+      {/* BUTTONS */ }
       <div className="flex items-center gap-2">
+        {/* Submit button */}
         <button
           type="submit"
           disabled={report.reporting}
@@ -43,6 +47,7 @@ function ProfileReportForm({ report }) {
           )}
         </button>
 
+        {/* Cancel button */}
         <button
           type="button"
           onClick={report.closeReportForm}

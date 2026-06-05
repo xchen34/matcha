@@ -54,12 +54,16 @@ async function getSuggestions(req, res, next) {
     const parsedMaxAge = parseOptionalNumber(max_age);
     const minAge = parsedMinAge === null ? null : Math.min(Math.max(parsedMinAge, 18), 150);
     const maxAge = parsedMaxAge === null ? null : Math.min(Math.max(parsedMaxAge, 18), 150);
+    
     const parsedMinFame = parseOptionalNumber(min_fame);
     const parsedMaxFame = parseOptionalNumber(max_fame);
     const minFame = parsedMinFame === null ? null : Math.min(Math.max(parsedMinFame, 0), 100);
     const maxFame = parsedMaxFame === null ? null : Math.min(Math.max(parsedMaxFame, 0), 100);
+    
     const cityFilter = typeof city === "string" && city.trim().length > 0 ? city.trim() : null;
+    
     const tagsFilter = parseTagsQueryParam(tags);
+    
     const usernameFilter = typeof username === "string" && username.trim().length > 0 ? username.trim() : null;
 
     const normalizedSortBy = typeof sort_by === "string" ? sort_by.trim().toLowerCase() : "";

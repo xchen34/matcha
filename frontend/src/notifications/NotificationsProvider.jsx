@@ -73,6 +73,7 @@ export function NotificationsProvider({ currentUser, children }) {
         return;
       }
 
+      // Got it: Mark all as read
       setNotifications((prev) => prev.map((item) => ({ ...item, is_read: true })));
       setUnreadCount(0);
     } catch {
@@ -85,6 +86,7 @@ export function NotificationsProvider({ currentUser, children }) {
     async (notificationId) => {
       if (!currentUser || !notificationId) return;
 
+      // Skip if already read
       const existing = notifications.find((item) => item.id === notificationId);
       if (!existing || existing.is_read) return;
 
@@ -103,6 +105,7 @@ export function NotificationsProvider({ currentUser, children }) {
           return;
         }
 
+        // Mark specific notification as read
         setNotifications((prev) =>
           prev.map((item) =>
             item.id === notificationId ? { ...item, is_read: true } : item,
@@ -145,11 +148,13 @@ export function NotificationsProvider({ currentUser, children }) {
           return;
         }
 
+        // Add new notification to list
         setNotifications((prev) => {
           const deduped = prev.filter((item) => item.id !== incoming.id);
           return sortByNewest([incoming, ...deduped]);
         });
 
+        // Update attention badge per mode
         const mode = mapTypeToMode(incoming.type);
         const parsedActorUserId = Number(incoming.actor_user_id);
         
@@ -197,6 +202,7 @@ export function NotificationsProvider({ currentUser, children }) {
   const notificationInsights = useNotificationInsights(notifications);
   const notificationGroups = useNotificationGroups(notifications);
 
+  // Calculate the counts of notification
   const attentionBadges = useMemo(
     () => ({
       views: attentionUsersByMode.views.size,

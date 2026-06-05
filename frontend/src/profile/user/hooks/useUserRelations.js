@@ -34,6 +34,8 @@ export function useUserRelations(id, currentUser, profile) {
         // Update state based on API responses
         setLiked(Boolean(likeRes.ok && likeData?.liked));
         setIsMatch(Boolean(matchRes.ok && matchData?.is_match));
+
+        // If the user's has a profile photo
         setCanLikeProfiles(
           Array.isArray(meData?.profile?.photos) &&
             meData.profile.photos.some((p) => p.is_primary),
@@ -62,6 +64,7 @@ export function useUserRelations(id, currentUser, profile) {
 
     try {
       if (!liked) {
+        // Send like request
         const res = await fetch(`/api/users/${id}/like`, {
           method: "POST",
           headers: buildApiHeaders(currentUser),
@@ -69,6 +72,7 @@ export function useUserRelations(id, currentUser, profile) {
 
         if (res.ok) setLiked(true);
       } else {
+        // Delete like
         const res = await fetch(`/api/users/${id}/like`, {
           method: "DELETE",
           headers: buildApiHeaders(currentUser),
@@ -81,14 +85,12 @@ export function useUserRelations(id, currentUser, profile) {
       }
 
       // Always check match status after toggling like, as it may have changed
-      const matchRes = await fetch(`/api/users/${id}/is-match`, 
-        {
-          headers: buildApiHeaders(currentUser),
-        }
-      );
-
+      const matchRes = await fetch(`/api/users/${id}/is-match`, {
+        headers: buildApiHeaders(currentUser),
+      });
       const matchData = await matchRes.json().catch(() => ({}));
       setIsMatch(Boolean(matchData?.is_match));
+      
     } catch (e) {
       setLikeError(e?.message || "Error");
     } finally {

@@ -7,11 +7,16 @@ import { clearStoredUser, readStoredUser } from "@/utils/userStorage.js";
 export function useCurrentUser() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Initialize currentUser state from localStorage (if available).
   const [currentUser, setCurrentUser] = useState(readStoredUser());
 
+  // Determine if the user's profile is locked (incomplete)
   const isProfileLocked = Boolean(
     currentUser && !currentUser.profile_completed,
   );
+
+  // Check if the current page is the login page
   const isLoginPage = location.pathname === "/login";
 
   /* ========== Redirect logic on user state change ========== */
@@ -33,20 +38,18 @@ export function useCurrentUser() {
     let cancelled = false;
 
     async function validateStoredSession() {
-      if (!currentUser?.id) {
-        return;
-      }
+      if (!currentUser?.id) return;
 
       try {
-        const response = await fetch("/api/profile/me", 
-          {
-            headers: buildApiHeaders(currentUser),
-          }
-        );
+        // Try to fetch the user's profile to validate the session.
+        const response = await fetch("/api/profile/me", {
+          headers: buildApiHeaders(currentUser),
+        });
 
         if (cancelled) return;
         if (response.ok) return;
 
+        // Token is invalid or expired
         if ([401, 403, 404].includes(response.status)) {
           disconnectRealtime();
           clearStoredUser();
@@ -62,7 +65,6 @@ export function useCurrentUser() {
     }
 
     void validateStoredSession();
-
     return () => {
       cancelled = true;
     };
@@ -76,11 +78,9 @@ export function useCurrentUser() {
     if (currentUser?.id) {
       fetch("/api/auth/logout", {
         method: "POST",
-        headers: buildApiHeaders(currentUser, 
-          {
+        headers: buildApiHeaders(currentUser, {
           "Content-Type": "application/json",
-          }
-        ),
+        }),
       }).catch(() => {
         // ignore errors - logout succeeds even if API call fails
       });
@@ -99,16 +99,13 @@ export function useCurrentUser() {
     }
 
     try {
-      const response = await fetch("/api/auth/delete-account", 
-        {
-          method: "DELETE",
-          headers: buildApiHeaders(
-            currentUser,
-            { "Content-Type": "application/json" },
-          ),
-          body: JSON.stringify({ password, email: currentUser.email || "" }),
-        }
-      );
+      const response = await fetch("/api/auth/delete-account", {
+        method: "DELETE",
+        headers: buildApiHeaders(currentUser, {
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ password, email: currentUser.email || "" }),
+      });
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {

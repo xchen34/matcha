@@ -39,8 +39,10 @@ export function getLatestPerActorAndType(items, unreadOnly = false) {
 
   for (const item of sortByNewest(items)) {
     if (unreadOnly && item.is_read) continue;
+
     const actorUserId = getActorUserId(item.actor_user_id);
     if (!actorUserId) continue;
+    
     const key = `${actorUserId}:${item.type}`;
     if (!latestByActorAndType.has(key)) {
       latestByActorAndType.set(key, item);
@@ -61,6 +63,7 @@ export function deriveAttentionFromNotifications(items) {
     if (!mode || !actorUserId) {
       continue;
     }
+
     result[mode].add(actorUserId);
   }
 
@@ -76,6 +79,7 @@ export function sortByNewest(items) {
     if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0;
     if (Number.isNaN(aTime)) return 1;
     if (Number.isNaN(bTime)) return -1;
+    
     if (bTime !== aTime) return bTime - aTime;
 
     const aId = Number(a?.id || 0);

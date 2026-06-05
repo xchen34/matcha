@@ -24,7 +24,6 @@ import {
   ProfileAlerts,
 } from "./components";
 
-
 function UserProfilePage({ currentUser }) {
   const { id } = useParams();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -77,17 +76,19 @@ function UserProfilePage({ currentUser }) {
 
   /* ========== Record profile view ========== */
   useEffect(() => {
-    const viewedUserId = Number(id);
-    const viewerUserId = Number(currentUser?.id);
-    if (!Number.isInteger(viewedUserId) || viewedUserId <= 0) return;
-    if (!Number.isInteger(viewerUserId) || viewerUserId <= 0) return;
-    if (viewerUserId === viewedUserId) return;
+    const targetUserId = Number(id);
+    const currentUserId = Number(currentUser?.id);
 
-    const dedupeKey = `${viewerUserId}:${viewedUserId}`;
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) return;
+    if (!Number.isInteger(currentUserId) || currentUserId <= 0) return;
+    if (currentUserId === targetUserId) return;
+
+    // Avoid duplicate API calls on re-renders, if refresh
+    const dedupeKey = `${currentUserId}:${targetUserId}`;
     if (recordedViewsRef.current.has(dedupeKey)) return;
     recordedViewsRef.current.add(dedupeKey);
 
-    void fetch(`/api/users/${viewedUserId}/view`, {
+    void fetch(`/api/users/${targetUserId}/view`, {
       method: "POST",
       headers: buildApiHeaders(currentUser, {
         "Content-Type": "application/json",
@@ -192,7 +193,6 @@ function UserProfilePage({ currentUser }) {
         <ProfileInfoGrid
           user={user}
           profile={profile}
-          isOwnProfile={isOwnProfile}
         />
 
         <div className="space-y-3 rounded-xl bg-white/70 p-4">

@@ -2,9 +2,14 @@ const pool = require("../db");
 
 class ModerationService {
   /*  ========== Helpers  ========== */
+  // Check if all user IDs in the array exist in the database
   async usersExist(userIds) {
     const result = await pool.query(
-      `SELECT COUNT(*)::int AS count FROM users WHERE id = ANY($1::int[])`,
+      `
+      SELECT COUNT(*)::int AS count 
+      FROM users 
+      WHERE id = ANY($1::int[])
+      `,
       [userIds]
     );
 
@@ -12,6 +17,7 @@ class ModerationService {
   }
 
   /*  ========== Blocked Users  ========== */
+  // Blocking user
   async blockUser(blockerId, blockedId) {
     await pool.query(
       `
@@ -23,11 +29,13 @@ class ModerationService {
     );
   }
 
+  // Unblocking user
   async unblockUser(blockerId, blockedId) {
     const result = await pool.query(
       `
       DELETE FROM user_blocks
-      WHERE blocker_user_id = $1 AND blocked_user_id = $2
+      WHERE blocker_user_id = $1 
+        AND blocked_user_id = $2
       RETURNING id
       `,
       [blockerId, blockedId]
@@ -36,6 +44,7 @@ class ModerationService {
     return result.rowCount > 0;
   }
 
+  // Get list of blocked users for a given user
   async getBlockedUsers(userId) {
     const result = await pool.query(
       `
@@ -52,6 +61,7 @@ class ModerationService {
   }
 
   /*  ========== Report Fake Accounts  ========== */
+  // Reporting a user as fake (or updating existing report)
   async reportFake(reporterId, reportedId, reason) {
     const result = await pool.query(
       `
@@ -68,14 +78,25 @@ class ModerationService {
   }
 
   /*  ---------------- Moderation Status  ---------------- */
+  // Get moderation status between two users
   async getModerationStatus(actorId, targetId) {
     const [reportResult, blockResult] = await Promise.all([
       pool.query(
-        `SELECT 1 FROM fake_account_reports WHERE reporter_user_id = $1 AND reported_user_id = $2 LIMIT 1`,
+        `
+        SELECT 1 
+        FROM fake_account_reports 
+        WHERE reporter_user_id = $1 
+          AND reported_user_id = $2 
+        LIMIT 1`,
         [actorId, targetId]
       ),
       pool.query(
-        `SELECT 1 FROM user_blocks WHERE blocker_user_id = $1 AND blocked_user_id = $2 LIMIT 1`,
+        `
+        SELECT 1 
+        FROM user_blocks 
+        WHERE blocker_user_id = $1 
+          AND blocked_user_id = $2 
+        LIMIT 1`,
         [actorId, targetId]
       ),
     ]);
