@@ -262,18 +262,25 @@ export function useMatchFilters(currentUser) {
   }
 
   /* ========== Reset all filters to default values ========== */
-  function resetFilters() {
-    const empty = {
-      username: "",
-      min_age: "",
-      max_age: "",
-      min_fame: "",
-      max_fame: "",
-      city: "",
-      tags: [],
-      sort_by: "",
-      sort_dir: "desc",
-    };
+ function resetFilters() {
+  const defaults = {
+    username: "",
+    min_age: 18,
+    max_age: 100,
+    min_fame: 0,
+    max_fame: 100,
+    city: "",
+    tags: [],
+    sort_by: "",
+    sort_dir: "desc",
+  };
+
+  setDraftFilters(defaults);
+  setAppliedFilters(defaults);
+  setCityConfirmed(false);
+  setCitySuggestions([]);
+  setFilterError("");
+}
     
     setDraftFilters(empty);
     setAppliedFilters(empty);
