@@ -117,43 +117,49 @@ export default function ChatConversationPage({
   }
 
   return (
-    <section className="min-h-0 min-w-0 flex flex-1 w-full flex-col overflow-hidden">
-      <ChatConversationHeader
-        conversation={conversation}
-        embedded={embedded}
-        deletingConversation={deletingConversation}
-        onDelete={handleDeleteConversation}
-      />
+    <section className="flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+      <div className="shrink-0">
+        <ChatConversationHeader
+          conversation={conversation}
+          embedded={embedded}
+          deletingConversation={deletingConversation}
+          onDelete={handleDeleteConversation}
+        />
+      </div>
 
-      {error && <p className="text-sm text-primary-dark">{error}</p>}
+      {error && <p className="shrink-0 text-sm text-primary-dark">{error}</p>}
 
-      <ChatMessagesList
-        messages={messages}
-        loading={loading}
-        loadingMore={loadingMore}
-        listRef={listRef}
-        handleScroll={handleScroll}
-        currentUserId={currentUserId}
-        conversation={conversation}
-        expandedMessageId={expandedMessageId}
-        setExpandedMessageId={setExpandedMessageId}
-        deletingMessageId={deletingMessageId}
-        quotedMessage={quotedMessage}
-        setQuotedMessage={setQuotedMessage}
-        onDelete={handleDeleteMsg}
-        wasMatchedBefore={wasMatchedBefore}
-        unmatchedAt={unmatchedAt}
-      />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <ChatMessagesList
+          messages={messages}
+          loading={loading}
+          loadingMore={loadingMore}
+          listRef={listRef}
+          handleScroll={handleScroll}
+          currentUserId={currentUserId}
+          conversation={conversation}
+          expandedMessageId={expandedMessageId}
+          setExpandedMessageId={setExpandedMessageId}
+          deletingMessageId={deletingMessageId}
+          quotedMessage={quotedMessage}
+          setQuotedMessage={setQuotedMessage}
+          onDelete={handleDeleteMsg}
+          wasMatchedBefore={wasMatchedBefore}
+          unmatchedAt={unmatchedAt}
+        />
+      </div>
 
-      <ChatInputForm
-        canSend={canSend}
-        sending={sending}
-        body={body}
-        setBody={setBody}
-        quotedMessage={quotedMessage}
-        setQuotedMessage={setQuotedMessage}
-        onSubmit={handleSendMessage}
-      />
+      <div className="shrink-0">
+        <ChatInputForm
+          canSend={canSend}
+          sending={sending}
+          body={body}
+          setBody={setBody}
+          quotedMessage={quotedMessage}
+          setQuotedMessage={setQuotedMessage}
+          onSubmit={handleSendMessage}
+        />
+      </div>
     </section>
   );
 }

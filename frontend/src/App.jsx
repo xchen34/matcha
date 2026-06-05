@@ -60,7 +60,7 @@ function App() {
           <AuthHeaderNav navigateTo={navigateTo} />
         )}
 
-        <main className="flex-1 min-h-0 max-w-5xl mx-auto w-full px-5 py-10 space-y-10">
+        <main className="max-w-5xl mx-auto px-5 py-10 space-y-10">
           {/* ========== Main header ========== */}
           <header className="flex flex-col">
             <h1 className="mt-10 -ml-1 text-5xl sm:text-6xl font-bold text-primary leading-none font-jersey tracking-wider">

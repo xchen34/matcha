@@ -13,27 +13,31 @@ export default function MessagesBloc({ currentUser }) {
   }
 
   return (
-    <section className="flex min-h-0 flex-1 min-w-0 flex-col space-y-4">
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col space-y-4">
       {/* Mobile layout */}
-      <div className="flex min-h-0 flex-1 min-w-0 flex-col lg:hidden">
+      <div className="flex min-h-0 min-w-0 flex-col lg:hidden">
         {conversationId ? (
-          <ChatConversationPage
-            currentUser={currentUser}
-            quotedMessage={quotedMessage}
-            setQuotedMessage={setQuotedMessage}
-          />
+          <div className="h-[calc(100dvh-13rem)] min-h-[26rem] overflow-hidden">
+            <ChatConversationPage
+              currentUser={currentUser}
+              quotedMessage={quotedMessage}
+              setQuotedMessage={setQuotedMessage}
+            />
+          </div>
         ) : (
-          <ChatListPage currentUser={currentUser} />
+          <div className="h-[calc(100dvh-13rem)] min-h-[26rem] overflow-hidden">
+            <ChatListPage currentUser={currentUser} />
+          </div>
         )}
       </div>
 
       {/* Desktop layout */}
-      <div className="hidden min-h-0 min-w-0 flex-1 gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-        <div className="min-w-0">
+      <div className="hidden min-h-0 min-w-0 gap-4 lg:grid lg:grid-cols-[minmax(20rem,1fr)_minmax(0,2fr)] lg:items-stretch">
+        <div className="min-w-0 h-[72vh] min-h-[34rem] overflow-hidden">
           <ChatListPage currentUser={currentUser} embedded />
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0 h-[72vh] min-h-[34rem] overflow-hidden">
           {conversationId ? (
             <ChatConversationPage
               currentUser={currentUser}

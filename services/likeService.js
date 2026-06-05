@@ -314,6 +314,7 @@ class LikeService {
       LEFT JOIN me_tags mt ON mt.tag_id = t.id
       LEFT JOIN me ON TRUE
       WHERE u.id <> $1
+        AND u.deleted_at IS NULL
         AND p.user_id IS NOT NULL
         AND NOT EXISTS (SELECT 1 FROM fake_account_reports far WHERE far.reporter_user_id = $1 AND far.reported_user_id = u.id)
         AND NOT EXISTS (SELECT 1 FROM user_blocks ub WHERE (ub.blocker_user_id = $1 AND ub.blocked_user_id = u.id) OR (ub.blocker_user_id = u.id AND ub.blocked_user_id = $1))

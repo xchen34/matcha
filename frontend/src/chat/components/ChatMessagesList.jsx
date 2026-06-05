@@ -59,7 +59,7 @@ export default function ChatMessagesList({
     <div
       ref={listRef}
       onScroll={handleScroll}
-      className="mb-2 min-h-0 flex-1 min-w-0 overflow-y-auto rounded-lg border border-slate-200 bg-white p-3"
+      className="min-h-0 flex-1 min-w-0 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3"
     >
       {/* 顶部状态：初始加载/分页加载/空列表 */}
       {loading && <p className="text-sm text-slate-500">Loading messages...</p>}
