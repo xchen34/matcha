@@ -48,6 +48,8 @@ export function useUserRelations(id, currentUser, profile) {
         // snapshot for the page.
         setLiked(Boolean(likeRes.ok && likeData?.liked));
         setIsMatch(Boolean(matchRes.ok && matchData?.is_match));
+
+        // If the user's has a profile photo
         setCanLikeProfiles(
           Array.isArray(meData?.profile?.photos) &&
             meData.profile.photos.some((p) => p.is_primary),
@@ -77,6 +79,7 @@ export function useUserRelations(id, currentUser, profile) {
 
     try {
       if (!liked) {
+        // Send like request
         const res = await fetch(`/api/users/${id}/like`, {
           method: "POST",
           headers: buildApiHeaders(currentUser),
@@ -84,6 +87,7 @@ export function useUserRelations(id, currentUser, profile) {
 
         if (res.ok) setLiked(true);
       } else {
+        // Delete like
         const res = await fetch(`/api/users/${id}/like`, {
           method: "DELETE",
           headers: buildApiHeaders(currentUser),
@@ -105,6 +109,7 @@ export function useUserRelations(id, currentUser, profile) {
 
       const matchData = await matchRes.json().catch(() => ({}));
       setIsMatch(Boolean(matchData?.is_match));
+      
     } catch (e) {
       setLikeError(e?.message || "Error");
     } finally {

@@ -22,6 +22,7 @@ export function useMatches(currentUser, appliedFilters) {
       try {
         const params = new URLSearchParams();
 
+        // Convert filter object to URL parameters
         Object.entries(appliedFilters).forEach(([key, val]) => {
           if (Array.isArray(val)) {
             if (val.length) params.append(key, val.join(","));
@@ -30,14 +31,13 @@ export function useMatches(currentUser, appliedFilters) {
           }
         });
 
+        // Add pagination parameters
         params.append("limit", PAGE_SIZE);
         params.append("offset", requestOffset);
 
-        const res = await fetch(`/api/matches?${params}`, 
-          {
-            headers: buildApiHeaders(currentUser),
-          }
-        );
+        const res = await fetch(`/api/matches?${params}`, {
+          headers: buildApiHeaders(currentUser),
+        });
 
         const data = await res.json();
 

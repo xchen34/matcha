@@ -126,7 +126,7 @@ flowchart LR
 
 1. `server.js` loads env and creates HTTP server
 2. `app.js` mounts middleware and all API routes
-3. `index.js` attaches Socket.IO to same server
+3. `realtime/index.js` attaches Socket.IO to same server
 4. `ensureChatVisibilityTables.js` ensures chat visibility tables exist
 5. Server starts listening on configured port
 
@@ -368,7 +368,6 @@ Implemented controls include:
 | `scripts/checkBackendSyntax.js`                     | Syntax validation for backend JS files                     |
 | `scripts/securityPrecheck.js`                       | Static checks for dangerous patterns (XSS/eval/unsafe SQL) |
 | `scripts/debugRoutes.js`                            | Dumps app route stack for diagnostics                      |
-| `scripts/dotenv_setup.js`                           | Environment loading helper                                 |
 | `scripts/sql/create_users_table.sql`                | Users schema                                               |
 | `scripts/sql/create_profiles_table.sql`             | Profiles schema                                            |
 | `scripts/sql/create_likes_table.sql`                | Likes schema                                               |
@@ -417,7 +416,7 @@ Implemented controls include:
 | `frontend/src/main.jsx`                | React root renderer                                                          |
 | `frontend/src/App.jsx`                 | Core app shell, auth/register/login/profile edit routes and page composition |
 | `frontend/src/index.css`               | Global styles, base layers, animation utilities                              |
-| `frontend/src/utils.js`                | Shared API header builder                                                    |
+| `frontend/src/utils/utils.js`           | Shared API header builder                                                    |
 | `frontend/src/utils/photoValidator.js` | Frontend photo file and data URL validation                                  |
 | `frontend/src/utils/xssEscape.js`      | Text sanitization helpers for UI rendering                                   |
 
@@ -426,7 +425,7 @@ Implemented controls include:
 | File                                                   | Responsibility                                               |
 | ------------------------------------------------------ | ------------------------------------------------------------ |
 | `frontend/src/components/UserCard.jsx`                 | Reusable user card with like/match interactions              |
-| `frontend/src/chat/api.js`                             | Chat-related HTTP client functions                           |
+| `frontend/src/chat/hooks/api.js`                         | Chat-related HTTP client functions                           |
 | `frontend/src/chat/ChatAvatar.jsx`                     | Avatar with presence indicator                               |
 | `frontend/src/chat/ChatIndicator.jsx`                  | Navbar message badge and quick conversation launcher         |
 | `frontend/src/chat/quoteUtils.js`                      | Quoted message parsing and preview formatting                |
@@ -440,20 +439,18 @@ Implemented controls include:
 
 | File                                            | Responsibility                                                           |
 | ----------------------------------------------- | ------------------------------------------------------------------------ |
-| `frontend/src/pages/FindMatchPage.jsx`          | Discovery feed with filtering, sorting, pagination, and realtime updates |
-| `frontend/src/pages/UserProfilePage.jsx`        | Public profile view, moderation actions, like/block/report UX            |
-| `frontend/src/pages/MessagesBloc.jsx`           | Responsive chat layout container                                         |
-| `frontend/src/pages/ChatListPage.jsx`           | Conversation list with unread and realtime updates                       |
-| `frontend/src/pages/ChatConversationPage.jsx`   | Conversation thread, send/read/delete/reply behavior                     |
-| `frontend/src/pages/PopularityListPage.jsx`     | Views/likes/matches list by mode                                         |
-| `frontend/src/pages/MyPopularityPage.jsx`       | Dashboard-style popularity overview                                      |
-| `frontend/src/pages/ActivityPage.jsx`           | Tabbed views/likes activity page                                         |
-| `frontend/src/pages/BlockedUsers.jsx`           | Blocked-user management and unblock action                               |
-| `frontend/src/pages/VerifyEmailPage.jsx`        | Token-based verification result page                                     |
-| `frontend/src/pages/ResendVerificationPage.jsx` | Resend verification email form                                           |
-| `frontend/src/pages/VerificationSentPage.jsx`   | Post-signup verification guidance page                                   |
-| `frontend/src/pages/ForgotPasswordPage.jsx`     | Reset request form                                                       |
-| `frontend/src/pages/ResetPasswordPage.jsx`      | Reset password by token form                                             |
+| `frontend/src/matching/FindMatchPage.jsx`       | Discovery feed with filtering, sorting, pagination, and realtime updates |
+| `frontend/src/profile/user/UserProfilePage.jsx` | Public profile view, moderation actions, like/block/report UX            |
+| `frontend/src/components/MessagesBloc.jsx`      | Responsive chat layout container                                         |
+| `frontend/src/chat/ChatListPage.jsx`            | Conversation list with unread and realtime updates                       |
+| `frontend/src/chat/ChatConversationPage.jsx`   | Conversation thread, send/read/delete/reply behavior                     |
+| `frontend/src/popularity/PopularityListPage.jsx`| Views/likes/matches list by mode                                         |
+| `frontend/src/components/BlockedUsers.jsx`      | Blocked-user management and unblock action                               |
+| `frontend/src/auth/VerifyEmailPage.jsx`         | Token-based verification result page                                     |
+| `frontend/src/auth/ResendVerificationPage.jsx`  | Resend verification email form                                           |
+| `frontend/src/auth/VerificationSentPage.jsx`    | Post-signup verification guidance page                                   |
+| `frontend/src/auth/ForgotPasswordPage.jsx`      | Reset request form                                                       |
+| `frontend/src/auth/ResetPasswordPage.jsx`       | Reset password by token form                                             |
 
 ### 8.12 Frontend Source Assets
 

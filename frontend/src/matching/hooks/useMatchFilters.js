@@ -89,12 +89,14 @@ export function useMatchFilters(currentUser) {
     const { name, value } = e.target;
     setFilterError("");
 
+    // Handling city: reset confirmation when user type
     if (name === "city") {
       setDraftFilters((prev) => ({ ...prev, city: value }));
       setCityConfirmed(false);
       return;
     }
 
+    // Handling fame rating (allow empty string)
     if (name === "min_fame" || name === "max_fame") {
       if (value === "") {
         setDraftFilters((prev) => ({ ...prev, [name]: "" }));

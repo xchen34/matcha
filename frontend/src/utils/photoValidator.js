@@ -1,4 +1,3 @@
-/* ========== Photo validation utilities for the frontend ========== */
 export const ALLOWED_PHOTO_MIMES = new Set([
   "image/jpeg",
   "image/jpg",

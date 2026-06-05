@@ -23,18 +23,21 @@ function useRealtimeNotifications(currentUser, fetchLists, setLists) {
       (payload) => {
         const notification = payload?.notification;
         const type = notification?.type;
+        
         if (!type || !["profile_view", "like_received", "unlike", "match"].includes(type)) {
           return;
         }
 
-        const actorId = Number(notification?.actor_user_id);
-        if (!Number.isInteger(actorId) || actorId <= 0) {
+        // Validate actor (user who triggered the notification)
+        const actorUserId = Number(notification?.actor_user_id);
+        if (!Number.isInteger(actorUserId) || actorUserId <= 0) {
           return;
         }
 
-        const baseUser = {
-          id: actorId,
-          username: notification?.actor_username || `user-${actorId}`,
+        // Minimal actor info for UI
+        const actorInfo = {
+          id: actorUserId,
+          username: notification?.actor_username || `user-${actorUserId}`,
           email: "",
         };
 
@@ -45,24 +48,28 @@ function useRealtimeNotifications(currentUser, fetchLists, setLists) {
             matches: [...(prev.matches || [])],
           };
 
+          // Profile view
           if (type === "profile_view") {
-            next.views = upsertUserById(next.views, { ...baseUser, created_at: notification?.created_at }, "views");
+            next.views = upsertUserById(next.views, { ...actorInfo, created_at: notification?.created_at }, "views");
             return next;
           }
 
+          // Like received
           if (type === "like_received") {
-            next.likes = upsertUserById(next.likes, { ...baseUser, created_at: notification?.created_at }, "likes");
+            next.likes = upsertUserById(next.likes, { ...actorInfo, created_at: notification?.created_at }, "likes");
             return next;
           }
 
+          // Unlike
           if (type === "unlike") {
-            next.likes = removeUserById(next.likes, actorId);
-            next.matches = removeUserById(next.matches, actorId);
+            next.likes = removeUserById(next.likes, actorUserId);
+            next.matches = removeUserById(next.matches, actorUserId);
             return next;
           }
 
+          // Match
           if (type === "match") {
-            next.matches = upsertUserById(next.matches, { ...baseUser, matched_at: notification?.created_at }, "matches");
+            next.matches = upsertUserById(next.matches, { ...actorInfo, matched_at: notification?.created_at }, "matches");
             return next;
           }
 
@@ -79,6 +86,7 @@ function useRealtimeNotifications(currentUser, fetchLists, setLists) {
     };
     socket.on("connect", syncOnReconnect);
 
+    // Cleanup
     return () => {
       offNotificationCreated();
       socket.off("connect", syncOnReconnect);

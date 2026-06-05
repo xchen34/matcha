@@ -5,7 +5,11 @@ class UserService {
   /*  ========== Get Users  ========== */
   async getAllUsers() {
     const result = await pool.query(
-      "SELECT id, name, email, created_at FROM users ORDER BY id DESC",
+      `
+      SELECT id, name, email, created_at 
+      FROM users 
+      ORDER BY id DESC
+      `,
     );
 
     return result.rows;
@@ -13,7 +17,11 @@ class UserService {
 
   async getUserById(id) {
     const result = await pool.query(
-      "SELECT id, name, email, created_at FROM users WHERE id = $1",
+      `
+      SELECT id, name, email, created_at 
+      FROM users 
+      WHERE id = $1
+      `,
       [id],
     );
 
@@ -23,7 +31,11 @@ class UserService {
   /*  ========== Create User  ========== */
   async createUser(name, email) {
     const result = await pool.query(
-      "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id, name, email, created_at",
+      `
+      INSERT INTO users (name, email) 
+      VALUES ($1, $2) 
+      RETURNING id, name, email, created_at
+      `,
       [name, normalizeEmail(email)],
     );
 
@@ -33,7 +45,12 @@ class UserService {
   /*  ========== Update User  ========== */
   async updateUser(id, name, email) {
     const result = await pool.query(
-      "UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING id, name, email, created_at",
+      `
+      UPDATE users 
+      SET name = $1, email = $2 
+      WHERE id = $3 
+      RETURNING id, name, email, created_at
+      `,
       [name, normalizeEmail(email), id],
     );
 
@@ -43,7 +60,11 @@ class UserService {
   /*  ========== Delete User  ========== */
   async deleteUser(id) {
     const result = await pool.query(
-      "DELETE FROM users WHERE id = $1 RETURNING id",
+      `
+      DELETE FROM users 
+      WHERE id = $1 
+      RETURNING id
+      `,
       [id],
     );
 

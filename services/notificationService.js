@@ -55,7 +55,11 @@ class NotificationService {
         VALUES ($1, $2, $3, $4, $5::jsonb)
         RETURNING
           id, user_id, actor_user_id, type, message, metadata, is_read, created_at,
-          (SELECT u.username FROM users u WHERE u.id = notifications.actor_user_id LIMIT 1) AS actor_username
+          (SELECT u.username 
+            FROM users u 
+            WHERE u.id = notifications.actor_user_id 
+            LIMIT 1) 
+          AS actor_username
         `,
         [userId, actorUserId, type, message, JSON.stringify(metadata || {})]
       );
@@ -107,7 +111,12 @@ class NotificationService {
    */
   async readAll(userId) {
     await pool.query(
-      `UPDATE notifications SET is_read = TRUE WHERE user_id = $1 AND is_read = FALSE`,
+      `
+      UPDATE notifications 
+      SET is_read = TRUE 
+      WHERE user_id = $1 
+        AND is_read = FALSE
+      `,
       [userId]
     );
   }

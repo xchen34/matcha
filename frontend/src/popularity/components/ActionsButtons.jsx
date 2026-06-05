@@ -25,7 +25,7 @@ export default function ActionButtons({
         {/* Short label on small screens to save horizontal space. */}
         <span className="ml-1 sm:hidden">
           View
-          </span>
+        </span>
 
         {/* Full label on larger screens for clarity. */}
         <span className="ml-1 hidden sm:inline">

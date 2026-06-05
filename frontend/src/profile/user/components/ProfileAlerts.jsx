@@ -37,6 +37,7 @@ function ProfileAlerts({
 }) {
   return (
     <div className="space-y-2">
+      {/* Missing photo (me) */ }
       {!canLikeProfiles && (
         <AlertBox
           icon={ImageIcon}
@@ -47,6 +48,7 @@ function ProfileAlerts({
         </AlertBox>
       )}
 
+      {/* Missing photo (user) */ }
       {!hasProfilePhoto && (
         <AlertBox
           icon={ImageIcon}
@@ -57,6 +59,7 @@ function ProfileAlerts({
         </AlertBox>
       )}
 
+      {/* Moderation message (repost send, account deleted)*/}
       {moderationMessage && (
         <AlertBox
           icon={TriangleAlert}
@@ -66,6 +69,7 @@ function ProfileAlerts({
         </AlertBox>
       )}
 
+      {/* Reported fake account (already did)*/}
       {reportedFake && (
         <AlertBox
           icon={ShieldAlert}
@@ -76,6 +80,7 @@ function ProfileAlerts({
         </AlertBox>
       )}
 
+      {/* Blocked account (already did)*/}
       {blockedUser && (
         <AlertBox
           icon={Ban}
