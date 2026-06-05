@@ -2,10 +2,22 @@ import { useEffect } from "react";
 import { upsertUserById, removeUserById } from "../utils/popularityUtils.js";
 import { getRealtimeSocket, onRealtimeEvent } from "@/realtime/socket.js";
 
+/**
+ * Keeps the popularity lists in sync with realtime notification events.
+ *
+ * This hook listens for backend notifications that describe relationship
+ * changes such as profile views, new likes, unlikes, and matches. When a
+ * relevant event arrives, it updates the local lists immediately so the UI
+ * does not have to wait for a full refetch. It also re-syncs the lists when
+ * the socket reconnects, which acts as a safety net in case an event was
+ * missed while the connection was down.
+ */
 function useRealtimeNotifications(currentUser, fetchLists, setLists) {
   useEffect(() => {
     if (!currentUser?.id) return;
 
+    // Subscribe to the notification stream and update the matching popularity
+    // list based on the notification type sent by the backend.
     const offNotificationCreated = onRealtimeEvent(
       "notification:created", 
       (payload) => {
@@ -59,7 +71,8 @@ function useRealtimeNotifications(currentUser, fetchLists, setLists) {
       }
     );
 
-    /* ========== Sync on reconnect ========== */
+    // If the socket reconnects, fetch the full set of lists again so any
+    // missed events are reconciled with the server state.
     const socket = getRealtimeSocket();
     const syncOnReconnect = () => {
       void fetchLists();

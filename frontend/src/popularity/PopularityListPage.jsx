@@ -11,6 +11,13 @@ import UserList from "./components/UserList.jsx";
 import PopularityListHeader from "./components/PopularityListHeader.jsx";
 import { LoaderCircle } from "lucide-react";
 
+/**
+ * Renders the popularity dashboard for views, likes, and matches.
+ *
+ * The page fetches the three popularity lists in parallel, keeps them updated
+ * through realtime notification events, and wires the match list to chat
+ * creation so the user can jump directly from a match to a conversation.
+ */
 function PopularityListPage({ currentUser, mode = "views" }) {
   const navigate = useNavigate();
   const [lists, setLists] = useState({ views: [], likes: [], matches: [] });
@@ -24,13 +31,15 @@ function PopularityListPage({ currentUser, mode = "views" }) {
     return set instanceof Set ? set : new Set();
   }, [mode, attentionUsersByMode]);
 
-  /* Memoized list of users for the current mode */
+  // Pick the correct array for the selected mode and keep the derived list
+  // stable unless the source data changes.
   const users = useMemo(() => {
     const modeUsers = lists[mode];
     return Array.isArray(modeUsers) ? modeUsers : [];
   }, [lists, mode]);
 
-  /* Counts number of users in each category */
+  // Compute per-mode counters for the header so it can display totals without
+  // recomputing inside the child component.
   const counts = useMemo(
     () => ({
       views: (lists.views || []).length,
@@ -40,7 +49,8 @@ function PopularityListPage({ currentUser, mode = "views" }) {
     [lists],
   );
 
-  /* Sort users by interaction time descending */
+  // Show the newest interactions first, using interaction time as the primary
+  // sort key and the user ID as a deterministic tiebreaker.
   const displayedUsers = useMemo(() => {
     return [...users].sort((a, b) => {
       const timeDiff = getInteractionTimeMs(b, mode) - getInteractionTimeMs(a, mode);
@@ -49,7 +59,8 @@ function PopularityListPage({ currentUser, mode = "views" }) {
     });
   }, [mode, users]);
 
-  /* ========== Fetch lists ========== */
+  // Load views, likes, and matches in parallel, then normalize each response
+  // into the local state shape expected by the page.
   const fetchLists = useCallback(async () => {
     if (!currentUser) return;
     setLoading(true);
@@ -103,14 +114,17 @@ function PopularityListPage({ currentUser, mode = "views" }) {
     }
   }, [currentUser, mode]);
 
-  /* ========== Realtime notifications ========== */
+  // Load once on mount and whenever the fetch function changes.
   useEffect(() => {
     void fetchLists();
   }, [fetchLists]);
 
+  // Keep the popularity lists synced with incoming realtime notifications and
+  // with the reconnect safety net inside the hook.
   useRealtimeNotifications(currentUser, fetchLists, setLists);
 
-  /* ========== Start chat with a user ========== */
+  // Create or reopen the conversation for a matched user, then navigate to
+  // the chat thread if the backend returns a conversation ID.
   const startChatWith = useCallback(
     async (userId) => {
       if (!currentUser?.id || !userId) return;
@@ -133,7 +147,7 @@ function PopularityListPage({ currentUser, mode = "views" }) {
     [currentUser, navigate],
   );
 
-  /* ============= Redirect if not logged in ============= */
+  // Avoid rendering the dashboard for anonymous visitors.
   if (!currentUser?.id) {
     return <Navigate to="/login" replace />;
   }  

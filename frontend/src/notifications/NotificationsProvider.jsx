@@ -11,6 +11,14 @@ import { NotificationsContext } from "./hooks/useNotifications.js";
 import { useNotificationInsights } from "./hooks/useNotificationInsights.js";
 import { useNotificationGroups } from "./hooks/useNotificationGroups.js";
 
+/**
+ * Provides notification state and actions to the rest of the app.
+ *
+ * The provider owns the canonical notification list, unread counters, read
+ * actions, attention badges, and realtime synchronization. Consumers can
+ * subscribe to this context to render the bell, dropdown, grouped sections, or
+ * any badge driven UI without repeating the fetch and websocket logic.
+ */
 export function NotificationsProvider({ currentUser, children }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -18,10 +26,12 @@ export function NotificationsProvider({ currentUser, children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  /* Track which users have triggered new notifications by mode for attention badges */
+  // Track which actor user IDs should still be highlighted per popularity
+  // mode. This powers the small attention dot / badge behavior in the UI.
   const [attentionUsersByMode, setAttentionUsersByMode] = useState(createEmptyModeSets);
 
-  /* ========== Fetch notifications ========== */
+  // Load the current notification snapshot from the API and normalize it into
+  // newest-first order.
   const fetchNotifications = useCallback(async () => {
     if (!currentUser) {
       setNotifications([]);
@@ -56,7 +66,8 @@ export function NotificationsProvider({ currentUser, children }) {
     }
   }, [currentUser]);
 
-  /* ========== Mark notifications as read ========== */
+  // Mark every notification as read in the backend, then mirror that state in
+  // memory so the unread counter drops immediately.
   const markAllAsRead = useCallback(async () => {
     if (!currentUser) return;
 
@@ -80,7 +91,8 @@ export function NotificationsProvider({ currentUser, children }) {
     }
   }, [currentUser]);
 
-  /* Mark a single notification as read */
+  // Mark one notification as read, but only if it still exists and is not
+  // already marked read in local state.
   const markNotificationAsRead = useCallback(
     async (notificationId) => {
       if (!currentUser || !notificationId) return;
@@ -115,12 +127,14 @@ export function NotificationsProvider({ currentUser, children }) {
     [currentUser, notifications],
   );
 
-  /* ========== Update unread count ========== */
+  // Derive the unread count from the current notification list whenever the
+  // list changes. This keeps the counter consistent with local state.
   useEffect(() => {
     setUnreadCount(getLatestPerActorAndType(notifications, true).length);
   }, [notifications]);
 
-  /* ========== Initial load ========= */
+  // Trigger the first API load when the authenticated user changes. If the app
+  // logs out, reset the provider state immediately.
   useEffect(() => {
     if (!currentUser) {
       setNotifications([]);
@@ -132,7 +146,8 @@ export function NotificationsProvider({ currentUser, children }) {
     return undefined;
   }, [currentUser, fetchNotifications]);
 
-  /* ========== Realtime : New notifications ========== */
+  // Listen for push notifications and merge them into local state without a
+  // full refetch. Duplicate IDs are removed before the new event is inserted.
   useEffect(() => {
     if (!currentUser?.id) return undefined;
 
@@ -145,11 +160,15 @@ export function NotificationsProvider({ currentUser, children }) {
           return;
         }
 
+        // Keep the newest version of the notification and drop any stale copy
+        // with the same ID.
         setNotifications((prev) => {
           const deduped = prev.filter((item) => item.id !== incoming.id);
           return sortByNewest([incoming, ...deduped]);
         });
 
+        // Highlight the relevant popularity section when a notification comes
+        // in for one of the supported relation modes.
         const mode = mapTypeToMode(incoming.type);
         const parsedActorUserId = Number(incoming.actor_user_id);
         
@@ -176,7 +195,8 @@ export function NotificationsProvider({ currentUser, children }) {
     };
   }, [currentUser?.id]);
 
-  /* ========== Realtime : Sync on connect (in case of missed events) ========== */
+  // If the socket reconnects, fetch the canonical notification list again to
+  // recover from any missed realtime events.
   useEffect(() => {
     if (!currentUser?.id) return undefined;
 
@@ -193,7 +213,8 @@ export function NotificationsProvider({ currentUser, children }) {
     };
   }, [currentUser?.id, fetchNotifications]);
 
-  /* ========== Insights and groups ========== */
+  // Derived views that shape the notification list into grouped sections and
+  // per-mode unread summaries for the UI layer.
   const notificationInsights = useNotificationInsights(notifications);
   const notificationGroups = useNotificationGroups(notifications);
 
@@ -206,7 +227,8 @@ export function NotificationsProvider({ currentUser, children }) {
     [attentionUsersByMode],
   );
 
-  /* ========== Clear attention for mode (attention/dot) ========== */
+  // Clear the highlight state for one specific mode while leaving the others
+  // untouched.
   const clearAttentionMode = useCallback((mode) => {
     if (!mode || !["views", "likes", "matches"].includes(mode)) {
       return;
@@ -223,11 +245,13 @@ export function NotificationsProvider({ currentUser, children }) {
     });
   }, []);
 
+  // Clear every mode highlight in one go.
   const clearAttentionDots = useCallback(() => {
     setAttentionUsersByMode(createEmptyModeSets());
   }, []);
 
-  /* ========== Context value ========== */
+  // Memoize the context value so consumers only re-render when one of the
+  // public notification fields actually changes.
   const value = useMemo(
     () => ({
       notifications,

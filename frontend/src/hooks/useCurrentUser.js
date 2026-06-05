@@ -4,6 +4,7 @@ import { disconnectRealtime } from "@/realtime/socket.js";
 import { buildApiHeaders } from "@/utils/utils.js";
 import { clearStoredUser, readStoredUser } from "@/utils/userStorage.js";
 
+
 export function useCurrentUser() {
   const navigate = useNavigate();
   const location = useLocation();

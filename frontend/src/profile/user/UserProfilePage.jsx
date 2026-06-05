@@ -26,8 +26,10 @@ import {
 
 
 function UserProfilePage({ currentUser }) {
-  const { id } = useParams();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { id } = useParams(); // user ID from URL params
+  const [menuOpen, setMenuOpen] = useState(false); 
+  // Remember which viewer/profile pairs have already been recorded during
+  // this session so the same page open does not create duplicate view writes.
   const recordedViewsRef = useRef(new Set());
 
   // DATA
@@ -65,7 +67,8 @@ function UserProfilePage({ currentUser }) {
     setModerationMessage,
   });
 
-  /* ========== REALTIME : socket events for status / notifications ========== */
+  // Subscribe to realtime updates for moderation, relation changes, and any
+  // profile data that can change while this page is open.
   useUserRealtime({
     id,
     currentUser,
@@ -75,7 +78,8 @@ function UserProfilePage({ currentUser }) {
     },
   });
 
-  /* ========== Record profile view ========== */
+  // Record one profile view per viewer/profile pair. This avoids sending the
+  // same view event repeatedly when the page re-renders.
   useEffect(() => {
     const viewedUserId = Number(id);
     const viewerUserId = Number(currentUser?.id);
@@ -87,6 +91,8 @@ function UserProfilePage({ currentUser }) {
     if (recordedViewsRef.current.has(dedupeKey)) return;
     recordedViewsRef.current.add(dedupeKey);
 
+    // Fire-and-forget tracking request: the page does not need this response
+    // to render, it only needs the backend to persist the view event.
     void fetch(`/api/users/${viewedUserId}/view`, {
       method: "POST",
       headers: buildApiHeaders(currentUser, {
@@ -95,7 +101,8 @@ function UserProfilePage({ currentUser }) {
     }).catch(() => {});
   }, [id, currentUser]);
 
-  // AUTH GUARD & LOADING/ERROR STATES
+  // Auth guard and early exits keep the rest of the component focused on the
+  // profile UI only when the user is allowed to view it.
   if (!currentUser) return <Navigate to="/login" replace />;
   if (loading) return <p className="text-sm text-slate-600">Loading profile...</p>;
   if (error === "User not found") {
@@ -116,6 +123,7 @@ function UserProfilePage({ currentUser }) {
   const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
   const isOwnProfile = String(currentUser?.id) === String(user.id);
 
+  // Human-readable summary of the relation state shown in the profile actions.
   const relationLabel = isMatch
     ? "Match"
     : likedByProfile

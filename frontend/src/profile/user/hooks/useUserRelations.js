@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 import { buildApiHeaders } from "@/utils/utils.js";
 
+/**
+ * Loads and manages the like/match relationship state for a profile page.
+ *
+ * The hook performs three jobs:
+ * 1. Fetch the current like and match status from the API when the profile
+ *    or logged-in user changes.
+ * 2. Expose a toggleLike handler that sends POST/DELETE requests and then
+ *    refreshes the match state.
+ * 3. Accept realtime relation updates so the profile page can react to socket
+ *    events without waiting for a manual refresh.
+ */
 export function useUserRelations(id, currentUser, profile) {
   const [liked, setLiked] = useState(false);
   const [likedByProfile, setLikedByProfile] = useState(false);
@@ -9,7 +20,8 @@ export function useUserRelations(id, currentUser, profile) {
   const [loadingLike, setLoadingLike] = useState(false);
   const [likeError, setLikeError] = useState("");
 
-  /* ========== Load initial like/match state from API ========== */
+  // Fetch the initial relationship state when we first open a profile or when
+  // the active user changes.
   useEffect(() => {
     if (!id || !currentUser) return;
 
@@ -31,7 +43,9 @@ export function useUserRelations(id, currentUser, profile) {
         const matchData = await matchRes.json().catch(() => ({}));
         const meData = await meRes.json().catch(() => ({}));
 
-        // Update state based on API responses
+        // Sync local UI state with the server responses. Each endpoint answers
+        // a different question, so we combine them into one profile relation
+        // snapshot for the page.
         setLiked(Boolean(likeRes.ok && likeData?.liked));
         setIsMatch(Boolean(matchRes.ok && matchData?.is_match));
         setCanLikeProfiles(
@@ -48,7 +62,8 @@ export function useUserRelations(id, currentUser, profile) {
     fetchLikeState();
   }, [id, currentUser]);
 
-  /* ========== Toggle like/unlike and check for match ========== */
+  // Send the like or unlike request, then refresh match state because the
+  // backend may have created or removed a match as a side effect.
   async function toggleLike() {
     if (!currentUser?.id) return;
 
@@ -80,7 +95,8 @@ export function useUserRelations(id, currentUser, profile) {
         }
       }
 
-      // Always check match status after toggling like, as it may have changed
+      // Always re-check the match state after a like toggle because the
+      // relation can change in the same request cycle.
       const matchRes = await fetch(`/api/users/${id}/is-match`, 
         {
           headers: buildApiHeaders(currentUser),
@@ -96,7 +112,8 @@ export function useUserRelations(id, currentUser, profile) {
     }
   }
 
-  /* ========== Apply real-time updates to like/match state ========== */
+  // Merge realtime relation events into the current profile state. This keeps
+  // the UI correct when the backend pushes an update without a full refetch.
   function applyRealtimeRelationUpdate(type) {
     if (type === "match") {
       setLiked(true);

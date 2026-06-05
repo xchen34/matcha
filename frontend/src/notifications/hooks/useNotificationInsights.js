@@ -3,10 +3,10 @@ import { getLatestPerActorAndType, getActorUserId } from "../utils/notificationU
 
 export function useNotificationInsights(notifications) {
   return useMemo(() => {
-    // Get latest unread notification per actor
+    // Reuse the deduplicated unread feed so counts match the grouped cards.
     const finalUnreadItems = getLatestPerActorAndType(notifications, true);
 
-    // Initialize sets and counts for sections and modes
+    // Track both totals and unique actors for each UI bucket.
     const sectionSets = {
       views: new Set(),
       likes: new Set(),
@@ -36,13 +36,14 @@ export function useNotificationInsights(notifications) {
       unlike: "likes",
     };
 
+    // These maps translate backend notification types into the UI buckets above.
     const typeToMode = {
       profile_view: "views",
       like_received: "likes",
       match: "matches",
     };
 
-    // Process each unread notification to populate sets and counts
+    // Count each unread item and collect the unique actor IDs behind it.
     for (const item of finalUnreadItems) {
       const section = typeToSection[item.type];
       const mode = typeToMode[item.type];
@@ -57,7 +58,7 @@ export function useNotificationInsights(notifications) {
       if (mode) modeSets[mode].add(userId);
     }
 
-    // Determine which section has more notifications for overflow display
+    // Choose the dominant section so overflow badges stay visually stable.
     const overflowSection =
       sectionCounts.views === 0 && sectionCounts.likes === 0
         ? "views"

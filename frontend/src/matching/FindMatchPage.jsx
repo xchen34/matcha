@@ -14,6 +14,7 @@ import { LoaderCircle } from "lucide-react";
 const PAGE_SIZE = 18;
 
 function FindMatchPage({ currentUser }) {
+  // Local page state that feeds the header and filtering UI.
   const [fameRating, setFameRating] = useState(0);
   const [canLikeProfiles, setCanLikeProfiles] = useState(false);
   const [tagOptions, setTagOptions] = useState([]);
@@ -33,6 +34,7 @@ function FindMatchPage({ currentUser }) {
     resetFilters: filterResetFilters,
   } = useMatchFilters(currentUser);
 
+  // The match list is driven by the currently applied filter snapshot.
   const {
     users,
     setUsers,
@@ -44,7 +46,7 @@ function FindMatchPage({ currentUser }) {
     setOffset,
   } = useMatches(currentUser, appliedFilters);
 
-  // Wrap filter functions to reset offset
+  // When filters change, restart paging from the first result.
   const applyFilters = useCallback(async () => {
     await filterApplyFilters();
     setOffset(0);
@@ -55,6 +57,7 @@ function FindMatchPage({ currentUser }) {
     setOffset(0);
   }, [filterResetFilters, setOffset]);
 
+  // Keep the visible user cards in sync with realtime presence/profile updates.
   useMatchRealtime(currentUser, setUsers);
 
   /* ========== Fetch current user's fame rating ========== */
@@ -84,6 +87,7 @@ function FindMatchPage({ currentUser }) {
 
   /* ========== Fetch available tags for filtering ========== */
   useEffect(() => {
+    // Tags are loaded independently so the filter panel can stay responsive.
     let cancelled = false;
 
     async function fetchTagOptions() {
@@ -145,6 +149,7 @@ function FindMatchPage({ currentUser }) {
       {/* ======== USERS ======== */}
       <div className="mt-12">
         {loading ? (
+          // Initial load state for the first page of matches.
           <p className="inline-flex items-center gap-2 text-sm text-slate-600">
             <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
             Loading matches...

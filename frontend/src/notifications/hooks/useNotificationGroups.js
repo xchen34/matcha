@@ -3,10 +3,10 @@ import { getLatestPerActorAndType } from "../utils/notificationUtils.js";
 
 export function useNotificationGroups(notifications) {
   return useMemo(() => {
-    // Get latest unread notification per actor
+    // Collapse repeated unread notifications so each actor/type only contributes once.
     const finalUnreadItems = getLatestPerActorAndType(notifications, true);
 
-    // Define grouping rules and labels
+    // Map backend notification types to the UI sections and copy we want to show.
     const definitions = {
       profile_view: {
         section: "views",
@@ -32,7 +32,7 @@ export function useNotificationGroups(notifications) {
 
     const groups = [];
 
-    // Group notifications by type
+    // Build one summary card per notification type, ordered by recency.
     for (const [type, def] of Object.entries(definitions)) {
       const items = finalUnreadItems.filter((item) => item.type === type);
       if (items.length === 0) continue;
@@ -53,11 +53,11 @@ export function useNotificationGroups(notifications) {
       });
     }
 
-    // Sort groups by latest notification time
+    // Put the newest activity at the top of the list.
     return groups.sort((a, b) => {
       const aTime = new Date(a.latestAt || 0).getTime();
       const bTime = new Date(b.latestAt || 0).getTime();
-      
+
       return bTime - aTime;
     });
   }, [notifications]);

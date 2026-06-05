@@ -7,8 +7,8 @@ const isProduction = process.env.NODE_ENV === "production";
  * Parse a positive integer from an environment variable.
  *
  * Implementation details:
- * - Uses base-10 parsing so accidental hex-like strings do not slip through.
- * - Returns the provided fallback when the value is missing or invalid.
+ * - uses base-10 parsing so accidental hex-like strings do not slip through
+ * - returns the provided fallback when the value is missing or invalid
  */
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -22,13 +22,13 @@ function parsePositiveInt(value, fallback) {
  * Build a stable per-client key for rate limiting.
  *
  * Implementation details:
- * - Prefers the request IP address.
- * - Falls back to the socket remote address.
- * - Uses `ipKeyGenerator()` so the key format matches express-rate-limit's
- *   expectations.
+ * - prefers the request IP address
+ * - falls back to the socket remote address
+ * - uses `ipKeyGenerator()` so the key format matches express-rate-limit's
+ *   expectations
  */
 function getClientKey(req) {
-  // Prefer real IP; fallback keeps limits stable in local/dev tests.
+  // Prefer the resolved client IP; fall back to the socket address if needed.
   const clientIp = req.ip || req.socket?.remoteAddress;
   if (clientIp) {
     return ipKeyGenerator(clientIp);
@@ -38,6 +38,7 @@ function getClientKey(req) {
 }
 
 /* ========== Config values ========== */
+// These values come from environment variables and fall back to safe defaults.
 const globalWindowMs = parsePositiveInt(
   process.env.RATE_LIMIT_GLOBAL_WINDOW_MS,
   isProduction ? 15 * 60 * 1000 : 5 * 60 * 1000,
@@ -69,6 +70,7 @@ const authSensitiveMax = parsePositiveInt(
 );
 
 /* ========== Rate limiters ========== */
+// Global limiter for all API routes mounted under /api.
 const globalApiLimiter = rateLimit({
   windowMs: globalWindowMs,
   max: globalMax,
@@ -78,6 +80,7 @@ const globalApiLimiter = rateLimit({
   message: { error: "Too many requests. Please try again later." },
 });
 
+// Limiter for general authentication endpoints such as login and registration.
 const authLimiter = rateLimit({
   windowMs: authWindowMs,
   max: authMax,
@@ -89,6 +92,7 @@ const authLimiter = rateLimit({
   },
 });
 
+// Limiter for sensitive auth actions where brute force is a concern.
 const authSensitiveLimiter = rateLimit({
   windowMs: authSensitiveWindowMs,
   max: authSensitiveMax,

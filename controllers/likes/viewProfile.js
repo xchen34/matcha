@@ -41,7 +41,7 @@ async function viewProfile(req, res, next) {
       return res.status(404).json({ error: "Viewed user not found" });
     }
 
-    const inserted = await likeService.insertProfileView(viewerId, viewedId);
+    const inserted = await likeService.insertProfileView(viewerId, viewedId); // Returns true if a new record was created, false if it already existed.
     if (inserted) {
       await createNotification({
         userId: viewedId,

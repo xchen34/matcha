@@ -12,13 +12,22 @@ import {
 } from "lucide-react"
 import { capitalizeFirst, formatTag } from "@/utils/utils.js";
 
+/**
+ * Renders a compact profile card for popularity lists and discovery views.
+ *
+ * The card shows the user's photo, online state, metadata, tags, and a
+ * primary action button. It also keeps an optimistic like/match state so the
+ * UI feels immediate, then reconciles with realtime socket events and the
+ * server response after each interaction.
+ */
 function UserCard({ user, currentUser, canLikeProfiles = true }) {
   const navigate = useNavigate();
   const [optimistic, setOptimistic] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  /* ========== Memoized profile photo URL ========== */
+  // Pick the first available profile photo field and memoize the result so we
+  // do not recompute the fallback chain on every render.
   const profilePhotoUrl = useMemo(
     () =>
       user?.profile_photo_url ||
@@ -29,34 +38,36 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
     [user]
   );
 
-  /* ========== Listen for real-time like and match status changes ========== */
+  // Subscribe to backend events that change the like or match state. This lets
+  // the card update immediately when another action happens elsewhere.
   useEffect(() => {
     if (!user?.id) return;
 
-    // Listen for like status changes
+    // When the backend reports a like status change for this user, preserve
+    // the current match state if we already know it and only update the like
+    // flag coming from the event.
     const offLikeStatusChanged = onRealtimeEvent(
       REALTIME_EVENTS.LIKE_STATUS_CHANGED,
       (payload) => {
-        // Update state if the event is for the current user
         if (Number(payload?.userId) === Number(user.id)) {
           setOptimistic((prev) => ({
             userId: user.id,
             liked: payload.liked,
-            isMatch: prev?.isMatch ?? Boolean(user?.is_match), // Keep the current match status
+            isMatch: prev?.isMatch ?? Boolean(user?.is_match),
           }));
         }
       }
     );
 
-    // Listen for match status changes
+    // When the backend confirms a match state change, keep the current like
+    // flag if we already have one and only replace the match flag.
     const offMatchStatusChanged = onRealtimeEvent(
       REALTIME_EVENTS.MATCH_STATUS_CHANGED,
       (payload) => {
-        // Update state if the event is for the current user
         if (Number(payload?.userId) === Number(user.id)) {
           setOptimistic((prev) => ({
             userId: user.id,
-            liked: prev?.liked ?? Boolean(user?.liked), // Keep the current liked status
+            liked: prev?.liked ?? Boolean(user?.liked),
             isMatch: payload.matched,
           }));
         }
@@ -69,7 +80,8 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
     };
   }, [user?.id, user?.is_match, user?.liked]);
 
-  /* ========== Handle like/unlike with optimistic UI ========== */
+  // Resolve the displayed like state from either the optimistic update or the
+  // last known server-provided value.
   const liked =
     optimistic?.userId === user?.id
       ? optimistic.liked
@@ -80,11 +92,13 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
       ? optimistic.isMatch
       : Boolean(user?.is_match);
 
-  /* ========== Fame rating display logic ========== */
+  // The fame rating is displayed only when the backend provided a numeric
+  // value that can be safely rendered.
   const fameValue = Number(user?.fame_rating);
   const hasFameValue = Number.isFinite(fameValue);
 
-  /* ========== Toggle Like/unlike ========== */
+  // Toggle like/unlike, update the UI optimistically, then ask the backend for
+  // the final match state because that can change as a side effect.
   async function handleToggleLike() {
     setLoading(true);
     setError("");
@@ -109,6 +123,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
 
         if (!res.ok) throw new Error("Error while liking");
         
+        // Optimistically reflect the new liked state right away.
         setOptimistic({
           userId: user.id,
           liked: nextLiked,
@@ -124,6 +139,8 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         
         if (!res.ok) throw new Error("Error when unliking");
         
+        // Clear the match state locally when the user unlikes, then reconcile
+        // with the server's current match state below.
         setOptimistic({
           userId: user.id,
           liked: nextLiked,
@@ -131,6 +148,8 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
         });
       }
 
+      // Pull the latest match state from the server so the UI stays aligned
+      // with the real backend relation state.
       const matchRes = await fetch(`/api/users/${user.id}/is-match`, 
         {
           headers: buildApiHeaders(currentUser),
@@ -246,12 +265,12 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
 
       {/* ======== CONTENT ======== */}
       <div className="flex flex-1 flex-col p-4 text-neutral-dark">
-        {/* Username */}
+        {/* Primary identity line for the card */}
         <h3 className="text-lg font-semibold text-neutral-dark">
           @{user.username}
         </h3>
 
-        {/* Infos */}
+        {/* Compact metadata row: gender, age, city, and fame rating */}
         <div className="mt-2 flex flex-wrap gap-3 text-sm text-neutral/80">
           <span className="flex items-center gap-1">
             <VenusAndMars className="text-primary" />
@@ -276,7 +295,7 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
           )}
         </div>
 
-        {/* ======== TAGS ======== */}
+        {/* Interest tags rendered as small pills for quick scanning */}
         <div className="mt-3 flex flex-wrap gap-1 text-xs">
           {Array.isArray(user.tags) &&
             user.tags.map((tag) => (
@@ -295,12 +314,12 @@ function UserCard({ user, currentUser, canLikeProfiles = true }) {
             ))}
         </div>
 
-        {/* ======== ERROR ======== */}
+        {/* Surface any validation or network error from the like action */}
         {error && (
           <p className="mt-2 text-xs text-error">{error}</p>
         )}
 
-        { /* ======== VIEW PROFILE BUTTON ======== */ }
+        {/* Open the full profile page using the router */}
         <div className="mt-auto pt-4">
           <button
             onClick={() => navigate(`/users/${user.id}`)}
