@@ -56,7 +56,8 @@ function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-async function main() {
+async function main(options = {}) {
+  const { closePool = true } = options;
   const client = await pool.connect();
 
   try {
@@ -130,8 +131,14 @@ async function main() {
     console.error("❌ seed error:", err.message);
   } finally {
     client.release();
-    await pool.end();
+    if (closePool) {
+      await pool.end();
+    }
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { main };

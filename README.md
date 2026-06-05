@@ -1,143 +1,43 @@
 # Matcha
 
-Full-stack dating web application with profiles, likes/matching, search/recommendations, real-time chat, and notifications.
+Matcha is a full-stack dating web app with user profiles, likes and matching, search and recommendations, real-time chat, and notifications.
 
 ## Tech Stack
 
 - Backend: Node.js, Express, PostgreSQL, Socket.IO
 - Frontend: React (Vite), TailwindCSS, socket.io-client
 
-## Features (current)
+## Make Commands
 
-- Authentication: register/login (bcrypt password hashing)
-- Profiles: edit profile, photos, tags, location validation/geocoding
-- Discovery: match suggestions with filtering/sorting (age, fame, tags, city, username)
-- Social: likes, mutual matches, profile views, blocks, fake-account reports
-- Real-time: chat, notifications, online presence, read/unread state
+The project is managed through `make`. Common commands:
 
-## Project Structure
+- `make up`: Start the whole stack
+- `make down`: Stop the containers
+- `make clean`: Stop the containers and remove orphan containers
+- `make fclean`: Stop the containers, remove the database volume, and remove local images
+- `make init-db`: Seed demo users and add profile photos
+- `make reset-db`: Stop the containers and remove the database volume
+- `make re`: Rebuild and start again
+- `make ps`: Show container status
+- `make logs`: Show logs
 
-- `server.js` / `app.js`: Express server + API routes
-- `routes/`: REST endpoints (auth, profiles, likes/matches, chats, notifications, moderation)
-- `realtime/`: Socket.IO server (auth token, presence, events)
-- `scripts/`: DB initialization + SQL schema/seed files
-- `frontend/`: React (Vite) client (proxies `/api` and `/socket.io` to the backend)
-
-## Requirements
-
-- Node.js 18+ (backend uses the built-in `fetch`)
-- PostgreSQL 13+ (or compatible)
-
-## Setup
-
-### 1) Configure environment
-
-Create `.env` from the example:
+For a first start, run:
 
 ```bash
-cp .env.example .env
+make up
 ```
 
-Fill the database settings in `.env`:
+This boots the services and creates the database tables, but leaves the tables empty.
+
+If you need to reinitialize the database:
 
 ```bash
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=...
-DB_PASSWORD=...
-DB_NAME=...
+make init-db
 ```
 
-Optional (Socket.IO auth token signing):
+If you want to clean the development environment:
 
 ```bash
-REALTIME_SECRET=change-me
-REALTIME_TOKEN_TTL_SECONDS=43200
+make clean
+make fclean
 ```
-
-### 2) Install dependencies
-
-```bash
-npm install
-cd frontend && npm install
-```
-
-### 3) Initialize database
-
-This creates tables and seeds fake users/tags:
-
-```bash
-npm run db:init
-```
-
-Schema files live in `scripts/sql/`.
-
-### 4) Run the app
-
-Backend (default `http://localhost:3000`):
-
-```bash
-npm start
-```
-
-Frontend (default `http://localhost:5173`):
-
-```bash
-cd frontend && npm run dev
-```
-
-## Docker Compose (Frontend + Backend + PostgreSQL)
-
-The repository includes Docker files for one-command development startup.
-
-### 1) Prepare environment
-
-Ensure `.env` exists:
-
-```bash
-cp .env.example .env
-```
-
-For Compose, set at least these values in `.env`:
-
-```bash
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=postgres
-```
-
-### 2) Start everything
-
-```bash
-docker compose up --build
-```
-
-Exposed services:
-
-- Frontend (Vite): `http://localhost:5173`
-- Backend API: `http://localhost:3000`
-- PostgreSQL: `localhost:5432`
-
-The backend container runs `npm run db:init` before `npm run dev` so schema/seed SQL is applied automatically at startup.
-
-### 3) Stop services
-
-```bash
-docker compose down
-```
-
-Remove services plus database volume:
-
-```bash
-docker compose down -v
-```
-
-## Health Checks
-
-- `GET /api/health`
-- `GET /api/db-health`
-
-## Notes on Auth (dev state)
-
-Most API routes currently identify the user via the `x-user-id` header (set by the frontend after login).
-This is not production-grade authentication yet; hardening/authorization work is ongoing.

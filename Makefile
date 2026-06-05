@@ -1,4 +1,4 @@
-.PHONY: all up down clean fclean reset-db re logs ps restart
+.PHONY: all up down clean fclean reset-db init-db re logs ps restart
 
 all: up
 
@@ -15,13 +15,16 @@ restart:
 	docker compose down && docker compose up -d --build
 
 clean:
-	docker compose down -v --remove-orphans
+	docker compose down --remove-orphans
 
 fclean:
-	docker compose down --rmi local --remove-orphans
+	docker compose down -v --rmi local --remove-orphans
 
 reset-db:
 	docker compose down -v --remove-orphans
+
+init-db:
+	npm run db:init
 
 re: fclean all
 

@@ -79,21 +79,17 @@ function UserProfilePage({ currentUser }) {
 
   // Record one profile view per viewer/profile pair. This avoids sending the
   // same view event repeatedly when the page re-renders.
-  useEffect(() => {
-    const targetUserId = Number(id);
-    const currentUserId = Number(currentUser?.id);
+   useEffect(() => {
+    const viewedUserId = Number(id);
+    const viewerUserId = Number(currentUser?.id);
+    if (!Number.isInteger(viewedUserId) || viewedUserId <= 0) return;
+    if (!Number.isInteger(viewerUserId) || viewerUserId <= 0) return;
+    if (viewerUserId === viewedUserId) return;
 
-    if (!Number.isInteger(targetUserId) || targetUserId <= 0) return;
-    if (!Number.isInteger(currentUserId) || currentUserId <= 0) return;
-    if (currentUserId === targetUserId) return;
-
-    // Avoid duplicate API calls on re-renders, if refresh
-    const dedupeKey = `${currentUserId}:${targetUserId}`;
+    const dedupeKey = `${viewerUserId}:${viewedUserId}`;
     if (recordedViewsRef.current.has(dedupeKey)) return;
     recordedViewsRef.current.add(dedupeKey);
 
-    // Fire-and-forget tracking request: the page does not need this response
-    // to render, it only needs the backend to persist the view event.
     void fetch(`/api/users/${viewedUserId}/view`, {
       method: "POST",
       headers: buildApiHeaders(currentUser, {

@@ -10,11 +10,5 @@ done
 
 echo "✅ DB ready"
 
-echo "🧱 Init DB..."
-npm run db:init
-
-echo "🌱 Seed photos..."
-npm run db:seed-photos
-
 echo "🔥 Starting server..."
-exec npm run dev
+exec "$@"

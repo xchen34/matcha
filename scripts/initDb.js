@@ -2,6 +2,11 @@ require("dotenv").config();
 const fs = require("fs"); // 引入 Node.js 的文件系统模块，用于读取 SQL 文件内容。
 const path = require("path");
 const pool = require("../db");
+const { ensureChatVisibilityTables } = require("./ensureChatVisibilityTables");
+const { main: seedPhotosForExistingUsers } = require("./seed_photos_for_existing_users");
+const cliArgs = new Set(process.argv.slice(2));
+const schemaOnly =
+  cliArgs.has("--schema-only") || process.env.DB_SCHEMA_ONLY === "true";
 
 function loadSql(file) {
   return fs.readFileSync(
@@ -110,12 +115,22 @@ async function initDb() {
     // 5. Create chat tables, migrate legacy users
     await pool.query(createChatSql);
 
-    // 6. Migrate legacy users to new schema
+    // 6. Create chat visibility tables after the core chat tables exist
+    await ensureChatVisibilityTables();
+
+    // 7. Migrate legacy users to new schema
     await pool.query(migrateLegacyUsersSql);
 
-    // 7. Seed fake users and create user photos
-    await pool.query(seedFakeUsersSql);
+    // 8. Create the user photos table.
     await pool.query(createUserPhotosSql);
+
+    if (!schemaOnly) {
+      // 9. Seed fake users only when full initialization is requested.
+      await pool.query(seedFakeUsersSql);
+
+      // 10. Seed photos only after fake users and the user photos table exist.
+      await seedPhotosForExistingUsers({ closePool: false });
+    }
 
   } catch (error) {
     console.error("Failed to initialize database:", error.message);
