@@ -38,13 +38,21 @@ export default function ChatInputForm({
     <form onSubmit={handleSubmit} className="shrink-0 border-t">
       {/* 有引用时，先显示“正在回复哪条消息”的预览 */}
       {quotedMessage && (
-        <div className="mb-2 flex items-center justify-between rounded-lg border border-l-4 border-primary-dark bg-primary-light p-2.5 text-xs text-slate-600 shadow-sm">
-          <div className="flex-1 overflow-hidden pr-2">
+        <div className="mb-2 flex min-w-0 items-start justify-between gap-2 rounded-lg border border-l-4 border-primary-dark bg-primary-light p-2.5 text-xs text-slate-600 shadow-sm">
+          <div className="min-w-0 flex-1 pr-2">
             <span className="mb-0.5 block font-semibold text-primary-dark">
               Replying to:
             </span>
 
-            <p className="truncate break-all opacity-80">
+            <p
+              className="break-words break-all opacity-80"
+              style={{
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: 2,
+                overflow: "hidden",
+              }}
+            >
               {parseQuotedMessageContent(quotedMessage.content).replyText ||
                 quotedMessage.content}
             </p>

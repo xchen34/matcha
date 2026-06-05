@@ -76,7 +76,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
   const emptyState = !loading && conversations.length === 0;
 
   return (
-    <section className={embedded ? "space-y-4" : "space-y-6"}>
+    <section className={`flex min-h-0 flex-1 flex-col ${embedded ? "space-y-4" : "space-y-6"}`}>
       {!embedded && (
         <header>
           <h2 className="text-3xl font-bold text-neutral-dark">Direct Messages</h2>
@@ -95,15 +95,7 @@ export default function ChatListPage({ currentUser, embedded = false }) {
         </div>
       )}
 
-      <div
-        className={
-          shouldScrollList
-            ? `max-h-[calc(100vh-16rem)] overflow-y-auto pr-1 ${
-                embedded ? "scrollbar-gutter-stable" : ""
-              }`
-            : undefined
-        }
-      >
+      <div className={`min-h-0 flex-1 overflow-y-auto pr-1 ${embedded ? "scrollbar-gutter-stable" : ""}`}>
         <ul className={embedded ? "space-y-2" : "space-y-3"}>
           {conversations.map((conv) => {
             const messagePreview = formatQuotedMessagePreview(

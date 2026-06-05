@@ -5,6 +5,7 @@ import {
   createEmptyModeSets, 
   mapTypeToMode, 
   getLatestPerActorAndType,
+  deriveAttentionFromNotifications,
   sortByNewest } 
 from "./utils/notificationUtils.js";
 import { NotificationsContext } from "./hooks/useNotifications.js";
@@ -59,6 +60,7 @@ export function NotificationsProvider({ currentUser, children }) {
       const list = Array.isArray(data.notifications) ? sortByNewest(data.notifications) : [];
       
       setNotifications(list);
+      setAttentionUsersByMode(deriveAttentionFromNotifications(list));
     } catch {
       setError("Network error while loading notifications.");
     } finally {

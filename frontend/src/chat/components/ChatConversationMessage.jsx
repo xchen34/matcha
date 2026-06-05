@@ -76,9 +76,9 @@ export default function ChatConversationMessage({
 
         {/* 引用块：如果消息中有 quoteLines，则先渲染一块引用区域 */}
         {quoteLines.length > 0 && (
-          <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+          <div className={`flex min-w-0 ${isMine ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-[68%] border-l-4 px-2 py-1 rounded-2xl text-sm break-words whitespace-pre-wrap break-all
+              className={`min-w-0 max-w-[68%] border-l-4 px-2 py-1 rounded-2xl text-sm break-words whitespace-pre-wrap break-all
                 ${
                   isMine
                     ? "border border-primary-medium bg-primary-light text-primary-dark"
@@ -86,15 +86,15 @@ export default function ChatConversationMessage({
                 }
             `}
             >
-              <p className="text-xs font-medium">{quoteLines.join("\n")}</p> // 引用内容通常字体更小、更淡一些，以示区分。
+              <p className="text-xs font-medium">{quoteLines.join("\n")}</p>
             </div>
           </div>
         )}
 
         {/* 主消息气泡：自己发的靠右，别人发的靠左 */}
-        <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+        <div className={`flex min-w-0 ${isMine ? "justify-end" : "justify-start"}`}>
           <div
-            className={`max-w-[68%] rounded-2xl px-3 py-1.5 text-sm cursor-pointer transition-all
+            className={`min-w-0 max-w-[68%] rounded-2xl px-3 py-1.5 text-sm cursor-pointer transition-all break-words
               ${isMine ? "bg-primary text-white" : "bg-slate-200 text-neutral-dark"}
             `}
             onMouseEnter={() => setIsHovered(true)} 

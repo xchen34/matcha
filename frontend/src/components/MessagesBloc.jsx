@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import ChatConversationPage from "../chat/ChatConversationPage.jsx";
 import ChatListPage from "../chat/ChatListPage.jsx";
 
 export default function MessagesBloc({ currentUser }) {
   const { conversationId } = useParams();
+  const [quotedMessage, setQuotedMessage] = useState(null);
 
   /* ============= Redirect if not logged in ============= */
   if (!currentUser?.id) {
@@ -11,25 +13,34 @@ export default function MessagesBloc({ currentUser }) {
   }
 
   return (
-    <section className="space-y-4">
+    <section className="flex min-h-0 flex-1 min-w-0 flex-col space-y-4">
       {/* Mobile layout */}
-      <div className="lg:hidden">
+      <div className="flex min-h-0 flex-1 min-w-0 flex-col lg:hidden">
         {conversationId ? (
-          <ChatConversationPage currentUser={currentUser} />
+          <ChatConversationPage
+            currentUser={currentUser}
+            quotedMessage={quotedMessage}
+            setQuotedMessage={setQuotedMessage}
+          />
         ) : (
           <ChatListPage currentUser={currentUser} />
         )}
       </div>
 
       {/* Desktop layout */}
-      <div className="hidden gap-4 lg:grid lg:grid-cols-3">
-        <div className="lg:col-span-1">
+      <div className="hidden min-h-0 min-w-0 flex-1 gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        <div className="min-w-0">
           <ChatListPage currentUser={currentUser} embedded />
         </div>
 
-        <div className="lg:col-span-2">
+        <div className="min-w-0">
           {conversationId ? (
-            <ChatConversationPage currentUser={currentUser} embedded />
+            <ChatConversationPage
+              currentUser={currentUser}
+              embedded
+              quotedMessage={quotedMessage}
+              setQuotedMessage={setQuotedMessage}
+            />
           ) : (
             <div className="flex min-h-[360px] items-center justify-center rounded-3xl border-2 border-slate-200 bg-white/90 p-8 text-center shadow-sm">
               <div className="space-y-2">

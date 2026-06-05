@@ -13,7 +13,12 @@ import ChatInputForm from "./components/ChatInputForm.jsx";
  * - 组装数据 hooks（会话数据、实时更新、滚动分页、消息操作）
  * - 把状态和回调分发给子组件（Header/List/Input）
  */
-export default function ChatConversationPage({ currentUser, embedded = false }) {
+export default function ChatConversationPage({
+  currentUser,
+  embedded = false,
+  quotedMessage: quotedMessageProp,
+  setQuotedMessage: setQuotedMessageProp,
+}) {
   const { conversationId } = useParams();
   const navigate = useNavigate();
 
@@ -22,7 +27,9 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
   const [error, setError] = useState("");
   const [expandedMessageId, setExpandedMessageId] = useState(null);
   const [body, setBody] = useState("");
-  const [quotedMessage, setQuotedMessage] = useState(null);
+  const [localQuotedMessage, setLocalQuotedMessage] = useState(null);
+  const quotedMessage = quotedMessageProp ?? localQuotedMessage;
+  const setQuotedMessage = setQuotedMessageProp ?? setLocalQuotedMessage;
 
   // 会话主体数据（会话信息、消息列表、分页加载等）。
   const conversationData = useConversationData(currentUser, conversationId);
@@ -110,7 +117,7 @@ export default function ChatConversationPage({ currentUser, embedded = false }) 
   }
 
   return (
-    <section className="flex h-full flex-col overflow-hidden">
+    <section className="min-h-0 min-w-0 flex flex-1 w-full flex-col overflow-hidden">
       <ChatConversationHeader
         conversation={conversation}
         embedded={embedded}
