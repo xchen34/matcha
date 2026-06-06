@@ -106,8 +106,8 @@ export function useMatchFilters(currentUser) {
       const parsed = Number(value);
       if (!Number.isFinite(parsed)) return;
 
-      setDraftFilters((prev) => ({ 
-        ...prev, 
+      setDraftFilters((prev) => ({
+        ...prev,
         [name]: String(parsed),
       }));
       return;
@@ -234,8 +234,8 @@ export function useMatchFilters(currentUser) {
             data?.suggestions?.[0]?.city ||
             city;
 
-          setDraftFilters((prev) => ({ 
-            ...prev, 
+          setDraftFilters((prev) => ({
+            ...prev,
             city: normalizedCity,
           }));
 
@@ -262,30 +262,24 @@ export function useMatchFilters(currentUser) {
   }
 
   /* ========== Reset all filters to default values ========== */
- function resetFilters() {
-  const defaults = {
-    username: "",
-    min_age: 18,
-    max_age: 100,
-    min_fame: 0,
-    max_fame: 100,
-    city: "",
-    tags: [],
-    sort_by: "",
-    sort_dir: "desc",
-  };
+  function resetFilters() {
+    const defaults = {
+      username: "",
+      min_age: 18,
+      max_age: 100,
+      min_fame: 0,
+      max_fame: 100,
+      city: "",
+      tags: [],
+      sort_by: "",
+      sort_dir: "desc",
+    };
 
-  setDraftFilters(defaults);
-  setAppliedFilters(defaults);
-  setCityConfirmed(false);
-  setCitySuggestions([]);
-  setFilterError("");
-}
-    
-    setDraftFilters(empty);
-    setAppliedFilters(empty);
+    setDraftFilters(defaults);
+    setAppliedFilters(defaults);
     setCityConfirmed(false);
     setCitySuggestions([]);
+    setFilterError("");
   }
 
   return {
