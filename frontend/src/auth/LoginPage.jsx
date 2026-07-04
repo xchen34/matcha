@@ -68,6 +68,28 @@ export default function LoginPage({ onLogin }) {
 
       {/*========== MESSAGE ==========*/}
       {message && <p className="text-sm text-slate-600">{message}</p>}
+
+      {/*========== DEMO ACCESS ==========*/}
+      <div className="rounded-2xl border border-primary/20 bg-primary-light/40 p-4 space-y-2">
+        <p className="text-xs uppercase tracking-[0.14em] text-primary-dark font-semibold">
+          Demo Access
+        </p>
+        <p className="text-sm text-slate-700">
+          Use one of these accounts to explore the app quickly, or register a new one in this demo.
+        </p>
+        <div className="space-y-2 text-sm text-neutral-dark">
+          <p>
+            <span className="font-semibold">user1@test.com</span>
+            {" / "}
+            <span className="font-mono">Qwerty999</span>
+          </p>
+          <p>
+            <span className="font-semibold">user2@test.com</span>
+            {" / "}
+            <span className="font-mono">Qwerty999</span>
+          </p>
+        </div>
+      </div>
     </section>
   );
 }
