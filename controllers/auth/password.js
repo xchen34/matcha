@@ -17,6 +17,9 @@ const {
 /* Forgot password: generate a reset token and send email */
 async function forgotPassword(req, res, next) {
   try {
+    const demoAutoVerifyUsers =
+      String(process.env.DEMO_AUTO_VERIFY_USERS || "").trim().toLowerCase() ===
+      "true";
     const { email } = req.body;
     const normalizedEmail = normalizeString(email).toLowerCase();
 
@@ -44,6 +47,21 @@ async function forgotPassword(req, res, next) {
 
     // Send the password reset email
     const frontendBaseUrl = getFrontendBaseUrl();
+    const demoResetUrl = `${frontendBaseUrl}/reset-password?token=${resetToken}`;
+
+    if (demoAutoVerifyUsers) {
+      return res.json({
+        message:
+          "If an account with this email exists, a password reset link has been generated.",
+        email_delivery: {
+          sent: false,
+          skipped: true,
+          reason: "demo_auto_verify_enabled",
+        },
+        dev_reset_url: demoResetUrl,
+      });
+    }
+
     let emailDelivery = buildFailedEmailDelivery("unknown");
 
     try {
@@ -68,7 +86,7 @@ async function forgotPassword(req, res, next) {
       dev_reset_url:
         process.env.NODE_ENV === "production"
           ? null
-          : `${frontendBaseUrl}/reset-password?token=${resetToken}`,
+          : demoResetUrl,
     });
   } catch (error) {
     return next(error);
