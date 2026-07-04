@@ -71,6 +71,9 @@ async function verifyEmail(req, res, next) {
 /* Request an email change, then send a verification email to the new address */
 async function requestEmailChange(req, res, next) {
   try {
+    const demoAutoVerifyUsers =
+      String(process.env.DEMO_AUTO_VERIFY_USERS || "").trim().toLowerCase() ===
+      "true";
     // Ensure the pending_email column exists
     await authService.ensurePendingEmailColumn();
 
@@ -157,6 +160,22 @@ async function requestEmailChange(req, res, next) {
 
     // Send the verification email to the new address
     const frontendBaseUrl = getFrontendBaseUrl();
+    const demoVerifyUrl = `${frontendBaseUrl}/verify-email?token=${verificationToken}`;
+
+    if (demoAutoVerifyUsers) {
+      return res.json({
+        message:
+          "Verification link generated for your new address. Open it to confirm the email change.",
+        pending_email: newEmail,
+        email_delivery: {
+          sent: false,
+          skipped: true,
+          reason: "demo_auto_verify_enabled",
+        },
+        dev_verify_url: demoVerifyUrl,
+      });
+    }
+
     let emailDelivery = buildFailedEmailDelivery("unknown");
 
     try {
@@ -178,7 +197,7 @@ async function requestEmailChange(req, res, next) {
       dev_verify_url:
         process.env.NODE_ENV === "production"
           ? null
-          : `${frontendBaseUrl}/verify-email?token=${verificationToken}`,
+          : demoVerifyUrl,
     });
   } catch (error) {
     return next(error);
@@ -188,6 +207,9 @@ async function requestEmailChange(req, res, next) {
 /* Resend the verification email to the user's current email address */
 async function resendVerificationEmail(req, res, next) {
   try {
+    const demoAutoVerifyUsers =
+      String(process.env.DEMO_AUTO_VERIFY_USERS || "").trim().toLowerCase() ===
+      "true";
     // Validate input
     const { email } = req.body;
     if (!email || typeof email !== "string") {
@@ -224,6 +246,21 @@ async function resendVerificationEmail(req, res, next) {
 
     // Send the verification email
     const frontendBaseUrl = getFrontendBaseUrl();
+    const demoVerifyUrl = `${frontendBaseUrl}/verify-email?token=${verificationToken}`;
+
+    if (demoAutoVerifyUsers) {
+      return res.json({
+        message:
+          "If an account with this email exists, a verification link has been generated.",
+        email_delivery: {
+          sent: false,
+          skipped: true,
+          reason: "demo_auto_verify_enabled",
+        },
+        dev_verify_url: demoVerifyUrl,
+      });
+    }
+
     let emailDelivery = buildFailedEmailDelivery("unknown");
 
     try {
@@ -244,7 +281,7 @@ async function resendVerificationEmail(req, res, next) {
       dev_verify_url:
         process.env.NODE_ENV === "production"
           ? null
-          : `${frontendBaseUrl}/verify-email?token=${verificationToken}`,
+          : demoVerifyUrl,
     });
   } catch (error) {
     return next(error);
