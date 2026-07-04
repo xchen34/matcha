@@ -4,14 +4,9 @@ function buildTargetUrl(requestUrl, apiBaseUrl) {
   return `${targetBase}${incomingUrl.pathname}${incomingUrl.search}`;
 }
 
-function copyHeaders(headers, apiBaseUrl) {
+function copyHeaders(headers) {
   const nextHeaders = new Headers(headers);
-  const apiOrigin = new URL(apiBaseUrl).origin;
-
-  nextHeaders.set("x-forwarded-host", headers.get("host") || "");
-  nextHeaders.set("x-forwarded-proto", "https");
-  nextHeaders.set("origin", apiOrigin);
-  nextHeaders.set("host", new URL(apiBaseUrl).host);
+  nextHeaders.delete("host");
 
   return nextHeaders;
 }
@@ -32,7 +27,7 @@ export async function onRequest(context) {
 
   const init = {
     method: request.method,
-    headers: copyHeaders(request.headers, apiBaseUrl),
+    headers: copyHeaders(request.headers),
     redirect: "manual",
   };
 
@@ -40,14 +35,24 @@ export async function onRequest(context) {
     init.body = request.body;
   }
 
-  const upstreamResponse = await fetch(
-    buildTargetUrl(request.url, apiBaseUrl),
-    init,
-  );
+  try {
+    const upstreamResponse = await fetch(
+      buildTargetUrl(request.url, apiBaseUrl),
+      init,
+    );
 
-  return new Response(upstreamResponse.body, {
-    status: upstreamResponse.status,
-    statusText: upstreamResponse.statusText,
-    headers: upstreamResponse.headers,
-  });
+    return new Response(upstreamResponse.body, {
+      status: upstreamResponse.status,
+      statusText: upstreamResponse.statusText,
+      headers: upstreamResponse.headers,
+    });
+  } catch (error) {
+    return Response.json(
+      {
+        error: "Pages API proxy failed",
+        details: String(error?.message || error),
+      },
+      { status: 502 },
+    );
+  }
 }
