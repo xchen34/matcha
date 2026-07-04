@@ -21,6 +21,9 @@ const {
 
 async function register(req, res, next) {
   try {
+    const demoAutoVerifyUsers =
+      String(process.env.DEMO_AUTO_VERIFY_USERS || "").trim().toLowerCase() ===
+      "true";
     const { email, username, first_name, last_name, birth_date, password: rawPassword } = req.body;
     const normalizedEmail = normalizeString(email);
     const normalizedUsername = normalizeString(username);
@@ -106,6 +109,26 @@ async function register(req, res, next) {
       },
       birth_date,
     );
+
+    if (demoAutoVerifyUsers) {
+      await authService.verifyEmail(user.id);
+
+      return res.status(201).json({
+        message: "User registered successfully. You can now log in.",
+        user: {
+          ...user,
+          email_verified: true,
+        },
+        profile_completed: false,
+        email_delivery: {
+          success: false,
+          skipped: true,
+          reason: "demo_auto_verify_enabled",
+        },
+        next_step: "login",
+        dev_verify_url: null,
+      });
+    }
 
     // Send the verification email
     const frontendBaseUrl = getFrontendBaseUrl();

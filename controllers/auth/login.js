@@ -6,6 +6,9 @@ const { REALTIME_TOKEN_TTL_SECONDS } = require("../../realtime/authToken");
 
 async function login(req, res, next) {
   try {
+    const demoAutoVerifyUsers =
+      String(process.env.DEMO_AUTO_VERIFY_USERS || "").trim().toLowerCase() ===
+      "true";
     const { username, password } = req.body;
     const identifier = typeof username === "string" ? username.trim() : "";
     const rawPassword = typeof password === "string" ? password : "";
@@ -33,7 +36,7 @@ async function login(req, res, next) {
     }
 
     // Check if email is verified
-    if (!user.email_verified) {
+    if (!user.email_verified && !demoAutoVerifyUsers) {
       return res.status(403).json({
         error:
           "Email not verified. Please check your email and click the verification link to complete registration.",

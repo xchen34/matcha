@@ -1,20 +1,49 @@
 const { Pool } = require("pg");
 
-const poolConfig = {
-  host: process.env.DB_HOST || "localhost",
-  port: Number(process.env.DB_PORT) || 5432,
-};
+function shouldUseSsl() {
+  const raw = String(process.env.DB_SSL || "").trim().toLowerCase();
+  return raw === "true" || raw === "1" || raw === "require";
+}
 
-if (process.env.DB_USER) {
+function buildSslConfig() {
+  if (!shouldUseSsl()) {
+    return undefined;
+  }
+
+  return {
+    rejectUnauthorized:
+      String(process.env.DB_SSL_REJECT_UNAUTHORIZED || "false")
+        .trim()
+        .toLowerCase() === "true",
+  };
+}
+
+const connectionString = String(process.env.DATABASE_URL || "").trim();
+
+const poolConfig = connectionString
+  ? {
+      connectionString,
+    }
+  : {
+      host: process.env.DB_HOST || "localhost",
+      port: Number(process.env.DB_PORT) || 5432,
+    };
+
+if (!connectionString && process.env.DB_USER) {
   poolConfig.user = process.env.DB_USER;
 }
 
-if (process.env.DB_PASSWORD) {
+if (!connectionString && process.env.DB_PASSWORD) {
   poolConfig.password = process.env.DB_PASSWORD;
 }
 
-if (process.env.DB_NAME) {
+if (!connectionString && process.env.DB_NAME) {
   poolConfig.database = process.env.DB_NAME;
+}
+
+const ssl = buildSslConfig();
+if (ssl) {
+  poolConfig.ssl = ssl;
 }
 
 const pool = new Pool(poolConfig);
