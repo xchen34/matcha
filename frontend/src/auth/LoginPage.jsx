@@ -18,6 +18,9 @@ export default function LoginPage({ onLogin }) {
           Welcome back
         </p>
         <h2 className="text-2xl font-semibold text-neutral-dark">Login</h2>
+        <p className="text-sm text-slate-500">
+          Student portfolio demo only. All seeded users, profiles, and photos are test data.
+        </p>
       </div>
 
       {/*========== FORM ==========*/}
